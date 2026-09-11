@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  umrah-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: umrah-operations-frontend
+    restart: unless-stopped
+    ports:
+      - '80:80'
+    environment:
+      - NODE_ENV=production
