@@ -217,17 +217,43 @@ export default function GroupsPage() {
                   }`}
                 >
                   <option value="الكل">{isRTL ? 'الوكيل: جميع الوكلاء' : 'Agent: All Agents'}</option>
-                  <option value={isRTL ? 'حاسوب لتجارة التقنية - 2067' : 'Hasoob Technology Trading - 2067'}>
-                    {isRTL ? 'حاسوب لتجارة التقنية - 2067' : 'Hasoob Technology Trading - 2067'}
-                  </option>
-                  <option value={isRTL ? 'أودست للسياحة والسفر - 2114' : 'ODST Travel and Tourism - 2114'}>
-                    {isRTL ? 'أودست للسياحة والسفر - 2114' : 'ODST Travel and Tourism - 2114'}
-                  </option>
-                  <option value={isRTL ? 'وكالة مكة للطيران' : 'Makkah Aviation Agency'}>{isRTL ? 'وكالة مكة للطيران' : 'Makkah Aviation Agency'}</option>
-                  <option value={isRTL ? 'نور الإيمان الدولية' : 'Noor Al-Iman International'}>{isRTL ? 'نور الإيمان الدولية' : 'Noor Al-Iman International'}</option>
-                  <option value={isRTL ? 'إندونيسيا ترافيل' : 'Indonesia Travel'}>{isRTL ? 'إندونيسيا ترافيل' : 'Indonesia Travel'}</option>
-                  <option value={isRTL ? 'الصفا ترافيل الهند' : 'Safa Travel India'}>{isRTL ? 'الصفا ترافيل الهند' : 'Safa Travel India'}</option>
-                  <option value={isRTL ? 'وكالة أنقرة للسياحة' : 'Ankara Tours Agency'}>{isRTL ? 'وكالة أنقرة للسياحة' : 'Ankara Tours Agency'}</option>
+                  {(() => {
+                    try {
+                      const saved = localStorage.getItem('system_list_agents');
+                      if (saved) {
+                        const parsed = JSON.parse(saved);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                          return parsed
+                            .filter((a: { status: string }) => a.status === 'Active')
+                            .map((agent: { id: string; nameAr: string; nameEn: string }) => {
+                              const label = isRTL ? agent.nameAr : agent.nameEn;
+                              return (
+                                <option key={agent.id} value={label}>
+                                  {label}
+                                </option>
+                              );
+                            });
+                        }
+                      }
+                    } catch {
+                      // ignore
+                    }
+                    return (
+                      <>
+                        <option value={isRTL ? 'حاسوب لتجارة التقنية - 2067' : 'Hasoob Technology Trading - 2067'}>
+                          {isRTL ? 'حاسوب لتجارة التقنية - 2067' : 'Hasoob Technology Trading - 2067'}
+                        </option>
+                        <option value={isRTL ? 'أودست للسياحة والسفر - 2114' : 'ODST Travel and Tourism - 2114'}>
+                          {isRTL ? 'أودست للسياحة والسفر - 2114' : 'ODST Travel and Tourism - 2114'}
+                        </option>
+                        <option value={isRTL ? 'وكالة مكة للطيران' : 'Makkah Aviation Agency'}>{isRTL ? 'وكالة مكة للطيران' : 'Makkah Aviation Agency'}</option>
+                        <option value={isRTL ? 'نور الإيمان الدولية' : 'Noor Al-Iman International'}>{isRTL ? 'نور الإيمان الدولية' : 'Noor Al-Iman International'}</option>
+                        <option value={isRTL ? 'إندونيسيا ترافيل' : 'Indonesia Travel'}>{isRTL ? 'إندونيسيا ترافيل' : 'Indonesia Travel'}</option>
+                        <option value={isRTL ? 'الصفا ترافيل الهند' : 'Safa Travel India'}>{isRTL ? 'الصفا ترافيل الهند' : 'Safa Travel India'}</option>
+                        <option value={isRTL ? 'وكالة أنقرة للسياحة' : 'Ankara Tours Agency'}>{isRTL ? 'وكالة أنقرة للسياحة' : 'Ankara Tours Agency'}</option>
+                      </>
+                    );
+                  })()}
                 </select>
                 <ChevronDown className={`w-4 h-4 text-slate-500 absolute top-1/2 -translate-y-1/2 pointer-events-none ${
                   isRTL ? 'left-3' : 'right-3'
@@ -305,6 +331,7 @@ export default function GroupsPage() {
                             code: group.code,
                             name: group.name,
                             groupCodeNumber: '480900XXXXXX',
+                            agreementNumber: (group as any).agreementNumber || 'AGR-1125900',
                             mainAgent: group.mainAgent,
                             subAgent: group.subAgent,
                             nationality: group.nationality,
@@ -321,9 +348,11 @@ export default function GroupsPage() {
                             departureAirport: isRTL ? 'مطار الأمير محمد بن عبدالعزيز - المدينة' : 'Prince Mohammad Bin Abdulaziz Airport - Madinah',
                             arrivalFlightNo: 'SV-0378',
                             arrivalDate: '2024-08-15',
-                            arrivalAirport: isRTL ? 'مطار الملك عبدالعزيز - جدة' : 'King Abdulaziz Airport - Jeddah',
-                            transportCompany: isRTL ? 'شركة حافلات مكة' : 'Makkah Buses Co.',
+                            transportCompany: isRTL ? 'شركة حافل للنقل' : 'Hafil Transport Company',
                             operationNumber: 'OPS-7489',
+                            driverName: isRTL ? 'سامي السلمي' : 'Sami Al-Sulami',
+                            driverPhone: '+966 51 234 5678',
+                            busPlateNo: '9312 HFL',
                             umrahPermitStatus: isRTL ? 'مقبول' : 'Approved',
                             rawdahMenPermitStatus: isRTL ? 'قيد المراجعة' : 'In Review',
                             rawdahWomenPermitStatus: isRTL ? 'لم يُقدم' : 'Not Submitted',

@@ -1,4 +1,4 @@
-import { X, SquarePen, Info, Building2 } from 'lucide-react';
+import { X, SquarePen, Info, Building2, Plane } from 'lucide-react';
 import busBadge from '../../assets/bus-badge.png';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -16,6 +16,9 @@ export interface TripItem {
   programType?: string;
   expectedDuration?: string;
   dominantNationality?: string;
+  airline?: string;
+  flightNumber?: string;
+  airportHub?: string;
   makkahHotel?: string;
   makkahStay?: string;
   madinahHotel?: string;
@@ -257,6 +260,30 @@ export default function TripDetailsModal({
                 </span>
               </div>
             </div>
+
+            {/* Flight / Airline Details if present */}
+            {(trip.airline || trip.flightNumber || trip.airportHub || trip.routeName.includes('مطار') || trip.routeName.toLowerCase().includes('airport') || trip.routeName.includes('جاكرتا')) && (
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center gap-2 text-sm font-bold text-[#0f172a]">
+                  <Plane className="w-4 h-4 text-emerald-600" />
+                  <span>{isRTL ? 'بيانات الطيران والناقل الجوي' : 'Airline & Flight Details'}</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="bg-white border border-slate-200/90 rounded-xl px-4 py-2.5 flex items-center justify-between shadow-2xs">
+                    <span className="text-xs text-slate-400 font-normal">{isRTL ? 'الناقل الجوي' : 'Airline / Carrier'}</span>
+                    <span className="text-xs sm:text-sm font-bold text-emerald-700">
+                      {trip.airline || (isRTL ? 'الخطوط السعودية (SV)' : 'Saudia (SV)')}
+                    </span>
+                  </div>
+                  <div className="bg-white border border-slate-200/90 rounded-xl px-4 py-2.5 flex items-center justify-between shadow-2xs">
+                    <span className="text-xs text-slate-400 font-normal">{isRTL ? 'رقم الرحلة' : 'Flight No.'}</span>
+                    <span className="text-xs sm:text-sm font-bold font-mono text-slate-800">
+                      {trip.flightNumber || 'SV-379'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

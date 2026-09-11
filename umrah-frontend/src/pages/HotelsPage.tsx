@@ -8,6 +8,8 @@ import {
   Star,
   ChevronLeft,
   ChevronRight,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 import AddHotelModal, { type NewHotelData } from '../components/hotels/AddHotelModal';
 import HotelDetailsModal from '../components/hotels/HotelDetailsModal';
@@ -46,6 +48,7 @@ export default function HotelsPage() {
   const [selectedHotel, setSelectedHotel] = useState<HotelItem | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [editingHotel, setEditingHotel] = useState<HotelItem | null>(null);
+  const [hotelToDelete, setHotelToDelete] = useState<HotelItem | null>(null);
 
   const defaultRooms: RoomTypeRow[] = [
     {
@@ -314,7 +317,7 @@ export default function HotelsPage() {
                   setSelectedHotel(hotel);
                   setIsDetailsModalOpen(true);
                 }}
-                className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-2xs hover:shadow-md hover:border-slate-300 transition-all duration-300 flex flex-col justify-between group cursor-pointer active:scale-[0.99]"
+                className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-2xs hover:shadow-md hover:border-slate-300 transition-all duration-300 flex flex-col justify-between group cursor-pointer active:scale-[0.99] relative"
               >
                 {/* Image */}
                 <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-slate-100">
@@ -324,6 +327,36 @@ export default function HotelsPage() {
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     loading="lazy"
                   />
+
+                  {/* Card Action Buttons (Edit & Delete) */}
+                  <div
+                    className={`absolute top-3 ${isRTL ? 'left-3' : 'right-3'} flex items-center gap-1.5 z-10`}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingHotel(hotel);
+                        setIsAddHotelOpen(true);
+                      }}
+                      className="w-8 h-8 rounded-lg bg-white/95 hover:bg-white text-slate-700 hover:text-[#00c48c] flex items-center justify-center backdrop-blur-xs transition shadow-md border border-slate-200/90 cursor-pointer active:scale-95"
+                      title={isRTL ? 'تعديل الفندق' : 'Edit Hotel'}
+                    >
+                      <Pencil className="w-3.5 h-3.5 stroke-[2.2]" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setHotelToDelete(hotel);
+                      }}
+                      className="w-8 h-8 rounded-lg bg-white/95 hover:bg-rose-50 text-slate-700 hover:text-rose-600 flex items-center justify-center backdrop-blur-xs transition shadow-md border border-slate-200/90 cursor-pointer active:scale-95"
+                      title={isRTL ? 'حذف الفندق' : 'Delete Hotel'}
+                    >
+                      <Trash2 className="w-3.5 h-3.5 stroke-[2.2]" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Card Body */}
@@ -487,6 +520,75 @@ export default function HotelsPage() {
           setIsAddHotelOpen(true);
         }}
       />
+
+      {/* Delete Hotel Confirmation Modal */}
+      {hotelToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+          <div
+            className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-100 p-6 space-y-5 animate-scaleUp"
+            dir={direction}
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 border border-rose-100">
+                <Trash2 className="w-6 h-6 stroke-[2.2]" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  {isRTL ? 'تأكيد حذف الفندق' : 'Delete Hotel Confirmation'}
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {isRTL ? 'هل أنت متأكد من رغبتك في حذف هذا الفندق من النظام؟' : 'Are you sure you want to delete this hotel from the system?'}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 flex items-center gap-3">
+              <img
+                src={hotelToDelete.image}
+                alt={hotelToDelete.name}
+                className="w-14 h-14 rounded-lg object-cover border border-slate-200 shrink-0"
+              />
+              <div className="flex-1 min-w-0">
+                <div className="text-xs sm:text-sm font-bold text-slate-800 truncate">{hotelToDelete.name}</div>
+                <div className="text-[11px] text-slate-500 mt-0.5">{hotelToDelete.location}</div>
+                <div className="text-[11px] font-bold text-emerald-600 mt-0.5">
+                  {hotelToDelete.pricePerNight} {t('common.currency', 'ر.س')} / {isRTL ? 'ليلة' : 'Night'}
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-rose-600 bg-rose-50/80 border border-rose-200/60 rounded-xl p-3 leading-relaxed">
+              {isRTL
+                ? 'تنبيه: سيتم حذف جميع أسعار الغرف وبيانات التسكين المرتبطة بهذا الفندق نهائياً من النظام.'
+                : 'Warning: All room rates and accommodation details associated with this hotel will be permanently deleted.'}
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-1">
+              <button
+                type="button"
+                onClick={() => setHotelToDelete(null)}
+                className="px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 rounded-xl transition cursor-pointer border border-slate-200 active:scale-95"
+              >
+                {t('common.cancel', 'إلغاء')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setHotelsList((prev) => prev.filter((h) => h.id !== hotelToDelete.id));
+                  if (selectedHotel && selectedHotel.id === hotelToDelete.id) {
+                    setSelectedHotel(null);
+                    setIsDetailsModalOpen(false);
+                  }
+                  setHotelToDelete(null);
+                }}
+                className="px-5 py-2.5 text-xs sm:text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition cursor-pointer shadow-xs active:scale-95"
+              >
+                {isRTL ? 'نعم، حذف الفندق' : 'Yes, Delete Hotel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,15 +1,27 @@
 import { useState, useRef } from 'react';
-import { ChevronDown, Upload, Check, X } from 'lucide-react';
+import { ChevronDown, Upload, Check, X, Eye } from 'lucide-react';
 import { useLanguage } from '../../../context/LanguageContext';
+import FilePreviewModal, { type FilePreviewData } from '../../common/FilePreviewModal';
+
+interface UploadedFileItem {
+  name: string;
+  size?: number;
+  url?: string;
+  type?: string;
+  uploadedAt?: string;
+  categoryTitle?: string;
+}
 
 interface FileUploadButtonProps {
   id: string;
-  fileInfo?: { name: string; size?: number };
+  categoryTitle?: string;
+  fileInfo?: UploadedFileItem;
   onUpload: (file: File) => void;
   onRemove: () => void;
+  onView: (fileData: FilePreviewData) => void;
 }
 
-function FileUploadButton({ id, fileInfo, onUpload, onRemove }: FileUploadButtonProps) {
+function FileUploadButton({ id, categoryTitle, fileInfo, onUpload, onRemove, onView }: FileUploadButtonProps) {
   const { isRTL } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -30,14 +42,49 @@ function FileUploadButton({ id, fileInfo, onUpload, onRemove }: FileUploadButton
         id={id}
         onChange={handleChange}
         className="hidden"
-        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp"
       />
       {fileInfo ? (
-        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-md text-[11px] font-normal transition shadow-2xs">
+        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-md text-[11px] font-normal transition shadow-2xs hover:bg-emerald-100/70">
           <Check className="w-3 h-3 text-emerald-600 shrink-0" />
-          <span className="truncate max-w-[80px] sm:max-w-[110px]" title={fileInfo.name}>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onView({
+                name: fileInfo.name,
+                size: fileInfo.size,
+                url: fileInfo.url,
+                type: fileInfo.type,
+                uploadedAt: fileInfo.uploadedAt,
+                categoryTitle: categoryTitle || fileInfo.categoryTitle,
+              });
+            }}
+            className="truncate max-w-[80px] sm:max-w-[110px] hover:underline text-emerald-800 font-medium cursor-pointer text-left rtl:text-right"
+            title={fileInfo.name}
+          >
             {fileInfo.name}
-          </span>
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onView({
+                name: fileInfo.name,
+                size: fileInfo.size,
+                url: fileInfo.url,
+                type: fileInfo.type,
+                uploadedAt: fileInfo.uploadedAt,
+                categoryTitle: categoryTitle || fileInfo.categoryTitle,
+              });
+            }}
+            className="text-emerald-600 hover:text-emerald-900 p-0.5 rounded cursor-pointer transition hover:bg-emerald-200/50"
+            title={isRTL ? 'معاينة الملف' : 'View / Preview file'}
+          >
+            <Eye className="w-3 h-3 stroke-[2.2]" />
+          </button>
           <button
             type="button"
             onClick={(e) => {
@@ -45,7 +92,7 @@ function FileUploadButton({ id, fileInfo, onUpload, onRemove }: FileUploadButton
               e.stopPropagation();
               onRemove();
             }}
-            className="text-emerald-500 hover:text-emerald-800 p-0.5 rounded cursor-pointer transition hover:bg-emerald-100"
+            className="text-slate-400 hover:text-red-600 p-0.5 rounded cursor-pointer transition hover:bg-red-50"
             title={isRTL ? 'إزالة الملف' : 'Remove file'}
           >
             <X className="w-2.5 h-2.5 stroke-[2.5]" />
@@ -88,8 +135,8 @@ interface Step4PermitsNotesProps {
   setAdditionalNotes: (val: string) => void;
   missingRequirements: string;
   setMissingRequirements: (val: string) => void;
-  uploadedFiles?: Record<string, { name: string; size?: number }>;
-  setUploadedFiles?: React.Dispatch<React.SetStateAction<Record<string, { name: string; size?: number }>>>;
+  uploadedFiles?: Record<string, UploadedFileItem>;
+  setUploadedFiles?: React.Dispatch<React.SetStateAction<Record<string, UploadedFileItem>>>;
 }
 
 export default function Step4PermitsNotes({
@@ -119,15 +166,33 @@ export default function Step4PermitsNotes({
   setUploadedFiles: parentSetUploadedFiles,
 }: Step4PermitsNotesProps) {
   const { t, isRTL } = useLanguage();
-  const [localUploadedFiles, setLocalUploadedFiles] = useState<Record<string, { name: string; size?: number }>>({});
+  const [localUploadedFiles, setLocalUploadedFiles] = useState<Record<string, UploadedFileItem>>({
+    arrivalGrouping: {
+      name: 'Frame 82717156.png',
+      size: 348120,
+      uploadedAt: new Date().toLocaleDateString('en-GB'),
+      categoryTitle: isRTL ? 'تفويج الوصول' : 'Arrival Grouping',
+    },
+  });
+
+  const [previewFile, setPreviewFile] = useState<FilePreviewData | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const files = parentUploadedFiles ?? localUploadedFiles;
   const setFiles = parentSetUploadedFiles ?? setLocalUploadedFiles;
 
-  const handleFileUpload = (fieldKey: string, file: File) => {
+  const handleFileUpload = (fieldKey: string, file: File, categoryTitle: string) => {
+    const objectUrl = URL.createObjectURL(file);
     setFiles((prev) => ({
       ...prev,
-      [fieldKey]: { name: file.name, size: file.size },
+      [fieldKey]: {
+        name: file.name,
+        size: file.size,
+        url: objectUrl,
+        type: file.type,
+        uploadedAt: new Date().toLocaleDateString('en-GB'),
+        categoryTitle: categoryTitle,
+      },
     }));
   };
 
@@ -137,6 +202,11 @@ export default function Step4PermitsNotes({
       delete next[fieldKey];
       return next;
     });
+  };
+
+  const handleViewFile = (fileData: FilePreviewData) => {
+    setPreviewFile(fileData);
+    setIsPreviewOpen(true);
   };
 
   return (
@@ -158,9 +228,11 @@ export default function Step4PermitsNotes({
               </label>
               <FileUploadButton
                 id="file-arrivalGrouping"
+                categoryTitle={isRTL ? 'تفويج الوصول' : 'Arrival Grouping'}
                 fileInfo={files['arrivalGrouping']}
-                onUpload={(f) => handleFileUpload('arrivalGrouping', f)}
+                onUpload={(f) => handleFileUpload('arrivalGrouping', f, isRTL ? 'تفويج الوصول' : 'Arrival Grouping')}
                 onRemove={() => handleFileRemove('arrivalGrouping')}
+                onView={handleViewFile}
               />
             </div>
             <div className="relative">
@@ -190,9 +262,11 @@ export default function Step4PermitsNotes({
               </label>
               <FileUploadButton
                 id="file-interCityGrouping"
+                categoryTitle={isRTL ? 'تفويج بين المدن' : 'Inter-City Grouping'}
                 fileInfo={files['interCityGrouping']}
-                onUpload={(f) => handleFileUpload('interCityGrouping', f)}
+                onUpload={(f) => handleFileUpload('interCityGrouping', f, isRTL ? 'تفويج بين المدن' : 'Inter-City Grouping')}
                 onRemove={() => handleFileRemove('interCityGrouping')}
+                onView={handleViewFile}
               />
             </div>
             <div className="relative">
@@ -222,9 +296,11 @@ export default function Step4PermitsNotes({
               </label>
               <FileUploadButton
                 id="file-departureGrouping"
+                categoryTitle={isRTL ? 'تفويج المغادرة' : 'Departure Grouping'}
                 fileInfo={files['departureGrouping']}
-                onUpload={(f) => handleFileUpload('departureGrouping', f)}
+                onUpload={(f) => handleFileUpload('departureGrouping', f, isRTL ? 'تفويج المغادرة' : 'Departure Grouping')}
                 onRemove={() => handleFileRemove('departureGrouping')}
+                onView={handleViewFile}
               />
             </div>
             <div className="relative">
@@ -256,9 +332,11 @@ export default function Step4PermitsNotes({
               </label>
               <FileUploadButton
                 id="file-makkahZiyarat"
+                categoryTitle={isRTL ? 'مزارات مكة' : 'Makkah Ziyarat Places'}
                 fileInfo={files['makkahZiyarat']}
-                onUpload={(f) => handleFileUpload('makkahZiyarat', f)}
+                onUpload={(f) => handleFileUpload('makkahZiyarat', f, isRTL ? 'مزارات مكة' : 'Makkah Ziyarat Places')}
                 onRemove={() => handleFileRemove('makkahZiyarat')}
+                onView={handleViewFile}
               />
             </div>
             <input
@@ -277,9 +355,11 @@ export default function Step4PermitsNotes({
               </label>
               <FileUploadButton
                 id="file-madinahZiyarat"
+                categoryTitle={isRTL ? 'مزارات المدينة' : 'Madinah Ziyarat Places'}
                 fileInfo={files['madinahZiyarat']}
-                onUpload={(f) => handleFileUpload('madinahZiyarat', f)}
+                onUpload={(f) => handleFileUpload('madinahZiyarat', f, isRTL ? 'مزارات المدينة' : 'Madinah Ziyarat Places')}
                 onRemove={() => handleFileRemove('madinahZiyarat')}
+                onView={handleViewFile}
               />
             </div>
             <input
@@ -310,9 +390,11 @@ export default function Step4PermitsNotes({
               </label>
               <FileUploadButton
                 id="file-umrahPermit"
+                categoryTitle={isRTL ? 'تصريح عمرة' : 'Umrah Permit'}
                 fileInfo={files['umrahPermit']}
-                onUpload={(f) => handleFileUpload('umrahPermit', f)}
+                onUpload={(f) => handleFileUpload('umrahPermit', f, isRTL ? 'تصريح عمرة' : 'Umrah Permit')}
                 onRemove={() => handleFileRemove('umrahPermit')}
+                onView={handleViewFile}
               />
             </div>
             <div className="relative">
@@ -345,9 +427,11 @@ export default function Step4PermitsNotes({
               </label>
               <FileUploadButton
                 id="file-rawdahMen"
+                categoryTitle={isRTL ? 'تصاريح الروضة - رجال' : 'Rawdah Permit (Men)'}
                 fileInfo={files['rawdahMen']}
-                onUpload={(f) => handleFileUpload('rawdahMen', f)}
+                onUpload={(f) => handleFileUpload('rawdahMen', f, isRTL ? 'تصاريح الروضة - رجال' : 'Rawdah Permit (Men)')}
                 onRemove={() => handleFileRemove('rawdahMen')}
+                onView={handleViewFile}
               />
             </div>
             <div className="relative">
@@ -380,9 +464,11 @@ export default function Step4PermitsNotes({
               </label>
               <FileUploadButton
                 id="file-rawdahWomen"
+                categoryTitle={isRTL ? 'تصاريح الروضة - نساء' : 'Rawdah Permit (Women)'}
                 fileInfo={files['rawdahWomen']}
-                onUpload={(f) => handleFileUpload('rawdahWomen', f)}
+                onUpload={(f) => handleFileUpload('rawdahWomen', f, isRTL ? 'تصاريح الروضة - نساء' : 'Rawdah Permit (Women)')}
                 onRemove={() => handleFileRemove('rawdahWomen')}
+                onView={handleViewFile}
               />
             </div>
             <div className="relative">
@@ -425,9 +511,11 @@ export default function Step4PermitsNotes({
             </label>
             <FileUploadButton
               id="file-enrichmentProgram"
+              categoryTitle={isRTL ? 'برنامج إثرائي' : 'Enrichment Program'}
               fileInfo={files['enrichmentProgram']}
-              onUpload={(f) => handleFileUpload('enrichmentProgram', f)}
+              onUpload={(f) => handleFileUpload('enrichmentProgram', f, isRTL ? 'برنامج إثرائي' : 'Enrichment Program')}
               onRemove={() => handleFileRemove('enrichmentProgram')}
+              onView={handleViewFile}
             />
           </div>
           <input
@@ -447,9 +535,11 @@ export default function Step4PermitsNotes({
             </label>
             <FileUploadButton
               id="file-additionalNotes"
+              categoryTitle={isRTL ? 'ملاحظات إضافية' : 'Additional Notes'}
               fileInfo={files['additionalNotes']}
-              onUpload={(f) => handleFileUpload('additionalNotes', f)}
+              onUpload={(f) => handleFileUpload('additionalNotes', f, isRTL ? 'ملاحظات إضافية' : 'Additional Notes')}
               onRemove={() => handleFileRemove('additionalNotes')}
+              onView={handleViewFile}
             />
           </div>
           <input
@@ -469,9 +559,11 @@ export default function Step4PermitsNotes({
             </label>
             <FileUploadButton
               id="file-missingRequirements"
+              categoryTitle={isRTL ? 'نواقص / متطلبات' : 'Missing Requirements'}
               fileInfo={files['missingRequirements']}
-              onUpload={(f) => handleFileUpload('missingRequirements', f)}
+              onUpload={(f) => handleFileUpload('missingRequirements', f, isRTL ? 'نواقص / متطلبات' : 'Missing Requirements')}
               onRemove={() => handleFileRemove('missingRequirements')}
+              onView={handleViewFile}
             />
           </div>
           <input
@@ -486,6 +578,13 @@ export default function Step4PermitsNotes({
           </p>
         </div>
       </div>
+
+      {/* File Preview Modal */}
+      <FilePreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        file={previewFile}
+      />
     </div>
   );
 }

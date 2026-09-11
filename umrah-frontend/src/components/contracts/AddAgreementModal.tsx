@@ -34,7 +34,7 @@ export default function AddAgreementModal({
   const { direction, t } = useLanguage();
 
   // Form fields matching user mockup 1:1 with realistic defaults
-  const [agentName, setAgentName] = useState('حاسوب الهيبة');
+  const [agentName, setAgentName] = useState('حاسوب لتجارة التقنية - 2067');
   const [groupNo, setGroupNo] = useState('400005436343');
   const [agreementNo, setAgreementNo] = useState('10800004324024');
   const [agreementName, setAgreementName] = useState('اتفاقية فندق جراند زوار');
@@ -43,6 +43,30 @@ export default function AddAgreementModal({
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [totalPrice, setTotalPrice] = useState('');
+
+  // Dynamic Agents list from system master lists
+  const availableAgents = (() => {
+    try {
+      const saved = localStorage.getItem('system_list_agents');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.filter((a: { status: string }) => a.status === 'Active');
+        }
+      }
+    } catch {
+      // fallback
+    }
+    return [
+      { nameEn: 'Hasoob Technology Trading - 2067', nameAr: 'حاسوب لتجارة التقنية - 2067' },
+      { nameEn: 'ODST Travel and Tourism - 2114', nameAr: 'أودست للسياحة والسفر - 2114' },
+      { nameEn: 'Makkah Aviation Agency', nameAr: 'وكالة مكة للطيران' },
+      { nameEn: 'Noor Al-Iman Intl', nameAr: 'نور الإيمان الدولية' },
+      { nameEn: 'Indonesia Travel', nameAr: 'إندونيسيا ترافيل' },
+      { nameEn: 'Safa Travel India', nameAr: 'الصفا ترافيل الهند' },
+      { nameEn: 'Ankara Tours Agency', nameAr: 'وكالة أنقرة للسياحة' },
+    ];
+  })();
 
   // Room details section
   const [roomsCount, setRoomsCount] = useState('');
@@ -125,11 +149,19 @@ export default function AddAgreementModal({
             </label>
             <input
               type="text"
+              list="agents-list-options"
               value={agentName}
               onChange={(e) => setAgentName(e.target.value)}
-              placeholder={t('contracts.agent_placeholder', 'مثال: حاسوب الهيبة')}
+              placeholder={t('contracts.agent_placeholder', 'مثال: حاسوب لتجارة التقنية - 2067')}
               className="w-full bg-white border border-slate-200/90 rounded-xl px-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-hidden focus:border-[#1e293b] focus:ring-1 focus:ring-[#1e293b] transition shadow-2xs"
             />
+            <datalist id="agents-list-options">
+              {availableAgents.map((a, idx) => (
+                <option key={idx} value={a.nameAr}>
+                  {a.nameEn}
+                </option>
+              ))}
+            </datalist>
           </div>
 
           {/* 2. رقم المجموعة */}
@@ -228,11 +260,11 @@ export default function AddAgreementModal({
               </label>
               <div className="relative">
                 <input
-                  type="text"
+                  type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  placeholder="YYYY/MM/DD"
-                  className="w-full bg-white border border-slate-200/90 rounded-xl px-3.5 py-2 text-xs text-slate-800 placeholder:text-slate-400 placeholder:font-mono focus:outline-hidden focus:border-[#1e293b] focus:ring-1 focus:ring-[#1e293b] transition shadow-2xs font-mono"
+                  onClick={(e) => e.currentTarget.showPicker?.()}
+                  className="w-full bg-white border border-slate-200/90 rounded-xl px-3.5 py-2 text-xs text-slate-800 font-medium cursor-pointer focus:outline-hidden focus:border-[#1e293b] focus:ring-1 focus:ring-[#1e293b] transition shadow-2xs font-mono"
                 />
                 <Calendar className={`w-4 h-4 text-slate-400 absolute ${direction === 'rtl' ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 pointer-events-none stroke-[1.8]`} />
               </div>
@@ -245,11 +277,11 @@ export default function AddAgreementModal({
               </label>
               <div className="relative">
                 <input
-                  type="text"
+                  type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  placeholder="YYYY/MM/DD"
-                  className="w-full bg-white border border-slate-200/90 rounded-xl px-3.5 py-2 text-xs text-slate-800 placeholder:text-slate-400 placeholder:font-mono focus:outline-hidden focus:border-[#1e293b] focus:ring-1 focus:ring-[#1e293b] transition shadow-2xs font-mono"
+                  onClick={(e) => e.currentTarget.showPicker?.()}
+                  className="w-full bg-white border border-slate-200/90 rounded-xl px-3.5 py-2 text-xs text-slate-800 font-medium cursor-pointer focus:outline-hidden focus:border-[#1e293b] focus:ring-1 focus:ring-[#1e293b] transition shadow-2xs font-mono"
                 />
                 <Calendar className={`w-4 h-4 text-slate-400 absolute ${direction === 'rtl' ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 pointer-events-none stroke-[1.8]`} />
               </div>

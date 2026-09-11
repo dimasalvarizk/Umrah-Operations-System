@@ -14,6 +14,9 @@ export interface AgreementPdfData {
   durationDays?: string;
   totalPrice?: string;
   documentNumber?: string;
+  agentName?: string;
+  packageTier?: string;
+  serviceDetails?: string;
   rooms?: {
     type: string;
     capacity: string;
@@ -47,6 +50,8 @@ export default function AgreementPdfView({ data }: AgreementPdfViewProps) {
   const durationDays = data?.durationDays || (isRTL ? '٤ أيام' : '4 Days');
   const totalPrice = data?.totalPrice || (isRTL ? '١٩,٢٠٠ ر.س' : '19,200 SAR');
   const documentNumber = data?.documentNumber || 'CO-AGR-2026-09';
+  const agentName = data?.agentName || (isRTL ? 'حاسوب لتجارة التقنية - 2067' : 'Hasoob Technology Trading - 2067');
+  const packageTier = data?.packageTier || (isRTL ? 'باقة كبار الشخصيات التنفيذية (١٤ يوم)' : 'VIP Executive 14 Days');
 
   const rooms = data?.rooms || [
     {
@@ -152,6 +157,13 @@ export default function AgreementPdfView({ data }: AgreementPdfViewProps) {
               </span>
             </div>
 
+            <div className="flex items-center justify-between py-3 border-b border-slate-100/80">
+              <span className="text-slate-500 font-medium">{isRTL ? 'فئة باقة وبرنامج الخدمة' : 'Service Package Tier'}</span>
+              <span className="font-bold text-[#1b2a4a] text-xs bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                {packageTier}
+              </span>
+            </div>
+
             <div className="flex items-center justify-between pt-3 pb-1 border-b border-slate-100/80">
               <span className="text-slate-500 font-medium">{t('contracts.total_price', 'إجمالي السعر')}</span>
               <span className="font-bold text-[#2e7d32] text-sm sm:text-base">
@@ -193,10 +205,17 @@ export default function AgreementPdfView({ data }: AgreementPdfViewProps) {
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-3 pb-1 border-b border-slate-100/80">
+            <div className="flex items-center justify-between py-3 border-b border-slate-100/80">
               <span className="text-slate-500 font-medium">{t('contracts.city', 'المدينة')}</span>
               <span className="font-bold text-slate-900 text-xs sm:text-sm">
                 {city}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between pt-3 pb-1 border-b border-slate-100/80">
+              <span className="text-slate-500 font-medium">{isRTL ? 'الوكيل والشريك الخارجي' : 'External Agent & Partner'}</span>
+              <span className="font-bold text-[#2e7d32] text-xs sm:text-sm bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                {agentName}
               </span>
             </div>
           </div>

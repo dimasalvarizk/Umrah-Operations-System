@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Sidebar from '../components/layout/Sidebar';
 import Navbar from '../components/layout/Navbar';
 import {
@@ -65,43 +65,37 @@ export default function DashboardPage() {
   const animatedAlerts = useCountUp(12, 1000, isLoaded);
   const animatedUpcomingTrips = useCountUp(8, 900, isLoaded);
 
-  const nationalities = [
-    { 
-      country: isRTL ? 'المغرب' : 'Morocco', 
-      targetCount: 420,
-      width: '68%', 
-      color: '#1e293b',
-      delayMs: 150
-    },
-    { 
-      country: isRTL ? 'تركيا' : 'Turkey', 
-      targetCount: 310,
-      width: '52%', 
-      color: '#10b981',
-      delayMs: 300
-    },
-    { 
-      country: isRTL ? 'الجزائر' : 'Algeria', 
-      targetCount: 195,
-      width: '42%', 
-      color: '#f59e0b',
-      delayMs: 450
-    },
-    { 
-      country: isRTL ? 'لبنان' : 'Lebanon', 
-      targetCount: 85,
-      width: '26%', 
-      color: '#ef4444',
-      delayMs: 600
-    },
-    { 
-      country: isRTL ? 'تركيا' : 'Turkey', 
-      targetCount: 397,
-      width: '22%', 
-      color: '#8da0b6',
-      delayMs: 750
-    },
-  ];
+  const countriesList = useMemo(() => {
+    try {
+      const saved = localStorage.getItem('system_list_countries');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {
+      // fallback
+    }
+    return [
+      { nameEn: 'Indonesia', nameAr: 'إندونيسيا' },
+      { nameEn: 'Pakistan', nameAr: 'باكستان' },
+      { nameEn: 'Egypt', nameAr: 'مصر' },
+      { nameEn: 'Turkey', nameAr: 'تركيا' },
+      { nameEn: 'Morocco', nameAr: 'المغرب' },
+      { nameEn: 'Algeria', nameAr: 'الجزائر' },
+    ];
+  }, []);
+
+  const COLOR_PALETTE = ['#10b981', '#1e293b', '#f59e0b', '#0284c7', '#8b5cf6', '#ef4444', '#0d9488'];
+  const SAMPLE_COUNTS = [485, 340, 220, 160, 110, 85, 60];
+  const SAMPLE_WIDTHS = ['78%', '62%', '46%', '35%', '26%', '20%', '16%'];
+
+  const nationalities = countriesList.slice(0, 6).map((item, idx) => ({
+    country: isRTL ? (item.nameAr || item.country) : (item.nameEn || item.country),
+    targetCount: SAMPLE_COUNTS[idx] || (90 - idx * 10),
+    width: SAMPLE_WIDTHS[idx] || '20%',
+    color: COLOR_PALETTE[idx % COLOR_PALETTE.length],
+    delayMs: 150 * (idx + 1),
+  }));
 
   const activities = [
     {

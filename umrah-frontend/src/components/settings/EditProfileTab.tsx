@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Camera, Check } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -14,6 +14,21 @@ export default function EditProfileTab() {
   const [defaultBranch, setDefaultBranch] = useState(isRTL ? 'فرع مكة المكرمة' : 'Makkah Branch');
   const [registeredCompany] = useState('ODST Group (Main Services Company)');
   const [avatar, setAvatar] = useState<string | null>(null);
+
+  const availableBranches = useMemo(() => {
+    try {
+      const saved = localStorage.getItem('system_list_branches');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return [
+      { id: '1', nameEn: 'Makkah Main Operations Hub', nameAr: 'فرع مكة المكرمة' },
+      { id: '2', nameEn: 'Madinah Central Branch', nameAr: 'فرع المدينة المنورة' },
+      { id: '3', nameEn: 'Jeddah Airport Logistics Office', nameAr: 'فرع جدة الرئيسي' },
+    ];
+  }, []);
 
   const [feedback, setFeedback] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -272,9 +287,11 @@ export default function EditProfileTab() {
               onChange={(e) => setDefaultBranch(e.target.value)}
               className="w-full bg-slate-50/70 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 focus:outline-hidden focus:border-emerald-500 focus:bg-white transition cursor-pointer"
             >
-              <option value={isRTL ? 'فرع مكة المكرمة' : 'Makkah Branch'}>{isRTL ? 'فرع مكة المكرمة' : 'Makkah Branch'}</option>
-              <option value={isRTL ? 'فرع المدينة المنورة' : 'Madinah Branch'}>{isRTL ? 'فرع المدينة المنورة' : 'Madinah Branch'}</option>
-              <option value={isRTL ? 'فرع جدة الرئيسي' : 'Jeddah Main Office'}>{isRTL ? 'فرع جدة الرئيسي' : 'Jeddah Main Office'}</option>
+              {availableBranches.map((br) => (
+                <option key={br.id} value={isRTL ? br.nameAr : br.nameEn}>
+                  {isRTL ? br.nameAr : br.nameEn}
+                </option>
+              ))}
             </select>
           </div>
 

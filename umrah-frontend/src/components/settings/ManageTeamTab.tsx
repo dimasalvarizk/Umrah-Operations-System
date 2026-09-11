@@ -14,7 +14,7 @@ export interface TeamMember {
   email: string;
   phone: string;
   employeeId: string;
-  role: 'Super Admin' | 'Director' | 'Operations Supervisor' | 'Housing Specialist' | 'Transport Coordinator' | 'Staff';
+  role: 'Super Admin' | 'Staff' | 'Viewer';
   branch: string;
   department: string;
   jobTitle: string;
@@ -35,7 +35,7 @@ export default function ManageTeamTab() {
       role: 'Super Admin',
       branch: isRTL ? 'مكة المكرمة' : 'Makkah Branch',
       department: isRTL ? 'إدارة العمليات' : 'Operations Management',
-      jobTitle: isRTL ? 'مشرف العمليات الرئيسي' : 'Lead Operations Supervisor',
+      jobTitle: isRTL ? 'مدير النظام والعمليات' : 'Lead Operations Director',
       status: 'Active',
       lastActive: isRTL ? 'نشط الآن' : 'Active now',
     },
@@ -45,7 +45,7 @@ export default function ManageTeamTab() {
       email: 'sarah.q@odstgroup.com',
       phone: '+966 55 987 6543',
       employeeId: 'EMP-1088',
-      role: 'Housing Specialist',
+      role: 'Staff',
       branch: isRTL ? 'مكة المكرمة' : 'Makkah Branch',
       department: isRTL ? 'إسكان وفنادق' : 'Housing & Hotels',
       jobTitle: isRTL ? 'أخصائي تسكين وفنادق' : 'Housing Specialist',
@@ -58,7 +58,7 @@ export default function ManageTeamTab() {
       email: 'abdullah.h@odstgroup.com',
       phone: '+966 54 222 3344',
       employeeId: 'EMP-1095',
-      role: 'Transport Coordinator',
+      role: 'Staff',
       branch: isRTL ? 'المدينة المنورة' : 'Madinah Branch',
       department: isRTL ? 'النقل واللوجستيات' : 'Transport & Logistics',
       jobTitle: isRTL ? 'منسق أسطول وحافلات' : 'Fleet Coordinator',
@@ -71,10 +71,10 @@ export default function ManageTeamTab() {
       email: 'youssef.b@odstgroup.com',
       phone: '+966 56 444 8899',
       employeeId: 'EMP-1102',
-      role: 'Operations Supervisor',
+      role: 'Viewer',
       branch: isRTL ? 'جدة' : 'Jeddah Main Office',
-      department: isRTL ? 'الاستقبال والمطار' : 'Airport & Reception',
-      jobTitle: isRTL ? 'مشرف استقبال بالمطار' : 'Airport Supervisor',
+      department: isRTL ? 'التدقيق والتقارير' : 'Audit & Reporting',
+      jobTitle: isRTL ? 'مدقق تقارير وعمليات' : 'Operations Auditor',
       status: 'Active',
       lastActive: isRTL ? 'منذ ساعتين' : '2 hours ago',
     },
@@ -110,11 +110,27 @@ export default function ManageTeamTab() {
   const [emailInput, setEmailInput] = useState('');
   const [phoneInput, setPhoneInput] = useState('');
   const [empIdInput, setEmpIdInput] = useState('');
-  const [roleInput, setRoleInput] = useState<TeamMember['role']>('Operations Supervisor');
+  const [roleInput, setRoleInput] = useState<TeamMember['role']>('Staff');
   const [branchInput, setBranchInput] = useState(isRTL ? 'مكة المكرمة' : 'Makkah Branch');
   const [deptInput, setDeptInput] = useState(isRTL ? 'إدارة العمليات' : 'Operations');
-  const [jobTitleInput, setJobTitleInput] = useState(isRTL ? 'مشرف تشغيلي' : 'Operations Officer');
+  const [jobTitleInput, setJobTitleInput] = useState(isRTL ? 'موظف عمليات' : 'Operations Staff');
   const [statusInput, setStatusInput] = useState<'Active' | 'Inactive'>('Active');
+
+  const availableBranches = useMemo(() => {
+    try {
+      const saved = localStorage.getItem('system_list_branches');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return [
+      { id: '1', nameEn: 'Makkah Main Operations Hub', nameAr: 'فرع مكة المكرمة الرئيسي' },
+      { id: '2', nameEn: 'Madinah Central Branch', nameAr: 'فرع المدينة المنورة المركزي' },
+      { id: '3', nameEn: 'Jeddah Airport Logistics Office', nameAr: 'مكتب خدمات مطار جدة (JED)' },
+      { id: '4', nameEn: 'Riyadh Headquarters', nameAr: 'المقر الرئيسي - الرياض' },
+    ];
+  }, []);
 
   const filteredMembers = useMemo(() => {
     return members.filter((m) => {
@@ -133,10 +149,10 @@ export default function ManageTeamTab() {
     setEmailInput('');
     setPhoneInput('');
     setEmpIdInput(`EMP-${Math.floor(1000 + Math.random() * 900)}`);
-    setRoleInput('Operations Supervisor');
+    setRoleInput('Staff');
     setBranchInput(isRTL ? 'مكة المكرمة' : 'Makkah Branch');
     setDeptInput(isRTL ? 'إدارة العمليات' : 'Operations');
-    setJobTitleInput(isRTL ? 'مشرف تشغيلي' : 'Operations Officer');
+    setJobTitleInput(isRTL ? 'موظف عمليات' : 'Operations Staff');
     setStatusInput('Active');
     setAddStep(1);
     setIsAddOpen(true);
@@ -214,16 +230,12 @@ export default function ManageTeamTab() {
     switch (role) {
       case 'Super Admin':
         return <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-purple-100 text-purple-800 border border-purple-200">Super Admin</span>;
-      case 'Director':
-        return <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-blue-100 text-blue-800 border border-blue-200">Director</span>;
-      case 'Operations Supervisor':
-        return <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">{isRTL ? 'مشرف عمليات' : 'Ops Supervisor'}</span>;
-      case 'Housing Specialist':
-        return <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200">{isRTL ? 'أخصائي تسكين' : 'Housing Spec.'}</span>;
-      case 'Transport Coordinator':
-        return <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-cyan-100 text-cyan-800 border border-cyan-200">{isRTL ? 'منسق نقل' : 'Transport Coord.'}</span>;
+      case 'Staff':
+        return <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">{isRTL ? 'موظف (Staff)' : 'Staff'}</span>;
+      case 'Viewer':
+        return <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-blue-100 text-blue-800 border border-blue-200">{isRTL ? 'مشاهد (Viewer)' : 'Viewer'}</span>;
       default:
-        return <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">{isRTL ? 'فريق العمل' : 'Staff'}</span>;
+        return <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">{role}</span>;
     }
   };
 
@@ -263,10 +275,8 @@ export default function ManageTeamTab() {
           >
             <option value="All">{isRTL ? 'جميع الأدوار' : 'All Roles'}</option>
             <option value="Super Admin">Super Admin</option>
-            <option value="Operations Supervisor">{isRTL ? 'مشرف عمليات' : 'Ops Supervisor'}</option>
-            <option value="Housing Specialist">{isRTL ? 'أخصائي تسكين' : 'Housing Specialist'}</option>
-            <option value="Transport Coordinator">{isRTL ? 'منسق نقل' : 'Transport Coordinator'}</option>
-            <option value="Staff">{isRTL ? 'موظف عام' : 'Staff'}</option>
+            <option value="Staff">{isRTL ? 'موظف (Staff)' : 'Staff'}</option>
+            <option value="Viewer">{isRTL ? 'مشاهد (Viewer)' : 'Viewer'}</option>
           </select>
         </div>
 
@@ -382,38 +392,44 @@ export default function ManageTeamTab() {
       <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-2xs space-y-4">
         <div className="border-b border-slate-100 pb-3">
           <h3 className="text-base font-bold text-slate-900">
-            {isRTL ? 'مصفوفة الأدوار والصلاحيات التشغيلية' : 'Roles & Operational Permissions Matrix'}
+            {isRTL ? 'مصفوفة الأدوار والصلاحيات' : 'Roles & Permissions Matrix'}
           </h3>
           <p className="text-xs text-slate-400 mt-0.5">
-            {isRTL ? 'مستويات الوصول لنظام عمليات المجموعات والفنادق والنقل والعقود' : 'Access levels for groups, hotels, transport, and contracts'}
+            {isRTL ? 'مستويات الوصول لنظام إدارة العمرة والعمليات والفوترة' : 'Access levels for system operations, invoicing, and management'}
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
           <div className="p-4 rounded-xl border border-purple-100 bg-purple-50/40 space-y-2">
             <div className="font-bold text-purple-900 text-sm">
-              Super Admin / Director
+              Super Admin
             </div>
             <p className="text-slate-600 leading-relaxed">
-              {isRTL ? 'وصول شامل لكافة العمليات، إدارة الاتفاقيات والعقود، الفوترة، إدارة الفريق، وإعدادات النظام الكاملة.' : 'Full access to all modules, contract generation, invoicing, team management, and system configs.'}
+              {isRTL
+                ? 'وصول شامل وغير مقيد لكافة العمليات، الفوترة، إدارة الفريق، إعدادات الأمان، وتكوين النظام بالكامل.'
+                : 'Full unrestricted access to all operations, invoicing, team management, security settings, and system configuration.'}
             </p>
           </div>
 
           <div className="p-4 rounded-xl border border-emerald-100 bg-emerald-50/40 space-y-2">
             <div className="font-bold text-emerald-900 text-sm">
-              Operations Supervisor
+              Staff
             </div>
             <p className="text-slate-600 leading-relaxed">
-              {isRTL ? 'إنشاء وتعديل المجموعات، متابعة رحلات الطيران، تنسيق الفنادق والحافلات، وتحديث بيانات المعتمرين.' : 'Create/edit pilgrim groups, track flight schedules, coordinate hotels and buses, and update lists.'}
+              {isRTL
+                ? 'صلاحيات تشغيلية كاملة لإنشاء وتعديل المجموعات، متابعة الحافلات والرحلات، تسكين الغرف، وإدخال البيانات اليومية.'
+                : 'Full operational access to create and edit groups, coordinate buses and trips, allocate hotel rooms, and manage daily tasks.'}
             </p>
           </div>
 
-          <div className="p-4 rounded-xl border border-amber-100 bg-amber-50/40 space-y-2">
-            <div className="font-bold text-amber-900 text-sm">
-              Specialist / Staff
+          <div className="p-4 rounded-xl border border-blue-100 bg-blue-50/40 space-y-2">
+            <div className="font-bold text-blue-900 text-sm">
+              Viewer
             </div>
             <p className="text-slate-600 leading-relaxed">
-              {isRTL ? 'تسجيل التسكين، متابعة حركة الحافلات في الميدان، وتحديث الملاحظات التشغيلية اليومية.' : 'Hotel room check-in allocation, field bus dispatch tracking, and daily operational notes.'}
+              {isRTL
+                ? 'صلاحية قراءة وعرض فقط (Read-Only) للاطلاع على الرحلات، كشوفات المعتمرين، تقارير التسكين، دون إمكانية التعديل أو الحذف.'
+                : 'Read-only access to view trips, passenger manifests, hotel allocations, and reports without editing or deletion rights.'}
             </p>
           </div>
         </div>
@@ -510,12 +526,9 @@ export default function ManageTeamTab() {
                       onChange={(e) => setRoleInput(e.target.value as TeamMember['role'])}
                       className="w-full bg-slate-50/70 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-800 font-semibold focus:outline-hidden focus:border-emerald-500 transition cursor-pointer"
                     >
-                      <option value="Operations Supervisor">{isRTL ? 'مشرف عمليات' : 'Operations Supervisor'}</option>
-                      <option value="Housing Specialist">{isRTL ? 'أخصائي تسكين وفنادق' : 'Housing Specialist'}</option>
-                      <option value="Transport Coordinator">{isRTL ? 'منسق نقل وحافلات' : 'Transport Coordinator'}</option>
-                      <option value="Staff">{isRTL ? 'موظف عام' : 'Staff'}</option>
-                      <option value="Director">Director</option>
                       <option value="Super Admin">Super Admin</option>
+                      <option value="Staff">{isRTL ? 'موظف (Staff)' : 'Staff'}</option>
+                      <option value="Viewer">{isRTL ? 'مشاهد (Viewer)' : 'Viewer'}</option>
                     </select>
                   </div>
 
@@ -544,9 +557,11 @@ export default function ManageTeamTab() {
                       onChange={(e) => setBranchInput(e.target.value)}
                       className="w-full bg-slate-50/70 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-800 font-semibold focus:outline-hidden focus:border-emerald-500 transition cursor-pointer"
                     >
-                      <option value={isRTL ? 'مكة المكرمة' : 'Makkah Branch'}>{isRTL ? 'مكة المكرمة' : 'Makkah Branch'}</option>
-                      <option value={isRTL ? 'المدينة المنورة' : 'Madinah Branch'}>{isRTL ? 'المدينة المنورة' : 'Madinah Branch'}</option>
-                      <option value={isRTL ? 'جدة' : 'Jeddah Main Office'}>{isRTL ? 'جدة' : 'Jeddah Main Office'}</option>
+                      {availableBranches.map((br) => (
+                        <option key={br.id} value={isRTL ? br.nameAr : br.nameEn}>
+                          {isRTL ? br.nameAr : br.nameEn}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -600,8 +615,8 @@ export default function ManageTeamTab() {
                     <span className="font-mono text-slate-800">{phoneInput || '-'}</span>
                   </div>
                   <div className="flex justify-between items-center py-1 border-b border-slate-200/60">
-                    <span className="text-slate-500 font-medium">{isRTL ? 'الدور والصلاحية:' : 'Role:'}</span>
-                    <span className="font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">{roleInput}</span>
+                    <span className="text-slate-500 font-medium">{isRTL ? 'الدور والصلاحية:' : 'Role & Permission:'}</span>
+                    <div>{getRoleBadge(roleInput)}</div>
                   </div>
                   <div className="flex justify-between items-center py-1">
                     <span className="text-slate-500 font-medium">{isRTL ? 'الفرع والإدارة:' : 'Branch & Dept:'}</span>
@@ -728,19 +743,16 @@ export default function ManageTeamTab() {
                 {/* Role */}
                 <div className="space-y-1.5">
                   <label className="font-semibold text-slate-700 block">
-                    {isRTL ? 'الدور والصلاحية' : 'Role'}
+                    {isRTL ? 'الدور والصلاحية' : 'Role & Permission'}
                   </label>
                   <select
                     value={roleInput}
                     onChange={(e) => setRoleInput(e.target.value as TeamMember['role'])}
                     className="w-full bg-slate-50/70 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-800 font-semibold focus:outline-hidden focus:border-emerald-500 transition cursor-pointer"
                   >
-                    <option value="Operations Supervisor">{isRTL ? 'مشرف عمليات' : 'Operations Supervisor'}</option>
-                    <option value="Housing Specialist">{isRTL ? 'أخصائي تسكين' : 'Housing Specialist'}</option>
-                    <option value="Transport Coordinator">{isRTL ? 'منسق نقل' : 'Transport Coordinator'}</option>
-                    <option value="Staff">{isRTL ? 'موظف عام' : 'Staff'}</option>
-                    <option value="Director">Director</option>
                     <option value="Super Admin">Super Admin</option>
+                    <option value="Staff">{isRTL ? 'موظف (Staff)' : 'Staff'}</option>
+                    <option value="Viewer">{isRTL ? 'مشاهد (Viewer)' : 'Viewer'}</option>
                   </select>
                 </div>
 
@@ -769,9 +781,11 @@ export default function ManageTeamTab() {
                     onChange={(e) => setBranchInput(e.target.value)}
                     className="w-full bg-slate-50/70 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-800 font-semibold focus:outline-hidden focus:border-emerald-500 transition cursor-pointer"
                   >
-                    <option value={isRTL ? 'مكة المكرمة' : 'Makkah Branch'}>{isRTL ? 'مكة المكرمة' : 'Makkah Branch'}</option>
-                    <option value={isRTL ? 'المدينة المنورة' : 'Madinah Branch'}>{isRTL ? 'المدينة المنورة' : 'Madinah Branch'}</option>
-                    <option value={isRTL ? 'جدة' : 'Jeddah Main Office'}>{isRTL ? 'جدة' : 'Jeddah Main Office'}</option>
+                    {availableBranches.map((br) => (
+                      <option key={br.id} value={isRTL ? br.nameAr : br.nameEn}>
+                        {isRTL ? br.nameAr : br.nameEn}
+                      </option>
+                    ))}
                   </select>
                 </div>
 

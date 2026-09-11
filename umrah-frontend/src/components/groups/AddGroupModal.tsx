@@ -23,10 +23,12 @@ export default function AddGroupModal({ isOpen, onClose, onSuccess, initialData 
   // Step 1 State (Basic Info)
   const [groupName, setGroupName] = useState('');
   const [groupCode, setGroupCode] = useState('');
+  const [agreementNumber, setAgreementNumber] = useState('AGR-1125900');
   const [subAgent, setSubAgent] = useState('');
   const [mainAgent, setMainAgent] = useState('');
   const [pilgrimsCount, setPilgrimsCount] = useState(150);
   const [nationality, setNationality] = useState('');
+  const [packageType, setPackageType] = useState('باقة كبار الشخصيات التنفيذية (١٤ يوم)');
 
   // Step 2 State (Hotels)
   const [makkahHotel1, setMakkahHotel1] = useState('');
@@ -43,19 +45,24 @@ export default function AddGroupModal({ isOpen, onClose, onSuccess, initialData 
 
   const [hospitalityNotes, setHospitalityNotes] = useState('');
 
-  // Step 3 State (Flights & Land Transport)
-  const [departureFlightNo, setDepartureFlightNo] = useState('');
+  // Step 3 State (Flights & Transport)
+  const [departureAirline, setDepartureAirline] = useState('الخطوط السعودية');
+  const [departureFlightNo, setDepartureFlightNo] = useState('SV-0379');
   const [departureDate, setDepartureDate] = useState('2024-08-25');
   const [departureDestination, setDepartureDestination] = useState(isRTL ? 'المغرب, كازابلانكا' : 'Morocco, Casablanca');
-  const [departureAirport, setDepartureAirport] = useState('مطار الأمير محمد بن عبدالعزيز - المدينة');
+  const [departureAirport, setDepartureAirport] = useState('مطار الأمير محمد بن عبدالعزيز - المدينة (MED)');
 
+  const [arrivalAirline, setArrivalAirline] = useState('الخطوط السعودية');
   const [arrivalFlightNo, setArrivalFlightNo] = useState('SV-0378');
   const [arrivalDate, setArrivalDate] = useState('2024-08-15');
   const [arrivalOrigin, setArrivalOrigin] = useState(isRTL ? 'المغرب, كازابلانكا' : 'Morocco, Casablanca');
-  const [arrivalAirport, setArrivalAirport] = useState('مطار الملك عبد العزيز - جدة');
+  const [arrivalAirport, setArrivalAirport] = useState('مطار الملك عبد العزيز - جدة (JED)');
 
   const [transportCompany, setTransportCompany] = useState('');
   const [operationNumber, setOperationNumber] = useState('');
+  const [driverName, setDriverName] = useState('');
+  const [driverPhone, setDriverPhone] = useState('');
+  const [busPlateNo, setBusPlateNo] = useState('');
 
   // Step 4 State (Movements, Agreements & Additional Notes)
   const [arrivalGrouping, setArrivalGrouping] = useState('مكتمل');
@@ -71,7 +78,14 @@ export default function AddGroupModal({ isOpen, onClose, onSuccess, initialData 
   const [enrichmentProgram, setEnrichmentProgram] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
   const [missingRequirements, setMissingRequirements] = useState('');
-  const [uploadedFiles, setUploadedFiles] = useState<Record<string, { name: string; size?: number }>>({});
+  const [uploadedFiles, setUploadedFiles] = useState<Record<string, { name: string; size?: number; url?: string; type?: string; uploadedAt?: string; categoryTitle?: string }>>({
+    arrivalGrouping: {
+      name: 'Frame 82717156.png',
+      size: 348120,
+      uploadedAt: new Date().toLocaleDateString('en-GB'),
+      categoryTitle: isRTL ? 'تفويج الوصول' : 'Arrival Grouping',
+    },
+  });
 
   useEffect(() => {
     if (isOpen) {
@@ -81,10 +95,12 @@ export default function AddGroupModal({ isOpen, onClose, onSuccess, initialData 
       if (initialData) {
         setGroupName(initialData.name || '');
         setGroupCode(initialData.groupCodeNumber || initialData.code || '');
+        setAgreementNumber(initialData.agreementNumber || 'AGR-1125900');
         setSubAgent(initialData.subAgent || '');
         setMainAgent(initialData.mainAgent || '');
         setPilgrimsCount(initialData.pilgrimsCount || 150);
         setNationality(initialData.nationality || '');
+        setPackageType(initialData.packageType || (isRTL ? 'باقة كبار الشخصيات التنفيذية (١٤ يوم)' : 'VIP Executive 14 Days'));
         setMakkahHotel1(initialData.makkahHotel || '');
         setMakkah1CheckIn(initialData.makkahCheckIn || '2024-08-15');
         setMakkah1CheckOut(initialData.makkahCheckOut || '2024-08-20');
@@ -99,12 +115,23 @@ export default function AddGroupModal({ isOpen, onClose, onSuccess, initialData 
         setArrivalAirport(initialData.arrivalAirport || 'مطار الملك عبد العزيز - جدة');
         setTransportCompany(initialData.transportCompany || '');
         setOperationNumber(initialData.operationNumber || '');
+        setDriverName(initialData.driverName || '');
+        setDriverPhone(initialData.driverPhone || '');
+        setBusPlateNo(initialData.busPlateNo || initialData.busNumber || '');
         setArrivalGrouping(initialData.arrivalGrouping || 'مكتمل');
         setInterCityGrouping(initialData.interCityGrouping || 'معلق');
         setDepartureGrouping(initialData.departureGrouping || 'لا يوجد');
         setUmrahPermitStatus(initialData.umrahPermitStatus || 'مقبول');
         setRawdahMenPermitStatus(initialData.rawdahMenPermitStatus || 'قيد المراجعة');
         setRawdahWomenPermitStatus(initialData.rawdahWomenPermitStatus || 'لم يقدم');
+        setUploadedFiles(initialData.uploadedFiles || {
+          arrivalGrouping: {
+            name: 'Frame 82717156.png',
+            size: 348120,
+            uploadedAt: new Date().toLocaleDateString('en-GB'),
+            categoryTitle: isRTL ? 'تفويج الوصول' : 'Arrival Grouping',
+          },
+        });
       } else {
         setGroupName('');
         setGroupCode('');
@@ -112,6 +139,7 @@ export default function AddGroupModal({ isOpen, onClose, onSuccess, initialData 
         setMainAgent('');
         setPilgrimsCount(150);
         setNationality('');
+        setPackageType(isRTL ? 'باقة كبار الشخصيات التنفيذية (١٤ يوم)' : 'VIP Executive 14 Days');
         setMakkahHotel1('');
         setMakkah1CheckIn('2024-08-15');
         setMakkah1CheckOut('2024-08-20');
@@ -132,6 +160,9 @@ export default function AddGroupModal({ isOpen, onClose, onSuccess, initialData 
         setArrivalAirport('مطار الملك عبد العزيز - جدة');
         setTransportCompany('');
         setOperationNumber('');
+        setDriverName('');
+        setDriverPhone('');
+        setBusPlateNo('');
         setArrivalGrouping('مكتمل');
         setInterCityGrouping('معلق');
         setDepartureGrouping('لا يوجد');
@@ -143,7 +174,14 @@ export default function AddGroupModal({ isOpen, onClose, onSuccess, initialData 
         setEnrichmentProgram('');
         setAdditionalNotes('');
         setMissingRequirements('');
-        setUploadedFiles({});
+        setUploadedFiles({
+          arrivalGrouping: {
+            name: 'Frame 82717156.png',
+            size: 348120,
+            uploadedAt: new Date().toLocaleDateString('en-GB'),
+            categoryTitle: isRTL ? 'تفويج الوصول' : 'Arrival Grouping',
+          },
+        });
       }
     }
   }, [isOpen, initialData, isRTL]);
@@ -169,10 +207,18 @@ export default function AddGroupModal({ isOpen, onClose, onSuccess, initialData 
       onSuccess({
         code: groupCode || '#GRP-2401',
         name: groupName || (isRTL ? 'مجموعة جديدة' : 'New Group'),
+        agreementNumber: agreementNumber || 'AGR-1125900',
         mainAgent: mainAgent || (isRTL ? 'وكالة مكة للطيران' : 'Makkah Aviation Agency'),
         subAgent: subAgent || (isRTL ? 'شركة تسهيل' : 'Tasheel Tours'),
         nationality: nationality || (isRTL ? 'إندونيسيا' : 'Indonesia'),
+        packageType: packageType || (isRTL ? 'باقة كبار الشخصيات التنفيذية (١٤ يوم)' : 'VIP Executive 14 Days'),
         pilgrimsCount: pilgrimsCount,
+        transportCompany: transportCompany,
+        operationNumber: operationNumber,
+        driverName: driverName,
+        driverPhone: driverPhone,
+        busPlateNo: busPlateNo,
+        uploadedFiles: uploadedFiles,
         status: 'قيد التجهيز',
       });
     }
@@ -224,6 +270,8 @@ export default function AddGroupModal({ isOpen, onClose, onSuccess, initialData 
               setGroupName={setGroupName}
               groupCode={groupCode}
               setGroupCode={setGroupCode}
+              agreementNumber={agreementNumber}
+              setAgreementNumber={setAgreementNumber}
               subAgent={subAgent}
               setSubAgent={setSubAgent}
               mainAgent={mainAgent}
@@ -232,6 +280,8 @@ export default function AddGroupModal({ isOpen, onClose, onSuccess, initialData 
               setPilgrimsCount={setPilgrimsCount}
               nationality={nationality}
               setNationality={setNationality}
+              packageType={packageType}
+              setPackageType={setPackageType}
             />
           )}
 
@@ -262,6 +312,8 @@ export default function AddGroupModal({ isOpen, onClose, onSuccess, initialData 
 
           {currentStep === 3 && (
             <Step3FlightsTransport
+              departureAirline={departureAirline}
+              setDepartureAirline={setDepartureAirline}
               departureFlightNo={departureFlightNo}
               setDepartureFlightNo={setDepartureFlightNo}
               departureDate={departureDate}
@@ -270,6 +322,8 @@ export default function AddGroupModal({ isOpen, onClose, onSuccess, initialData 
               setDepartureDestination={setDepartureDestination}
               departureAirport={departureAirport}
               setDepartureAirport={setDepartureAirport}
+              arrivalAirline={arrivalAirline}
+              setArrivalAirline={setArrivalAirline}
               arrivalFlightNo={arrivalFlightNo}
               setArrivalFlightNo={setArrivalFlightNo}
               arrivalDate={arrivalDate}
@@ -282,6 +336,12 @@ export default function AddGroupModal({ isOpen, onClose, onSuccess, initialData 
               setTransportCompany={setTransportCompany}
               operationNumber={operationNumber}
               setOperationNumber={setOperationNumber}
+              driverName={driverName}
+              setDriverName={setDriverName}
+              driverPhone={driverPhone}
+              setDriverPhone={setDriverPhone}
+              busPlateNo={busPlateNo}
+              setBusPlateNo={setBusPlateNo}
             />
           )}
 

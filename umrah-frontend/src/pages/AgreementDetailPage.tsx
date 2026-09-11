@@ -34,6 +34,8 @@ const MOCK_AGREEMENTS_DATA = [
     agreementNameEn: 'Grand Zuwar Hospitality Hotel Agreement',
     entityName: 'فندق جراند زوار للضيافة السياحي',
     entityNameEn: 'Grand Zuwar Hospitality Hotel',
+    agentName: 'حاسوب لتجارة التقنية - 2067',
+    agentNameEn: 'Hasoob Technology Trading - 2067',
     city: 'مكة المكرمة',
     cityEn: 'Makkah',
     startDate: '02/09/2026',
@@ -49,6 +51,8 @@ const MOCK_AGREEMENTS_DATA = [
     agreementNameEn: 'Grand Zuwar Hotel Agreement',
     entityName: 'فندق جراند زوار',
     entityNameEn: 'Grand Zuwar Hotel',
+    agentName: 'أودست للسياحة والسفر - 2114',
+    agentNameEn: 'ODST Travel and Tourism - 2114',
     city: 'مكة المكرمة',
     cityEn: 'Makkah',
     startDate: '01/09/2026',
@@ -64,6 +68,8 @@ const MOCK_AGREEMENTS_DATA = [
     agreementNameEn: 'Anwar Al-Madinah Hotel Agreement',
     entityName: 'فندق أنوار المدينة',
     entityNameEn: 'Anwar Al-Madinah Hotel',
+    agentName: 'وكالة مكة للطيران',
+    agentNameEn: 'Makkah Aviation Agency',
     city: 'المدينة المنورة',
     cityEn: 'Madinah',
     startDate: '10/09/2026',
@@ -79,6 +85,8 @@ const MOCK_AGREEMENTS_DATA = [
     agreementNameEn: 'Taiba Visitors Residence Agreement',
     entityName: 'سكن طيبة للزوار',
     entityNameEn: 'Taiba Visitors Residence',
+    agentName: 'نور الإيمان الدولية',
+    agentNameEn: 'Noor Al-Iman Intl',
     city: 'المدينة المنورة',
     cityEn: 'Madinah',
     startDate: '15/08/2026',
@@ -94,6 +102,8 @@ const MOCK_AGREEMENTS_DATA = [
     agreementNameEn: 'Grand Zuwar Hotel Agreement',
     entityName: 'فندق جراند زوار',
     entityNameEn: 'Grand Zuwar Hotel',
+    agentName: 'إندونيسيا ترافيل',
+    agentNameEn: 'Indonesia Travel',
     city: 'مكة المكرمة',
     cityEn: 'Makkah',
     startDate: '01/10/2026',
@@ -109,6 +119,8 @@ const MOCK_AGREEMENTS_DATA = [
     agreementNameEn: 'Al Barakah Hotels Group Agreement',
     entityName: 'مجموعة فنادق البركة',
     entityNameEn: 'Al Barakah Hotels Group',
+    agentName: 'الصفا ترافيل الهند',
+    agentNameEn: 'Safa Travel India',
     city: 'مكة المكرمة',
     cityEn: 'Makkah',
     startDate: '02/09/2026',
@@ -124,6 +136,8 @@ const MOCK_AGREEMENTS_DATA = [
     agreementNameEn: 'Haramain Express Transport Agreement',
     entityName: 'شركة نقل الحرمين السريع',
     entityNameEn: 'Haramain Express Transport Co.',
+    agentName: 'حاسوب لتجارة التقنية - 2067',
+    agentNameEn: 'Hasoob Technology Trading - 2067',
     city: 'مكة المكرمة',
     cityEn: 'Makkah',
     startDate: '01/09/2026',
@@ -139,6 +153,8 @@ const MOCK_AGREEMENTS_DATA = [
     agreementNameEn: 'Al Rajhi VIP Buses Agreement',
     entityName: 'شركة الراجحي للنقل',
     entityNameEn: 'Al Rajhi Transport Co.',
+    agentName: 'أودست للسياحة والسفر - 2114',
+    agentNameEn: 'ODST Travel and Tourism - 2114',
     city: 'المدينة المنورة',
     cityEn: 'Madinah',
     startDate: '05/09/2026',
@@ -166,6 +182,51 @@ export default function AgreementDetailPage() {
     (item) => item.id === id || item.agreementNo === id
   ) || MOCK_AGREEMENTS_DATA[0];
 
+  // Dynamic Agents list from system master lists
+  const availableAgents = (() => {
+    try {
+      const saved = localStorage.getItem('system_list_agents');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.filter((a: { status: string }) => a.status === 'Active');
+        }
+      }
+    } catch {
+      // fallback
+    }
+    return [
+      { nameEn: 'Hasoob Technology Trading - 2067', nameAr: 'حاسوب لتجارة التقنية - 2067' },
+      { nameEn: 'ODST Travel and Tourism - 2114', nameAr: 'أودست للسياحة والسفر - 2114' },
+      { nameEn: 'Makkah Aviation Agency', nameAr: 'وكالة مكة للطيران' },
+      { nameEn: 'Noor Al-Iman Intl', nameAr: 'نور الإيمان الدولية' },
+      { nameEn: 'Indonesia Travel', nameAr: 'إندونيسيا ترافيل' },
+      { nameEn: 'Safa Travel India', nameAr: 'الصفا ترافيل الهند' },
+      { nameEn: 'Ankara Tours Agency', nameAr: 'وكالة أنقرة للسياحة' },
+    ];
+  })();
+
+  // Dynamic Packages list from system master lists
+  const availablePackages = (() => {
+    try {
+      const saved = localStorage.getItem('system_list_packages');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.filter((p: { status: string }) => p.status === 'Active');
+        }
+      }
+    } catch {
+      // fallback
+    }
+    return [
+      { id: '1', nameEn: 'VIP Executive 14 Days', nameAr: 'باقة كبار الشخصيات التنفيذية (١٤ يوم)', secondary: '5-Star Front Row Hotels' },
+      { id: '2', nameEn: 'Premium Gold 12 Days', nameAr: 'الباقة الذهبية المميزة (١٢ يوم)', secondary: '5-Star Walking Distance' },
+      { id: '3', nameEn: 'Classic Economy 10 Days', nameAr: 'الباقة الاقتصادية الكلاسيكية (١٠ أيام)', secondary: '4-Star Central Hotels' },
+      { id: '4', nameEn: 'Ramadan Last 10 Days Special', nameAr: 'برنامج العشر الأواخر من رمضان', secondary: 'Makkah Clock Towers' },
+    ];
+  })();
+
   // Agreement No. (e.g., AGR-1125900)
   const [agreementNo, setAgreementNo] = useState(matchedAgreement.agreementNo);
 
@@ -182,6 +243,12 @@ export default function AgreementDetailPage() {
   const [hotelName, setHotelName] = useState(
     isRTL ? matchedAgreement.entityName : matchedAgreement.entityNameEn
   );
+  const [agentName, setAgentName] = useState(
+    isRTL ? (matchedAgreement.agentName || 'حاسوب لتجارة التقنية - 2067') : (matchedAgreement.agentNameEn || 'Hasoob Technology Trading - 2067')
+  );
+  const [packageTier, setPackageTier] = useState(
+    isRTL ? 'باقة كبار الشخصيات التنفيذية (١٤ يوم)' : 'VIP Executive 14 Days'
+  );
   const [rating, setRating] = useState(matchedAgreement.rating);
 
   // Agreement Info State
@@ -196,6 +263,7 @@ export default function AgreementDetailPage() {
       setAgreementNo(matchedAgreement.agreementNo);
       setAgreementTitle(isRTL ? matchedAgreement.agreementName : matchedAgreement.agreementNameEn);
       setHotelName(isRTL ? matchedAgreement.entityName : matchedAgreement.entityNameEn);
+      setAgentName(isRTL ? (matchedAgreement.agentName || 'حاسوب لتجارة التقنية - 2067') : (matchedAgreement.agentNameEn || 'Hasoob Technology Trading - 2067'));
       setStartDate(matchedAgreement.startDate);
       setEndDate(matchedAgreement.endDate);
       setPeriod(`${matchedAgreement.startDate} - ${matchedAgreement.endDate}`);
@@ -411,6 +479,20 @@ export default function AgreementDetailPage() {
                     </div>
 
                     <div className="flex items-center justify-between">
+                      <span className="text-slate-400">{isRTL ? 'الوكيل والشريك الخارجي' : 'External Agent & Partner'}</span>
+                      <span className="font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200 text-xs">
+                        {agentName}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">{isRTL ? 'فئة باقة وبرنامج العمرة' : 'Umrah Package Tier'}</span>
+                      <span className="font-bold text-[#1b2a4a] bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200 text-xs">
+                        {packageTier}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
                       <span className="text-slate-400">{t('common.rating', 'التصنيف')}</span>
                       <div className="flex items-center gap-1" dir="ltr">
                         {[1, 2, 3, 4, 5].map((s) => (
@@ -576,7 +658,24 @@ export default function AgreementDetailPage() {
             </div>
 
             {/* Form Fields */}
-            <div className="space-y-4">
+            <div className="space-y-3.5">
+              {/* Field 0: Agreement Number (Nusuk System Contract Number) */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5 flex items-center justify-between">
+                  <span>{isRTL ? 'رقم الاتفاقية (نظام نسك / وزارة الحج والعمرة)' : 'Agreement Number (Nusuk System)'}</span>
+                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-medium border border-emerald-200">
+                    {isRTL ? 'معتمد في نسك' : 'Nusuk Integrated'}
+                  </span>
+                </label>
+                <input
+                  type="text"
+                  value={agreementNo}
+                  onChange={(e) => setAgreementNo(e.target.value)}
+                  placeholder="e.g. AGR-1125900"
+                  className="w-full border border-slate-200/90 rounded-xl px-3.5 py-2.5 bg-[#f8fafc] text-xs sm:text-sm text-slate-800 font-bold font-mono focus:outline-hidden focus:border-emerald-500 focus:bg-white transition"
+                />
+              </div>
+
               {/* Field 1: Agreement Date */}
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">
@@ -587,10 +686,11 @@ export default function AgreementDetailPage() {
                 >
                   <Calendar className="w-4 h-4 text-slate-500 shrink-0" />
                   <input
-                    type="text"
+                    type="date"
                     value={agreementDate}
                     onChange={(e) => setAgreementDate(e.target.value)}
-                    className="w-full bg-transparent text-center text-xs sm:text-sm text-slate-800 font-semibold focus:outline-hidden"
+                    onClick={(e) => e.currentTarget.showPicker?.()}
+                    className="w-full bg-transparent text-center text-xs sm:text-sm text-slate-800 font-semibold focus:outline-hidden cursor-pointer"
                   />
                 </div>
               </div>
@@ -598,7 +698,7 @@ export default function AgreementDetailPage() {
               {/* Field 2: Hotel Name */}
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                  {t('contracts.hotel_name', 'اسم الفندق')}
+                  {isRTL ? 'اسم الفندق / الجهة' : 'Hotel / Entity Name'}
                 </label>
                 <input
                   type="text"
@@ -606,6 +706,49 @@ export default function AgreementDetailPage() {
                   onChange={(e) => setHotelName(e.target.value)}
                   className="w-full border border-slate-200/90 rounded-xl px-3.5 py-2.5 bg-[#f8fafc] text-xs sm:text-sm text-slate-800 font-semibold focus:outline-hidden focus:border-emerald-500"
                 />
+              </div>
+
+              {/* Field: External Agent & Partner */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                  {isRTL ? 'الوكيل والشريك الخارجي' : 'External Agent & Partner'}
+                </label>
+                <select
+                  value={agentName}
+                  onChange={(e) => setAgentName(e.target.value)}
+                  className="w-full border border-slate-200/90 rounded-xl px-3.5 py-2.5 bg-[#f8fafc] text-xs sm:text-sm text-slate-800 font-semibold focus:outline-hidden focus:border-emerald-500 cursor-pointer"
+                >
+                  {availableAgents.map((a, idx) => {
+                    const label = isRTL ? a.nameAr : a.nameEn;
+                    return (
+                      <option key={a.id || idx} value={label}>
+                        {label}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              {/* Field: Umrah Package Tier */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                  {isRTL ? 'فئة باقة وبرنامج العمرة' : 'Umrah Package Tier'}
+                </label>
+                <select
+                  value={packageTier}
+                  onChange={(e) => setPackageTier(e.target.value)}
+                  className="w-full border border-slate-200/90 rounded-xl px-3.5 py-2.5 bg-[#f8fafc] text-xs sm:text-sm text-slate-800 font-semibold focus:outline-hidden focus:border-emerald-500 cursor-pointer"
+                >
+                  {availablePackages.map((p, idx) => {
+                    const label = isRTL ? p.nameAr : p.nameEn;
+                    const sub = p.secondary ? ` - ${p.secondary}` : '';
+                    return (
+                      <option key={p.id || idx} value={label}>
+                        {label}{sub}
+                      </option>
+                    );
+                  })}
+                </select>
               </div>
 
               {/* Field 3: Rating */}
@@ -692,10 +835,11 @@ export default function AgreementDetailPage() {
                   >
                     <Calendar className="w-4 h-4 text-slate-500 shrink-0" />
                     <input
-                      type="text"
+                      type="date"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
-                      className="w-full bg-transparent text-center text-xs sm:text-sm text-slate-800 font-semibold focus:outline-hidden px-1"
+                      onClick={(e) => e.currentTarget.showPicker?.()}
+                      className="w-full bg-transparent text-center text-xs sm:text-sm text-slate-800 font-semibold focus:outline-hidden px-1 cursor-pointer"
                     />
                     <span className="text-xs text-slate-500 font-medium shrink-0">{isRTL ? 'من' : 'From'}</span>
                   </div>
@@ -705,10 +849,11 @@ export default function AgreementDetailPage() {
                   >
                     <Calendar className="w-4 h-4 text-slate-500 shrink-0" />
                     <input
-                      type="text"
+                      type="date"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
-                      className="w-full bg-transparent text-center text-xs sm:text-sm text-slate-800 font-semibold focus:outline-hidden px-1"
+                      onClick={(e) => e.currentTarget.showPicker?.()}
+                      className="w-full bg-transparent text-center text-xs sm:text-sm text-slate-800 font-semibold focus:outline-hidden px-1 cursor-pointer"
                     />
                     <span className="text-xs text-slate-500 font-medium shrink-0">{isRTL ? 'إلى' : 'To'}</span>
                   </div>
@@ -863,6 +1008,8 @@ export default function AgreementDetailPage() {
           status: isRTL ? 'رسمي / معتمد' : 'Official / Approved',
           agreementTitle,
           hotelName,
+          agentName,
+          packageTier,
           city: isRTL ? 'مكة المكرمة' : 'Makkah',
           rating,
           period,

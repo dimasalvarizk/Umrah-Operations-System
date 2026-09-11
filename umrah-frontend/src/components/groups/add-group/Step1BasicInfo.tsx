@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useLanguage } from '../../../context/LanguageContext';
 
@@ -6,6 +7,8 @@ interface Step1BasicInfoProps {
   setGroupName: (val: string) => void;
   groupCode: string;
   setGroupCode: (val: string) => void;
+  agreementNumber?: string;
+  setAgreementNumber?: (val: string) => void;
   subAgent: string;
   setSubAgent: (val: string) => void;
   mainAgent: string;
@@ -14,6 +17,8 @@ interface Step1BasicInfoProps {
   setPilgrimsCount: React.Dispatch<React.SetStateAction<number>>;
   nationality: string;
   setNationality: (val: string) => void;
+  packageType?: string;
+  setPackageType?: (val: string) => void;
 }
 
 export default function Step1BasicInfo({
@@ -21,6 +26,8 @@ export default function Step1BasicInfo({
   setGroupName,
   groupCode,
   setGroupCode,
+  agreementNumber = 'AGR-1125900',
+  setAgreementNumber,
   subAgent,
   setSubAgent,
   mainAgent,
@@ -29,8 +36,101 @@ export default function Step1BasicInfo({
   setPilgrimsCount,
   nationality,
   setNationality,
+  packageType = 'باقة كبار الشخصيات التنفيذية (١٤ يوم)',
+  setPackageType,
 }: Step1BasicInfoProps) {
   const { t, isRTL } = useLanguage();
+
+  // Dynamic Agents list from system master lists
+  const availableAgents = useMemo(() => {
+    try {
+      const saved = localStorage.getItem('system_list_agents');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.filter((a: { status: string }) => a.status === 'Active');
+        }
+      }
+    } catch {
+      // fallback
+    }
+    return [
+      { nameEn: 'Hasoob Technology Trading - 2067', nameAr: 'حاسوب لتجارة التقنية - 2067' },
+      { nameEn: 'ODST Travel and Tourism - 2114', nameAr: 'أودست للسياحة والسفر - 2114' },
+      { nameEn: 'Makkah Aviation Agency', nameAr: 'وكالة مكة للطيران' },
+      { nameEn: 'Noor Al-Iman Intl', nameAr: 'نور الإيمان الدولية' },
+      { nameEn: 'Indonesia Travel', nameAr: 'إندونيسيا ترافيل' },
+      { nameEn: 'Safa Travel India', nameAr: 'الصفا ترافيل الهند' },
+      { nameEn: 'Ankara Tours Agency', nameAr: 'وكالة أنقرة للسياحة' },
+    ];
+  }, []);
+
+  // Dynamic Sub-Agents list from system master lists & partners
+  const availableSubAgents = useMemo(() => {
+    const defaultSubAgents = [
+      { id: 'sub-1', nameEn: 'Tasheel Tourism', nameAr: 'تسهيل للسياحة' },
+      { id: 'sub-2', nameEn: 'Al-Huda Trips', nameAr: 'رحلات الهدى' },
+      { id: 'sub-3', nameEn: 'Noor Al-Safa Sub-Agent', nameAr: 'تور الصفا الفرعي' },
+      { id: 'sub-4', nameEn: 'Tasheel Turkey', nameAr: 'تسهيل تركيا' },
+      { id: 'sub-5', nameEn: 'Tasheel Jakarta', nameAr: 'تسهيل جاكرتا' },
+      { id: 'sub-6', nameEn: 'Al-Quds Jordan', nameAr: 'القدس الأردنية' },
+      { id: 'sub-7', nameEn: 'Tasheel Karachi', nameAr: 'تسهيل كراتشي' },
+      { id: 'sub-8', nameEn: 'Sub-Agent in Egypt', nameAr: 'الوكيل الفرعي بمصر' },
+      ...availableAgents,
+    ];
+    const seen = new Set<string>();
+    return defaultSubAgents.filter((item) => {
+      const key = item.nameEn.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [availableAgents]);
+
+  // Dynamic Countries list from system master lists
+  const availableNationalities = useMemo(() => {
+    try {
+      const saved = localStorage.getItem('system_list_countries');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.filter((c: { status: string }) => c.status === 'Active');
+        }
+      }
+    } catch {
+      // fallback
+    }
+    return [
+      { nameEn: 'Indonesia', nameAr: 'إندونيسيا' },
+      { nameEn: 'Pakistan', nameAr: 'باكستان' },
+      { nameEn: 'Egypt', nameAr: 'مصر' },
+      { nameEn: 'Turkey', nameAr: 'تركيا' },
+      { nameEn: 'India', nameAr: 'الهند' },
+      { nameEn: 'Jordan', nameAr: 'الأردن' },
+      { nameEn: 'Morocco', nameAr: 'المغرب' },
+    ];
+  }, []);
+
+  // Dynamic Packages list from system master lists
+  const availablePackages = useMemo(() => {
+    try {
+      const saved = localStorage.getItem('system_list_packages');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.filter((p: { status: string }) => p.status === 'Active');
+        }
+      }
+    } catch {
+      // fallback
+    }
+    return [
+      { id: '1', nameEn: 'VIP Executive 14 Days', nameAr: 'باقة كبار الشخصيات التنفيذية (١٤ يوم)', secondary: '5-Star Front Row Hotels' },
+      { id: '2', nameEn: 'Premium Gold 12 Days', nameAr: 'الباقة الذهبية المميزة (١٢ يوم)', secondary: '5-Star Walking Distance' },
+      { id: '3', nameEn: 'Classic Economy 10 Days', nameAr: 'الباقة الاقتصادية الكلاسيكية (١٠ أيام)', secondary: '4-Star Central Hotels' },
+      { id: '4', nameEn: 'Ramadan Last 10 Days Special', nameAr: 'برنامج العشر الأواخر من رمضان', secondary: 'Makkah Clock Towers' },
+    ];
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -51,19 +151,83 @@ export default function Step1BasicInfo({
           />
         </div>
 
-        {/* Group Code */}
+        {/* Group Code (Nusuk Group Number) */}
         <div className="space-y-1.5">
-          <label className="text-xs sm:text-sm font-bold text-slate-700 flex items-center gap-1">
-            <span>{t('groups.col_code', 'رقم المجموعة')}</span>
-            <span className="text-red-500">*</span>
+          <label className="text-xs sm:text-sm font-bold text-slate-700 flex items-center justify-between">
+            <span className="flex items-center gap-1">
+              <span>{isRTL ? 'رقم المجموعة (نظام نسك)' : 'Group Number (Nusuk Code)'}</span>
+              <span className="text-red-500">*</span>
+            </span>
+            <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-medium border border-emerald-200">
+              {isRTL ? 'رقم نسك' : 'Nusuk Group'}
+            </span>
           </label>
           <input
             type="text"
-            placeholder={t('groups.group_code_placeholder', 'GRP-2401')}
+            placeholder={t('groups.group_code_placeholder', '480900XXXXXX / GRP-2401')}
             value={groupCode}
             onChange={(e) => setGroupCode(e.target.value)}
-            className="w-full bg-white border border-slate-200/90 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-300 transition shadow-2xs"
+            className="w-full bg-white border border-slate-200/90 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-800 font-mono placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-300 transition shadow-2xs"
           />
+        </div>
+      </div>
+
+      {/* Row 2: Nusuk Agreement Number & Package Tier */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+        {/* Agreement Number (Nusuk Integrated) */}
+        <div className="space-y-1.5">
+          <label className="text-xs sm:text-sm font-bold text-slate-700 flex items-center justify-between">
+            <span className="flex items-center gap-1">
+              <span>{isRTL ? 'رقم الاتفاقية (نظام نسك / الوزارة)' : 'Agreement Number (Nusuk System)'}</span>
+              <span className="text-red-500">*</span>
+            </span>
+            <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-medium border border-emerald-200">
+              {isRTL ? 'معتمد في نسك' : 'Nusuk Integrated'}
+            </span>
+          </label>
+          <input
+            type="text"
+            placeholder={isRTL ? 'مثال: AGR-1125900' : 'e.g. AGR-1125900'}
+            value={agreementNumber}
+            onChange={(e) => setAgreementNumber && setAgreementNumber(e.target.value)}
+            className="w-full bg-white border border-slate-200/90 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-800 font-bold font-mono placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 transition shadow-2xs"
+          />
+        </div>
+
+        {/* Umrah Package Tier */}
+        <div className="space-y-1.5">
+          <label className="text-xs sm:text-sm font-bold text-slate-700 flex items-center justify-between">
+            <span className="flex items-center gap-1">
+              <span>{isRTL ? 'نوع باقة وبرنامج العمرة' : 'Umrah Package Program'}</span>
+              <span className="text-red-500">*</span>
+            </span>
+            <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+              {isRTL ? 'البرامج' : 'Packages'}
+            </span>
+          </label>
+          <div className="relative">
+            <select
+              value={packageType}
+              onChange={(e) => setPackageType && setPackageType(e.target.value)}
+              className={`w-full appearance-none bg-white border border-slate-200/90 rounded-xl py-2.5 text-xs sm:text-sm text-slate-800 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-300 transition shadow-2xs ${
+                isRTL ? 'pr-4 pl-9 text-right' : 'pl-4 pr-9 text-left'
+              }`}
+            >
+              <option value="">{isRTL ? 'اختر فئة الباقة والبرنامج...' : 'Select package tier...'}</option>
+              {availablePackages.map((pkg: any, idx: number) => {
+                const label = isRTL ? pkg.nameAr : pkg.nameEn;
+                const sub = pkg.secondary ? ` - ${pkg.secondary}` : '';
+                return (
+                  <option key={pkg.id || idx} value={label}>
+                    {label}{sub}
+                  </option>
+                );
+              })}
+            </select>
+            <ChevronDown className={`w-4 h-4 text-slate-500 absolute top-1/2 -translate-y-1/2 pointer-events-none ${
+              isRTL ? 'left-3' : 'right-3'
+            }`} />
+          </div>
         </div>
       </div>
 
@@ -75,13 +239,28 @@ export default function Step1BasicInfo({
             <span>{t('groups.col_sub_agent', 'الوكيل الفرعي')}</span>
             <span className="text-red-500">*</span>
           </label>
-          <input
-            type="text"
-            placeholder={isRTL ? 'مثال: شركة تسهيل' : 'e.g. Tasheel Tours'}
-            value={subAgent}
-            onChange={(e) => setSubAgent(e.target.value)}
-            className="w-full bg-white border border-slate-200/90 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-300 transition shadow-2xs"
-          />
+          <div className="relative">
+            <select
+              value={subAgent}
+              onChange={(e) => setSubAgent(e.target.value)}
+              className={`w-full appearance-none bg-white border border-slate-200/90 rounded-xl py-2.5 text-xs sm:text-sm text-slate-700 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-300 transition shadow-2xs ${
+                isRTL ? 'pr-4 pl-9 text-right' : 'pl-4 pr-9 text-left'
+              }`}
+            >
+              <option value="">{isRTL ? 'اختر الوكيل الفرعي...' : 'Select sub-agent...'}</option>
+              {availableSubAgents.map((agent, idx) => {
+                const label = isRTL ? agent.nameAr : agent.nameEn;
+                return (
+                  <option key={agent.id || idx} value={label}>
+                    {label}
+                  </option>
+                );
+              })}
+            </select>
+            <ChevronDown className={`w-4 h-4 text-slate-500 absolute top-1/2 -translate-y-1/2 pointer-events-none ${
+              isRTL ? 'left-3' : 'right-3'
+            }`} />
+          </div>
         </div>
 
         {/* Main Agent */}
@@ -99,17 +278,14 @@ export default function Step1BasicInfo({
               }`}
             >
               <option value="">{t('groups.agent_placeholder', 'اختر الوكيل...')}</option>
-              <option value={isRTL ? 'حاسوب لتجارة التقنية - 2067' : 'Hasoob Technology Trading - 2067'}>
-                {isRTL ? 'حاسوب لتجارة التقنية - 2067' : 'Hasoob Technology Trading - 2067'}
-              </option>
-              <option value={isRTL ? 'أودست للسياحة والسفر - 2114' : 'ODST Travel and Tourism - 2114'}>
-                {isRTL ? 'أودست للسياحة والسفر - 2114' : 'ODST Travel and Tourism - 2114'}
-              </option>
-              <option value={isRTL ? 'وكالة مكة للطيران' : 'Makkah Aviation Agency'}>{isRTL ? 'وكالة مكة للطيران' : 'Makkah Aviation Agency'}</option>
-              <option value={isRTL ? 'نور الإيمان الدولية' : 'Noor Al-Iman Intl'}>{isRTL ? 'نور الإيمان الدولية' : 'Noor Al-Iman Intl'}</option>
-              <option value={isRTL ? 'إندونيسيا ترافيل' : 'Indonesia Travel'}>{isRTL ? 'إندونيسيا ترافيل' : 'Indonesia Travel'}</option>
-              <option value={isRTL ? 'الصفا ترافيل الهند' : 'Safa Travel India'}>{isRTL ? 'الصفا ترافيل الهند' : 'Safa Travel India'}</option>
-              <option value={isRTL ? 'وكالة أنقرة للسياحة' : 'Ankara Tours Agency'}>{isRTL ? 'وكالة أنقرة للسياحة' : 'Ankara Tours Agency'}</option>
+              {availableAgents.map((agent, idx) => {
+                const label = isRTL ? agent.nameAr : agent.nameEn;
+                return (
+                  <option key={agent.id || idx} value={label}>
+                    {label}
+                  </option>
+                );
+              })}
             </select>
             <ChevronDown className={`w-4 h-4 text-slate-500 absolute top-1/2 -translate-y-1/2 pointer-events-none ${
               isRTL ? 'left-3' : 'right-3'
@@ -170,13 +346,14 @@ export default function Step1BasicInfo({
               }`}
             >
               <option value="">{isRTL ? 'اختر الجنسية' : 'Select Nationality'}</option>
-              <option value={isRTL ? 'إندونيسيا' : 'Indonesia'}>{isRTL ? 'إندونيسيا' : 'Indonesia'}</option>
-              <option value={isRTL ? 'باكستان' : 'Pakistan'}>{isRTL ? 'باكستان' : 'Pakistan'}</option>
-              <option value={isRTL ? 'مصر' : 'Egypt'}>{isRTL ? 'مصر' : 'Egypt'}</option>
-              <option value={isRTL ? 'تركيا' : 'Turkey'}>{isRTL ? 'تركيا' : 'Turkey'}</option>
-              <option value={isRTL ? 'الهند' : 'India'}>{isRTL ? 'الهند' : 'India'}</option>
-              <option value={isRTL ? 'الأردن' : 'Jordan'}>{isRTL ? 'الأردن' : 'Jordan'}</option>
-              <option value={isRTL ? 'المغرب' : 'Morocco'}>{isRTL ? 'المغرب' : 'Morocco'}</option>
+              {availableNationalities.map((item, idx) => {
+                const label = isRTL ? item.nameAr : item.nameEn;
+                return (
+                  <option key={item.id || idx} value={label}>
+                    {label}
+                  </option>
+                );
+              })}
             </select>
             <ChevronDown className={`w-4 h-4 text-slate-500 absolute top-1/2 -translate-y-1/2 pointer-events-none ${
               isRTL ? 'left-3' : 'right-3'

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, ChevronDown, Star, FileText, Plus, Pencil, Trash2, Check } from 'lucide-react';
+import { X, ChevronDown, Star, FileText, Plus, Pencil, Trash2, Check, Building2, CheckCircle2 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import type { HotelItem } from '../../pages/HotelsPage';
 
@@ -21,6 +21,7 @@ export interface NewHotelData {
   image: string;
   status: string;
   roomTypes?: RoomTypeRow[];
+  amenities?: string[];
 }
 
 interface AddHotelModalProps {
@@ -55,6 +56,35 @@ export default function AddHotelModal({
   const [draftPrice, setDraftPrice] = useState<number>(450);
   const [draftRoomsCount, setDraftRoomsCount] = useState<number>(20);
 
+  // Amenities State
+  const defaultAmenitiesAr = [
+    'إنترنت واي فاي مجاني فائق السرعة',
+    'حافلات ترددية مجانية للحرم على مدار الساعة',
+    'مطعم وبوفيه إفطار مفتوح فاخر',
+    'خدمة استقبال وغرف 24/7',
+    'مكتب حجز وتفويج للمعتمرين',
+    'مصاعد بانورامية وسريعة',
+    'مرافق مهيأة لذوي الاحتياجات الخاصة',
+    'خدمة غسيل وكي الملابس السريعة',
+  ];
+
+  const defaultAmenitiesEn = [
+    'High-Speed Free Wi-Fi Internet',
+    '24/7 Free Haram Shuttle Buses',
+    'Gourmet Buffet & On-Site Restaurant',
+    '24/7 Front Desk & Concierge Service',
+    'Pilgrim Logistics & Booking Center',
+    'High-Speed Panoramic Elevators',
+    'Accessible Facilities for Disabled Guests',
+    'Express Laundry & Dry Cleaning',
+  ];
+
+  const [amenitiesList, setAmenitiesList] = useState<string[]>([]);
+  const [editingAmenityIdx, setEditingAmenityIdx] = useState<number | null>(null);
+  const [draftAmenityText, setDraftAmenityText] = useState('');
+  const [isAddingAmenity, setIsAddingAmenity] = useState(false);
+  const [newAmenityText, setNewAmenityText] = useState('');
+
   useEffect(() => {
     if (isOpen) {
       if (initialHotel) {
@@ -73,6 +103,12 @@ export default function AddHotelModal({
             { id: '5', name: isRTL ? 'غرفة جناح عائلي (Suite 5)' : 'Family Suite 5', capacity: isRTL ? '٦ أشخاص' : '6 Persons', price: 1100, roomsCount: 10 },
           ]);
         }
+
+        if (initialHotel.amenities && initialHotel.amenities.length > 0) {
+          setAmenitiesList(initialHotel.amenities);
+        } else {
+          setAmenitiesList(isRTL ? defaultAmenitiesAr : defaultAmenitiesEn);
+        }
       } else {
         setHotelName('');
         setLocation('مكة المكرمة');
@@ -85,9 +121,13 @@ export default function AddHotelModal({
           { id: '4', name: isRTL ? 'غرفة خماسية (Quint)' : 'Quint Room', capacity: isRTL ? '٥ أشخاص' : '5 Persons', price: 900, roomsCount: 15 },
           { id: '5', name: isRTL ? 'غرفة جناح عائلي (Suite 5)' : 'Family Suite (Suite 5)', capacity: isRTL ? '٦ أشخاص' : '6 Persons', price: 1100, roomsCount: 10 },
         ]);
+        setAmenitiesList(isRTL ? defaultAmenitiesAr : defaultAmenitiesEn);
       }
       setEditingRoomId(null);
       setIsAddingRoom(false);
+      setEditingAmenityIdx(null);
+      setIsAddingAmenity(false);
+      setNewAmenityText('');
     }
   }, [isOpen, initialHotel, isRTL]);
 
@@ -146,6 +186,34 @@ export default function AddHotelModal({
     setIsAddingRoom(false);
   };
 
+  // Amenities Handlers
+  const handleStartEditAmenity = (idx: number, text: string) => {
+    setEditingAmenityIdx(idx);
+    setDraftAmenityText(text);
+    setIsAddingAmenity(false);
+  };
+
+  const handleSaveEditAmenity = (idx: number) => {
+    if (!draftAmenityText.trim()) return;
+    setAmenitiesList((prev) => {
+      const next = [...prev];
+      next[idx] = draftAmenityText.trim();
+      return next;
+    });
+    setEditingAmenityIdx(null);
+  };
+
+  const handleDeleteAmenity = (idx: number) => {
+    setAmenitiesList((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleSaveAddAmenity = () => {
+    if (!newAmenityText.trim()) return;
+    setAmenitiesList((prev) => [...prev, newAmenityText.trim()]);
+    setNewAmenityText('');
+    setIsAddingAmenity(false);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const totalRooms = roomTypes.reduce((acc, r) => acc + (Number(r.roomsCount) || 0), 0);
@@ -160,6 +228,7 @@ export default function AddHotelModal({
       pricePerNight: minPrice,
       status: isRTL ? 'متاح للتسكين' : 'Available',
       roomTypes: roomTypes,
+      amenities: amenitiesList,
       image:
         initialHotel?.image ||
         (location === 'مكة المكرمة'
@@ -547,10 +616,154 @@ export default function AddHotelModal({
                     className="text-xs sm:text-sm font-bold text-[#00c48c] hover:text-[#00b07d] flex items-center gap-1.5 transition cursor-pointer active:scale-95"
                   >
                     <Plus className="w-4 h-4 stroke-[2.5]" />
-                    <span>{isRTL ? '+ إضافة نوع غرفة جديد' : '+ Add New Room Type'}</span>
+                    <span>{isRTL ? 'إضافة نوع غرفة جديد' : 'Add New Room Type'}</span>
                   </button>
                 </div>
               )}
+            </div>
+
+            {/* SECTION 4: Amenities & Services */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-[#0f172a] font-bold text-sm sm:text-base">
+                  <div className="w-7 h-7 rounded-lg bg-[#cbf7ea] text-[#00897b] flex items-center justify-center shrink-0">
+                    <Building2 className="w-4 h-4 stroke-[2.2]" />
+                  </div>
+                  <span>{isRTL ? '٤. المرافق والخدمات المشمولة' : '4. Amenities & Services'}</span>
+                </div>
+
+                {!isAddingAmenity && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAddingAmenity(true);
+                      setEditingAmenityIdx(null);
+                      setNewAmenityText('');
+                    }}
+                    className="text-xs sm:text-sm font-bold text-[#00c48c] hover:text-[#00b07d] flex items-center gap-1.5 transition cursor-pointer active:scale-95"
+                  >
+                    <Plus className="w-4 h-4 stroke-[2.5]" />
+                    <span>{isRTL ? 'إضافة مرفق جديد' : 'Add New Amenity'}</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Add Amenity Form */}
+              {isAddingAmenity && (
+                <div className="bg-emerald-50/50 border border-emerald-200 rounded-xl p-3 flex items-center gap-2.5 animate-fadeIn">
+                  <input
+                    type="text"
+                    value={newAmenityText}
+                    onChange={(e) => setNewAmenityText(e.target.value)}
+                    placeholder={isRTL ? 'اسم المرفق أو الخدمة (مثال: مسبح وسبا خاص)' : 'Amenity or service name (e.g. Private Pool & Spa)'}
+                    className="flex-1 bg-white border border-emerald-300 rounded-lg px-3 py-1.5 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleSaveAddAmenity();
+                      } else if (e.key === 'Escape') {
+                        setIsAddingAmenity(false);
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSaveAddAmenity}
+                    className="p-2 bg-[#00c48c] hover:bg-[#00b07d] text-white rounded-lg transition cursor-pointer shadow-2xs"
+                    title={isRTL ? 'إضافة' : 'Add'}
+                  >
+                    <Check className="w-4 h-4 stroke-[2.5]" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingAmenity(false)}
+                    className="p-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg transition cursor-pointer"
+                    title={isRTL ? 'إلغاء' : 'Cancel'}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {amenitiesList.map((amenity, idx) => {
+                  const isEditing = editingAmenityIdx === idx;
+
+                  if (isEditing) {
+                    return (
+                      <div
+                        key={idx}
+                        className="bg-emerald-50/40 border border-emerald-300 rounded-xl px-3 py-2 flex items-center gap-2 animate-fadeIn shadow-2xs"
+                      >
+                        <input
+                          type="text"
+                          value={draftAmenityText}
+                          onChange={(e) => setDraftAmenityText(e.target.value)}
+                          className="flex-1 bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleSaveEditAmenity(idx);
+                            } else if (e.key === 'Escape') {
+                              setEditingAmenityIdx(null);
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleSaveEditAmenity(idx)}
+                          className="p-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md transition cursor-pointer shadow-2xs"
+                          title={isRTL ? 'حفظ' : 'Save'}
+                        >
+                          <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingAmenityIdx(null)}
+                          className="p-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-md transition cursor-pointer"
+                          title={isRTL ? 'إلغاء' : 'Cancel'}
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div
+                      key={idx}
+                      className="bg-[#f8fafc] hover:bg-slate-50/90 border border-slate-200/70 hover:border-slate-300 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs sm:text-sm group transition-all"
+                    >
+                      <span className="text-slate-800 font-medium line-clamp-1">{amenity}</span>
+                      
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <CheckCircle2 className="w-4 h-4 text-[#00c48c] shrink-0 stroke-[2.3]" />
+                        
+                        <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity border-l border-slate-200 pl-1.5 rtl:border-l-0 rtl:border-r rtl:border-slate-200 rtl:pl-0 rtl:pr-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleStartEditAmenity(idx, amenity)}
+                            className="p-1 text-slate-400 hover:text-slate-800 hover:bg-slate-200/60 rounded-md transition cursor-pointer"
+                            title={isRTL ? 'تعديل المرفق' : 'Edit Amenity'}
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteAmenity(idx)}
+                            className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition cursor-pointer"
+                            title={isRTL ? 'حذف المرفق' : 'Delete Amenity'}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
 

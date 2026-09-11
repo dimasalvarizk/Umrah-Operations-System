@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { X, ChevronDown, Calendar, AlertTriangle, Check } from 'lucide-react';
+import { X, ChevronDown, Calendar, AlertTriangle, Check, Plane } from 'lucide-react';
 import type { TripItem } from './TripDetailsModal';
 import busBadge from '../../assets/bus-badge.png';
 import { useLanguage } from '../../context/LanguageContext';
+import { resolveAirlinePreset } from '../groups/add-group/Step3FlightsTransport';
 
 interface AddTripModalProps {
   isOpen: boolean;
@@ -18,10 +19,21 @@ export const ROUTE_OPTIONS = [
   { ar: 'مكة ← مطار جدة', en: 'Makkah ➔ Jeddah Airport' },
   { ar: 'مكة (الرصيفة) ↔ المدينة', en: 'Makkah (Rusaifah) ↔ Madinah' },
   { ar: 'مكة المكرمة ↔ جبل ثور', en: 'Makkah ↔ Mount Thawr' },
-  { ar: 'جاكرتا ← جدة', en: 'Jakarta ➔ Jeddah' },
-  { ar: 'جاكرتا ← المدينة', en: 'Jakarta ➔ Madinah' },
+  { ar: 'جاكرتا ← جدة (مطار الملك عبد العزيز)', en: 'Jakarta ➔ Jeddah (JED Airport)' },
+  { ar: 'جاكرتا ← المدينة (مطار الأمير محمد)', en: 'Jakarta ➔ Madinah (MED Airport)' },
   { ar: 'جدة ← جاكرتا', en: 'Jeddah ➔ Jakarta' },
   { ar: 'المدينة ← جاكرتا', en: 'Madinah ➔ Jakarta' },
+];
+
+export const DEFAULT_AIRLINES_LIST = [
+  { id: '1', nameEn: 'Saudia', nameAr: 'الخطوط السعودية', code: 'SV' },
+  { id: '2', nameEn: 'Flynas', nameAr: 'طيران ناس', code: 'XY' },
+  { id: '3', nameEn: 'Garuda Indonesia', nameAr: 'جارودا إندونيسيا', code: 'GA' },
+  { id: '4', nameEn: 'EgyptAir', nameAr: 'مصر للطيران', code: 'MS' },
+  { id: '5', nameEn: 'Qatar Airways', nameAr: 'الخطوط القطرية', code: 'QR' },
+  { id: '6', nameEn: 'Emirates Airlines', nameAr: 'طيران الإمارات', code: 'EK' },
+  { id: '7', nameEn: 'Turkish Airlines', nameAr: 'الخطوط التركية', code: 'TK' },
+  { id: '8', nameEn: 'Lion Air', nameAr: 'ليون إير', code: 'JT' },
 ];
 
 export const NATIONALITY_OPTIONS = [
@@ -39,65 +51,65 @@ export const NATIONALITY_OPTIONS = [
 export const TRANSPORT_COMPANIES = [
   {
     id: '1',
-    nameAr: 'نقل الحرمين السريع',
-    nameEn: 'Haramain Express Transport',
-    vehicleTypeAr: 'حافلات نقل حجاج ومعتمرين 50 راكب',
-    vehicleTypeEn: '50-Seater Pilgrim Mass Buses',
-    driverNameAr: 'محمد العمري',
-    driverNameEn: 'Mohammed Al-Omari',
-    phone: '+966 50 123 4567',
-    busNumber: 'BUS-101',
-  },
-  {
-    id: '2',
-    nameAr: 'شركة الراجحي للنقل',
-    nameEn: 'Al Rajhi Transport',
-    vehicleTypeAr: 'فانات سياحية مجهزة وحافلات VIP',
-    vehicleTypeEn: 'Equipped Tourist Vans & VIP Buses',
-    driverNameAr: 'سالم الدوسري',
-    driverNameEn: 'Salem Al-Dossari',
-    phone: '+966 50 234 5678',
-    busNumber: 'RAJ-204',
-  },
-  {
-    id: '3',
-    nameAr: 'الليموزين السعودي',
-    nameEn: 'Saudi Limousine',
-    vehicleTypeAr: 'سيارات ليموزين VIP وفانات نقل فندقي',
-    vehicleTypeEn: 'VIP Limousines & Hotel Shuttles',
-    driverNameAr: 'عبد الله الشهري',
-    driverNameEn: 'Abdullah Al-Shehri',
-    phone: '+966 50 345 6789',
-    busNumber: 'LIM-505',
-  },
-  {
-    id: '4',
-    nameAr: 'سابتكو (SAPTCO)',
-    nameEn: 'SAPTCO',
-    vehicleTypeAr: 'أسطول متكامل: حافلات وفانات وليموزين',
-    vehicleTypeEn: 'Integrated Fleet: Buses, Vans & Limos',
+    nameAr: 'شركة سابتكو للنقل (SAPTO)',
+    nameEn: 'SAPTO Transport Company',
+    vehicleTypeAr: 'حافلات نقل حجاج ومعتمرين 50 راكب VIP',
+    vehicleTypeEn: '50-Seater Pilgrim Mass VIP Buses',
     driverNameAr: 'إبراهيم الحربي',
     driverNameEn: 'Ibrahim Al-Harbi',
     phone: '+966 50 456 7890',
     busNumber: 'SAP-770',
   },
   {
+    id: '2',
+    nameAr: 'أسطول دله للنقل (Dallah)',
+    nameEn: 'Dallah Transport Fleet',
+    vehicleTypeAr: 'حافلات مرسيدس ترافيكو وفانات فاخرة',
+    vehicleTypeEn: 'Mercedes Travego VIP Coaches & Vans',
+    driverNameAr: 'سالم الدوسري',
+    driverNameEn: 'Salem Al-Dossari',
+    phone: '+966 50 234 5678',
+    busNumber: 'DAL-204',
+  },
+  {
+    id: '3',
+    nameAr: 'شركة رواحل المشاعر (Rawahel)',
+    nameEn: 'Rawahel Al-Mashaer',
+    vehicleTypeAr: 'حافلات سياحية مجهزة لنقل المجموعات',
+    vehicleTypeEn: 'Modern High-Deck Mass Coaches',
+    driverNameAr: 'عبد الله الشهري',
+    driverNameEn: 'Abdullah Al-Shehri',
+    phone: '+966 50 345 6789',
+    busNumber: 'RAW-505',
+  },
+  {
+    id: '4',
+    nameAr: 'شركة قوافل الدولية (Qawafil)',
+    nameEn: 'Qawafil International',
+    vehicleTypeAr: 'حافلات نقل جماعي وفانات مطار',
+    vehicleTypeEn: 'King Long / Yutong Deluxe Coaches',
+    driverNameAr: 'محمد العمري',
+    driverNameEn: 'Mohammed Al-Omari',
+    phone: '+966 50 123 4567',
+    busNumber: 'QAW-101',
+  },
+  {
     id: '5',
-    nameAr: 'هلا للنقل',
-    nameEn: 'Hala Transport',
-    vehicleTypeAr: 'حافلات سياحية وفانات نقل جماعي',
-    vehicleTypeEn: 'Tourist Coaches & Group Vans',
+    nameAr: 'شركة القائد لخدمات النقل (Al-Qaid)',
+    nameEn: 'Al-Qaid Transport',
+    vehicleTypeAr: 'فانات سريعة وحافلات VIP للمعتمرين',
+    vehicleTypeEn: 'Airport Shuttles & Fast Response Fleet',
     driverNameAr: 'خالد الغامدي',
     driverNameEn: 'Khaled Al-Ghamdi',
     phone: '+966 50 567 8901',
-    busNumber: 'HAL-330',
+    busNumber: 'QAD-330',
   },
   {
     id: '6',
-    nameAr: 'النقل المكي المتميز',
-    nameEn: 'Al Makkiyah Transport',
-    vehicleTypeAr: 'فانات عائلية ومركبات تفويج بالمطار',
-    vehicleTypeEn: 'Family Vans & Airport Transfers',
+    nameAr: 'نقل الحرمين السريع',
+    nameEn: 'Haramain Express Transport',
+    vehicleTypeAr: 'حافلات نقل حجاج ومعتمرين 50 راكب',
+    vehicleTypeEn: '50-Seater Pilgrim Mass Buses',
     driverNameAr: 'ماجد القحطاني',
     driverNameEn: 'Majid Al-Qahtani',
     phone: '+966 50 678 9012',
@@ -105,10 +117,10 @@ export const TRANSPORT_COMPANIES = [
   },
   {
     id: '7',
-    nameAr: 'شركة تواصل للنقل',
-    nameEn: 'Tawasul Transport',
-    vehicleTypeAr: 'فانات نقل معتمرين وحافلات كوستر',
-    vehicleTypeEn: 'Pilgrim Vans & Coaster Buses',
+    nameAr: 'شركة الراجحي للنقل',
+    nameEn: 'Al Rajhi Transport',
+    vehicleTypeAr: 'فانات سياحية مجهزة وحافلات VIP',
+    vehicleTypeEn: 'Equipped Tourist Vans & VIP Buses',
     driverNameAr: 'ياسر المالكي',
     driverNameEn: 'Yasser Al-Malki',
     phone: '+966 50 789 0123',
@@ -116,17 +128,6 @@ export const TRANSPORT_COMPANIES = [
   },
   {
     id: '8',
-    nameAr: 'المدينة السريعة للنقل',
-    nameEn: 'Al Madinah Express',
-    vehicleTypeAr: 'سيارات سيدان فندقية وفانات نقل سريع',
-    vehicleTypeEn: 'Hotel Sedans & Rapid Vans',
-    driverNameAr: 'عادل السلمي',
-    driverNameEn: 'Adel Al-Sulami',
-    phone: '+966 50 890 1234',
-    busNumber: 'MAD-909',
-  },
-  {
-    id: '9',
     nameAr: 'الشركة الملكية للنقل',
     nameEn: 'Royal Transport Co.',
     vehicleTypeAr: 'حافلات فاخرة لكبار ضيوف الرحمن VIP',
@@ -172,16 +173,76 @@ export default function AddTripModal({
   const [guideName, setGuideName] = useState('');
   const [dominantNationality, setDominantNationality] = useState('السعودية');
 
-  // Section 4: Transport
+  // Section 4: Flight & Airlines
+  const [airline, setAirline] = useState('الخطوط السعودية');
+  const [flightNumber, setFlightNumber] = useState('SV-379');
+
+  // Section 5: Transport
   const [transportCompany, setTransportCompany] = useState('نقل الحرمين السريع');
   const [transportType, setTransportType] = useState('حافلات نقل حجاج ومعتمرين 50 راكب');
   const [busNumber, setBusNumber] = useState('BUS-101');
   const [driverName, setDriverName] = useState('محمد العمري');
   const [driverPhone, setDriverPhone] = useState('+966 50 123 4567');
 
+  // Dynamic system master lists
+  const [dynamicAirlines, setDynamicAirlines] = useState(DEFAULT_AIRLINES_LIST);
+  const [dynamicTransport, setDynamicTransport] = useState(TRANSPORT_COMPANIES);
+  const [dynamicCountries, setDynamicCountries] = useState(NATIONALITY_OPTIONS);
+  const [dynamicPackages, setDynamicPackages] = useState([
+    { id: '1', nameAr: 'برنامج اقتصادي', nameEn: 'Economy Package' },
+    { id: '2', nameAr: 'برنامج VIP فاخر', nameEn: 'VIP Luxury Package' },
+    { id: '3', nameAr: 'برنامج مميز', nameEn: 'Premium Package' },
+    { id: '4', nameAr: 'برنامج مخصص', nameEn: 'Custom Delegation' },
+  ]);
+
+  useEffect(() => {
+    try {
+      const savedAirlines = localStorage.getItem('system_list_airlines');
+      if (savedAirlines) {
+        const parsed = JSON.parse(savedAirlines);
+        if (Array.isArray(parsed) && parsed.length > 0) setDynamicAirlines(parsed);
+      }
+      const savedTransport = localStorage.getItem('system_list_transport');
+      if (savedTransport) {
+        const parsedT = JSON.parse(savedTransport);
+        if (Array.isArray(parsedT) && parsedT.length > 0) {
+          setDynamicTransport(
+            parsedT.map((t: any) => ({
+              id: t.id,
+              nameAr: t.nameAr,
+              nameEn: t.nameEn,
+              vehicleTypeAr: t.secondary || 'حافلات نقل حجاج ومعتمرين',
+              vehicleTypeEn: t.secondary || 'Pilgrim Mass Buses',
+              driverNameAr: 'سائق معتمد',
+              driverNameEn: 'Certified Driver',
+              phone: '+966 50 123 4567',
+              busNumber: 'BUS-' + t.id + '01',
+            }))
+          );
+        }
+      }
+      const savedCountries = localStorage.getItem('system_list_countries');
+      if (savedCountries) {
+        const parsedC = JSON.parse(savedCountries);
+        if (Array.isArray(parsedC) && parsedC.length > 0) {
+          setDynamicCountries(parsedC.map((c: any) => ({ ar: c.nameAr, en: c.nameEn })));
+        }
+      }
+      const savedPackages = localStorage.getItem('system_list_packages');
+      if (savedPackages) {
+        const parsedP = JSON.parse(savedPackages);
+        if (Array.isArray(parsedP) && parsedP.length > 0) {
+          setDynamicPackages(parsedP);
+        }
+      }
+    } catch {
+      // Fallback
+    }
+  }, []);
+
   const handleCompanyChange = (companyName: string) => {
     setTransportCompany(companyName);
-    const matched = TRANSPORT_COMPANIES.find(
+    const matched = dynamicTransport.find(
       (c) => c.nameAr === companyName || c.nameEn === companyName
     );
     if (matched) {
@@ -190,6 +251,12 @@ export default function AddTripModal({
       setDriverPhone(matched.phone);
       setBusNumber(matched.busNumber);
     }
+  };
+
+  const handleAirlineChange = (airlineVal: string) => {
+    setAirline(airlineVal);
+    const p = resolveAirlinePreset(airlineVal, dynamicAirlines);
+    setFlightNumber(p.depFlight);
   };
 
   useEffect(() => {
@@ -205,6 +272,8 @@ export default function AddTripModal({
       setPilgrimsCount(String(initialData.pilgrimsCount || ''));
       setGuideName(initialData.guideName);
       setDominantNationality(initialData.dominantNationality || (isRTL ? 'السعودية' : 'Saudi Arabia'));
+      setAirline(initialData.airline || (isRTL ? 'الخطوط السعودية' : 'Saudia'));
+      setFlightNumber(initialData.flightNumber || 'SV-379');
       setTransportCompany(initialData.transportCompany || (isRTL ? 'نقل الحرمين السريع' : 'Haramain Express Transport'));
       setTransportType(initialData.transportType || (isRTL ? 'حافلات نقل حجاج ومعتمرين 50 راكب' : '50-Seater Pilgrim Mass Buses'));
       setBusNumber(initialData.busNumber || 'BUS-101');
@@ -221,6 +290,8 @@ export default function AddTripModal({
       setPilgrimsCount('');
       setGuideName('');
       setDominantNationality(isRTL ? 'السعودية' : 'Saudi Arabia');
+      setAirline(isRTL ? 'الخطوط السعودية' : 'Saudia');
+      setFlightNumber('SV-379');
       setTransportCompany(isRTL ? 'نقل الحرمين السريع' : 'Haramain Express Transport');
       setTransportType(isRTL ? 'حافلات نقل حجاج ومعتمرين 50 راكب' : '50-Seater Pilgrim Mass Buses');
       setBusNumber('BUS-101');
@@ -252,6 +323,8 @@ export default function AddTripModal({
       pilgrimsCount: Number(pilgrimsCount) || 120,
       guideName: guideName || (isRTL ? 'يوسف مكي' : 'Youssef Makki'),
       dominantNationality,
+      airline,
+      flightNumber,
       status: initialData?.status || 'قيد التنفيذ',
       transportCompany,
       transportType,
@@ -367,10 +440,14 @@ export default function AddTripModal({
                         isRTL ? 'pr-4 pl-9 text-right' : 'pl-4 pr-9 text-left'
                       }`}
                     >
-                      <option value="برنامج اقتصادي">{isRTL ? 'برنامج اقتصادي' : 'Economy Package'}</option>
-                      <option value="برنامج VIP فاخر">{isRTL ? 'برنامج VIP فاخر' : 'VIP Luxury Package'}</option>
-                      <option value="برنامج مميز">{isRTL ? 'برنامج مميز' : 'Premium Package'}</option>
-                      <option value="برنامج مخصص">{isRTL ? 'برنامج مخصص' : 'Custom Delegation'}</option>
+                      {dynamicPackages.map((pkg) => (
+                        <option key={pkg.id} value={isRTL ? pkg.nameAr : pkg.nameEn}>
+                          {isRTL ? pkg.nameAr : pkg.nameEn}
+                        </option>
+                      ))}
+                      {!dynamicPackages.some((p) => p.nameAr === programType || p.nameEn === programType) && programType && (
+                        <option value={programType}>{programType}</option>
+                      )}
                     </select>
                     <ChevronDown className={`w-4 h-4 text-slate-400 absolute top-1/2 -translate-y-1/2 pointer-events-none ${
                       isRTL ? 'left-3' : 'right-3'
@@ -393,11 +470,11 @@ export default function AddTripModal({
                   </label>
                   <div className="relative">
                     <input
-                      type="text"
+                      type="date"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
-                      placeholder={isRTL ? 'اليوم/الشهر/السنة' : 'DD/MM/YYYY'}
-                      className={`w-full bg-white border border-slate-200/90 rounded-xl py-2.5 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-300 shadow-2xs ${
+                      onClick={(e) => e.currentTarget.showPicker?.()}
+                      className={`w-full bg-white border border-slate-200/90 rounded-xl py-2.5 text-xs sm:text-sm text-slate-800 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-300 shadow-2xs ${
                         isRTL ? 'pr-4 pl-10 text-right' : 'pl-4 pr-10 text-left'
                       }`}
                     />
@@ -413,11 +490,11 @@ export default function AddTripModal({
                   </label>
                   <div className="relative">
                     <input
-                      type="text"
+                      type="date"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
-                      placeholder={isRTL ? 'اليوم/الشهر/السنة' : 'DD/MM/YYYY'}
-                      className={`w-full bg-white border border-slate-200/90 rounded-xl py-2.5 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-300 shadow-2xs ${
+                      onClick={(e) => e.currentTarget.showPicker?.()}
+                      className={`w-full bg-white border border-slate-200/90 rounded-xl py-2.5 text-xs sm:text-sm text-slate-800 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-300 shadow-2xs ${
                         isRTL ? 'pr-4 pl-10 text-right' : 'pl-4 pr-10 text-left'
                       }`}
                     />
@@ -499,12 +576,12 @@ export default function AddTripModal({
                         isRTL ? 'pr-4 pl-9 text-right' : 'pl-4 pr-9 text-left'
                       }`}
                     >
-                      {NATIONALITY_OPTIONS.map((nat) => (
+                      {dynamicCountries.map((nat) => (
                         <option key={nat.ar} value={isRTL ? nat.ar : nat.en}>
                           {isRTL ? nat.ar : nat.en}
                         </option>
                       ))}
-                      {!NATIONALITY_OPTIONS.some((n) => n.ar === dominantNationality || n.en === dominantNationality) && dominantNationality && (
+                      {!dynamicCountries.some((n) => n.ar === dominantNationality || n.en === dominantNationality) && dominantNationality && (
                         <option value={dominantNationality}>{dominantNationality}</option>
                       )}
                     </select>
@@ -515,9 +592,56 @@ export default function AddTripModal({
                 </div>
               </div>
             </div>
+
+            {/* SECTION 4: Flight & Airlines (Dynamic from Master Lists) */}
+            <div className="space-y-3.5 pt-1">
+              <div className="flex items-center gap-2 text-sm font-bold text-[#0f172a]">
+                <Plane className="w-4 h-4 text-emerald-600" />
+                <span>{isRTL ? '٤. بيانات الطيران والناقل الجوي ومطار الوصول' : '4. Airline & Flight Information'}</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    {isRTL ? 'شركة الطيران (الناقل)' : 'Airline / Carrier'}
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={airline}
+                      onChange={(e) => handleAirlineChange(e.target.value)}
+                      className={`w-full appearance-none bg-white border border-slate-200/90 rounded-xl py-2.5 text-xs sm:text-sm font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer shadow-2xs ${
+                        isRTL ? 'pr-4 pl-9 text-right' : 'pl-4 pr-9 text-left'
+                      }`}
+                    >
+                      {dynamicAirlines.map((al) => (
+                        <option key={al.id} value={isRTL ? al.nameAr : al.nameEn}>
+                          {isRTL ? al.nameAr : al.nameEn} ({al.code})
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className={`w-4 h-4 text-slate-400 absolute top-1/2 -translate-y-1/2 pointer-events-none ${
+                      isRTL ? 'left-3' : 'right-3'
+                    }`} />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    {isRTL ? 'رقم رحلة الطيران' : 'Flight Number'}
+                  </label>
+                  <input
+                    type="text"
+                    value={flightNumber}
+                    onChange={(e) => setFlightNumber(e.target.value)}
+                    placeholder={isRTL ? `مثال: ${resolveAirlinePreset(airline, dynamicAirlines).depFlight}` : `e.g. ${resolveAirlinePreset(airline, dynamicAirlines).depFlight}`}
+                    className="w-full bg-white border border-slate-200/90 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-800 font-bold font-mono placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 shadow-2xs"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* SECTION 4: Transportation */}
+          {/* SECTION 5: Transportation */}
           <div className="bg-white px-6 sm:px-8 py-5 space-y-4 flex-1">
             <div className="flex items-center gap-2.5 text-sm font-bold text-[#0f172a]">
               <img
@@ -542,12 +666,12 @@ export default function AddTripModal({
                   }`}
                 >
                   <option value="">{t('trips.select_company', isRTL ? 'اختر شركة النقل...' : 'Select Transportation Company...')}</option>
-                  {TRANSPORT_COMPANIES.map((comp) => (
+                  {dynamicTransport.map((comp) => (
                     <option key={comp.id} value={isRTL ? comp.nameAr : comp.nameEn}>
                       {isRTL ? comp.nameAr : comp.nameEn}
                     </option>
                   ))}
-                  {!TRANSPORT_COMPANIES.some((c) => c.nameAr === transportCompany || c.nameEn === transportCompany) && transportCompany && (
+                  {!dynamicTransport.some((c) => c.nameAr === transportCompany || c.nameEn === transportCompany) && transportCompany && (
                     <option value={transportCompany}>{transportCompany}</option>
                   )}
                 </select>

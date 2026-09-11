@@ -7,16 +7,14 @@ import ManageTeamTab from '../components/settings/ManageTeamTab';
 import EditProfileTab from '../components/settings/EditProfileTab';
 import SecurityTab from '../components/settings/SecurityTab';
 import NotificationsTab from '../components/settings/NotificationsTab';
-import ServicesTab from '../components/settings/ServicesTab';
-import HBManagementTab from '../components/settings/HBManagementTab';
+import MasterListsTab from '../components/settings/MasterListsTab';
 
 export type SettingsTabId =
   | 'team'
   | 'profile'
   | 'security'
   | 'notifications'
-  | 'services'
-  | 'hb';
+  | 'lists';
 
 export default function SettingsPage() {
   const { direction, t, isRTL } = useLanguage();
@@ -49,14 +47,9 @@ export default function SettingsPage() {
       labelAr: 'التنبيهات والإشعارات',
     },
     {
-      id: 'services',
-      labelEn: 'Services & Tariffs',
-      labelAr: 'الخدمات والأسعار',
-    },
-    {
-      id: 'hb',
-      labelEn: 'HB Management',
-      labelAr: 'الإيواء والغرف (HB)',
+      id: 'lists',
+      labelEn: 'System Lists',
+      labelAr: 'قوائم وبيانات النظام',
     },
   ];
 
@@ -111,8 +104,7 @@ export default function SettingsPage() {
             {activeTab === 'profile' && <EditProfileTab />}
             {activeTab === 'security' && <SecurityTab />}
             {activeTab === 'notifications' && <NotificationsTab />}
-            {activeTab === 'services' && <ServicesTab />}
-            {activeTab === 'hb' && <HBManagementTab />}
+            {activeTab === 'lists' && <MasterListsTab />}
           </div>
         </main>
       </div>
