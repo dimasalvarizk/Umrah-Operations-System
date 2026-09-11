@@ -71,6 +71,7 @@ export default function AddGroupModal({ isOpen, onClose, onSuccess, initialData 
   const [enrichmentProgram, setEnrichmentProgram] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
   const [missingRequirements, setMissingRequirements] = useState('');
+  const [uploadedFiles, setUploadedFiles] = useState<Record<string, { name: string; size?: number }>>({});
 
   useEffect(() => {
     if (isOpen) {
@@ -142,6 +143,7 @@ export default function AddGroupModal({ isOpen, onClose, onSuccess, initialData 
         setEnrichmentProgram('');
         setAdditionalNotes('');
         setMissingRequirements('');
+        setUploadedFiles({});
       }
     }
   }, [isOpen, initialData, isRTL]);
@@ -307,6 +309,8 @@ export default function AddGroupModal({ isOpen, onClose, onSuccess, initialData 
               setAdditionalNotes={setAdditionalNotes}
               missingRequirements={missingRequirements}
               setMissingRequirements={setMissingRequirements}
+              uploadedFiles={uploadedFiles}
+              setUploadedFiles={setUploadedFiles}
             />
           )}
         </div>

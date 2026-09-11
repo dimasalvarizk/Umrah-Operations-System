@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import Sidebar from '../components/layout/Sidebar';
 import Navbar from '../components/layout/Navbar';
 import {
@@ -26,8 +26,132 @@ interface RoomDetailRow {
   count: number;
 }
 
+const MOCK_AGREEMENTS_DATA = [
+  {
+    id: '1',
+    agreementNo: 'AGR-1125900',
+    agreementName: 'اتفاقية فندق جراند زوار للضيافة السياحي',
+    agreementNameEn: 'Grand Zuwar Hospitality Hotel Agreement',
+    entityName: 'فندق جراند زوار للضيافة السياحي',
+    entityNameEn: 'Grand Zuwar Hospitality Hotel',
+    city: 'مكة المكرمة',
+    cityEn: 'Makkah',
+    startDate: '02/09/2026',
+    endDate: '06/09/2026',
+    durationDays: '4',
+    totalPrice: '19,200',
+    rating: 4,
+  },
+  {
+    id: '2',
+    agreementNo: 'AGR-2294103',
+    agreementName: 'اتفاقية فندق جراند زوار',
+    agreementNameEn: 'Grand Zuwar Hotel Agreement',
+    entityName: 'فندق جراند زوار',
+    entityNameEn: 'Grand Zuwar Hotel',
+    city: 'مكة المكرمة',
+    cityEn: 'Makkah',
+    startDate: '01/09/2026',
+    endDate: '15/09/2026',
+    durationDays: '14',
+    totalPrice: '45,000',
+    rating: 4,
+  },
+  {
+    id: '3',
+    agreementNo: 'AGR-3382910',
+    agreementName: 'اتفاقية فندق أنوار المدينة',
+    agreementNameEn: 'Anwar Al-Madinah Hotel Agreement',
+    entityName: 'فندق أنوار المدينة',
+    entityNameEn: 'Anwar Al-Madinah Hotel',
+    city: 'المدينة المنورة',
+    cityEn: 'Madinah',
+    startDate: '10/09/2026',
+    endDate: '20/09/2026',
+    durationDays: '10',
+    totalPrice: '12,500',
+    rating: 5,
+  },
+  {
+    id: '4',
+    agreementNo: 'AGR-4401824',
+    agreementName: 'اتفاقية سكن طيبة للزوار',
+    agreementNameEn: 'Taiba Visitors Residence Agreement',
+    entityName: 'سكن طيبة للزوار',
+    entityNameEn: 'Taiba Visitors Residence',
+    city: 'المدينة المنورة',
+    cityEn: 'Madinah',
+    startDate: '15/08/2026',
+    endDate: '25/08/2026',
+    durationDays: '10',
+    totalPrice: '8,400',
+    rating: 3,
+  },
+  {
+    id: '5',
+    agreementNo: 'AGR-5561029',
+    agreementName: 'اتفاقية فندق جراند زوار',
+    agreementNameEn: 'Grand Zuwar Hotel Agreement',
+    entityName: 'فندق جراند زوار',
+    entityNameEn: 'Grand Zuwar Hotel',
+    city: 'مكة المكرمة',
+    cityEn: 'Makkah',
+    startDate: '01/10/2026',
+    endDate: '30/10/2026',
+    durationDays: '29',
+    totalPrice: '32,000',
+    rating: 4,
+  },
+  {
+    id: '6',
+    agreementNo: 'AGR-6629104',
+    agreementName: 'اتفاقية مجموعة فنادق البركة',
+    agreementNameEn: 'Al Barakah Hotels Group Agreement',
+    entityName: 'مجموعة فنادق البركة',
+    entityNameEn: 'Al Barakah Hotels Group',
+    city: 'مكة المكرمة',
+    cityEn: 'Makkah',
+    startDate: '02/09/2026',
+    endDate: '12/09/2026',
+    durationDays: '10',
+    totalPrice: '64,500',
+    rating: 4,
+  },
+  {
+    id: '7',
+    agreementNo: 'AGR-7738219',
+    agreementName: 'اتفاقية نقل الحرمين السريع',
+    agreementNameEn: 'Haramain Express Transport Agreement',
+    entityName: 'شركة نقل الحرمين السريع',
+    entityNameEn: 'Haramain Express Transport Co.',
+    city: 'مكة المكرمة',
+    cityEn: 'Makkah',
+    startDate: '01/09/2026',
+    endDate: '30/09/2026',
+    durationDays: '30',
+    totalPrice: '85,000',
+    rating: 5,
+  },
+  {
+    id: '8',
+    agreementNo: 'AGR-8849201',
+    agreementName: 'اتفاقية حافلات الراجحي VIP',
+    agreementNameEn: 'Al Rajhi VIP Buses Agreement',
+    entityName: 'شركة الراجحي للنقل',
+    entityNameEn: 'Al Rajhi Transport Co.',
+    city: 'المدينة المنورة',
+    cityEn: 'Madinah',
+    startDate: '05/09/2026',
+    endDate: '20/09/2026',
+    durationDays: '15',
+    totalPrice: '42,000',
+    rating: 5,
+  },
+];
+
 export default function AgreementDetailPage() {
   const navigate = useNavigate();
+  const { id } = useParams<{ id?: string }>();
   const { t, isRTL, direction } = useLanguage();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -37,28 +161,49 @@ export default function AgreementDetailPage() {
   // PDF Preview Modal State
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
 
+  // Match agreement from params or default to first
+  const matchedAgreement = MOCK_AGREEMENTS_DATA.find(
+    (item) => item.id === id || item.agreementNo === id
+  ) || MOCK_AGREEMENTS_DATA[0];
+
+  // Agreement No. (e.g., AGR-1125900)
+  const [agreementNo, setAgreementNo] = useState(matchedAgreement.agreementNo);
+
   // Copy state
   const [copied, setCopied] = useState(false);
-  const referenceNumber = '11259000967184173';
 
   // Agreement Header Info
-  const [agreementTitle] = useState(
-    isRTL ? 'اتفاقية فندق جراند زوار للضيافة السياحي' : 'Grand Zuwar Hospitality Hotel Agreement'
+  const [agreementTitle, setAgreementTitle] = useState(
+    isRTL ? matchedAgreement.agreementName : matchedAgreement.agreementNameEn
   );
 
   // Basic Info State
   const [agreementDate, setAgreementDate] = useState('29/08/2026');
   const [hotelName, setHotelName] = useState(
-    isRTL ? 'فندق جراند زوار للضيافة السياحي' : 'Grand Zuwar Hospitality Hotel'
+    isRTL ? matchedAgreement.entityName : matchedAgreement.entityNameEn
   );
-  const [rating, setRating] = useState(4);
+  const [rating, setRating] = useState(matchedAgreement.rating);
 
   // Agreement Info State
-  const [startDate, setStartDate] = useState('02/09/2026');
-  const [endDate, setEndDate] = useState('06/09/2026');
-  const [period, setPeriod] = useState('02/09/2026 - 06/09/2026');
-  const [durationDays, setDurationDays] = useState('4');
-  const [totalPrice, setTotalPrice] = useState('19,200');
+  const [startDate, setStartDate] = useState(matchedAgreement.startDate);
+  const [endDate, setEndDate] = useState(matchedAgreement.endDate);
+  const [period, setPeriod] = useState(`${matchedAgreement.startDate} - ${matchedAgreement.endDate}`);
+  const [durationDays, setDurationDays] = useState(matchedAgreement.durationDays);
+  const [totalPrice, setTotalPrice] = useState(matchedAgreement.totalPrice);
+
+  useEffect(() => {
+    if (matchedAgreement) {
+      setAgreementNo(matchedAgreement.agreementNo);
+      setAgreementTitle(isRTL ? matchedAgreement.agreementName : matchedAgreement.agreementNameEn);
+      setHotelName(isRTL ? matchedAgreement.entityName : matchedAgreement.entityNameEn);
+      setStartDate(matchedAgreement.startDate);
+      setEndDate(matchedAgreement.endDate);
+      setPeriod(`${matchedAgreement.startDate} - ${matchedAgreement.endDate}`);
+      setDurationDays(matchedAgreement.durationDays);
+      setTotalPrice(matchedAgreement.totalPrice);
+      setRating(matchedAgreement.rating);
+    }
+  }, [id, isRTL, matchedAgreement]);
 
   // Room details rows matching mockup
   const [rooms, setRooms] = useState<RoomDetailRow[]>([
@@ -78,9 +223,9 @@ export default function AgreementDetailPage() {
   const [newRoomSize, setNewRoomSize] = useState(isRTL ? '35 م²' : '35 m²');
   const [newRoomCount, setNewRoomCount] = useState('4');
 
-  // Copy reference number
-  const handleCopyReference = () => {
-    navigator.clipboard.writeText(referenceNumber);
+  // Copy agreement number
+  const handleCopyAgreementNo = () => {
+    navigator.clipboard.writeText(agreementNo);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -192,13 +337,15 @@ export default function AgreementDetailPage() {
                 <h2 className="text-lg sm:text-xl font-bold text-[#0f172a] tracking-tight">
                   {agreementTitle}
                 </h2>
-                <div className="flex items-center gap-2 text-xs text-slate-400">
-                  <span>{t('contracts.reference_no', 'الرقم المرجعي للاتفاقية')}:</span>
-                  <span className="font-mono font-bold text-slate-600">{referenceNumber}</span>
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <span className="font-medium">{t('contracts.reference_no', 'الرقم المرجعي')}:</span>
+                  <span className="font-mono font-bold text-slate-800 tracking-wide text-xs sm:text-sm bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200/80">
+                    {agreementNo}
+                  </span>
                   <button
-                    onClick={handleCopyReference}
+                    onClick={handleCopyAgreementNo}
                     className="p-1 hover:bg-slate-100 rounded-md transition cursor-pointer text-slate-500 hover:text-slate-800"
-                    title={t('contracts.copy_ref', 'نسخ الرقم المرجعي')}
+                    title={isRTL ? 'نسخ الرقم المرجعي' : 'Copy Reference No.'}
                   >
                     {copied ? (
                       <Check className="w-3.5 h-3.5 text-emerald-600" />
@@ -711,7 +858,7 @@ export default function AgreementDetailPage() {
         isOpen={isPdfModalOpen}
         onClose={() => setIsPdfModalOpen(false)}
         data={{
-          referenceNumber,
+          referenceNumber: agreementNo,
           date: agreementDate,
           status: isRTL ? 'رسمي / معتمد' : 'Official / Approved',
           agreementTitle,

@@ -210,9 +210,9 @@ export default function LoginPage() {
         </div>
 
         {/* Bottom Floating Glass Card */}
-        <div className="relative z-10 flex justify-center w-full pb-2 px-4">
-          <div className="bg-slate-900/60 border border-white/15 rounded-2xl py-5 sm:py-6 px-6 sm:px-8 shadow-xl max-w-xl w-full flex items-center justify-center text-center overflow-visible">
-            <p className="text-slate-200 text-[11px] sm:text-xs xl:text-[12.5px] font-normal leading-normal whitespace-nowrap text-center tracking-tight">
+        <div className="relative z-10 flex justify-center w-full pb-4 px-4 sm:px-6">
+          <div className="bg-slate-900/60 backdrop-blur-md border border-white/20 rounded-2xl py-4 sm:py-5 px-6 sm:px-8 shadow-2xl max-w-2xl w-full flex items-center justify-center text-center">
+            <p className="text-slate-200 text-xs sm:text-sm font-normal leading-relaxed text-center">
               {t('login.hero_desc', 'تكامل تقني يربط بين الفنادق، النقل، التصاريح والمسار الإلكتروني لخدمة ضيوف الرحمن بأعلى كفاءة تشغيلية.')}
             </p>
           </div>

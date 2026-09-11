@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, AlertTriangle, Check, ChevronDown } from 'lucide-react';
 import type { VehicleItem } from './CompanyFleetView';
 import { useLanguage } from '../../context/LanguageContext';
@@ -12,13 +12,15 @@ import v5Coaster from '../../assets/fleet_vehicles/vehicle_5_coaster.png';
 interface AddVehicleModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (newVehicle: VehicleItem) => void;
+  onSuccess: (vehicle: VehicleItem) => void;
+  initialData?: VehicleItem | null;
 }
 
 export default function AddVehicleModal({
   isOpen,
   onClose,
   onSuccess,
+  initialData,
 }: AddVehicleModalProps) {
   const { t, isRTL, direction } = useLanguage();
 
@@ -33,28 +35,47 @@ export default function AddVehicleModal({
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
 
+  useEffect(() => {
+    if (initialData) {
+      setName(initialData.name);
+      setType(initialData.type);
+      setPlateNumber(initialData.plateNumber);
+      setCapacity(initialData.capacity);
+      setPricePerTrip(String(initialData.pricePerTrip));
+      setStatus(initialData.status);
+    } else {
+      setName(isRTL ? 'حافلة VIP' : 'VIP Luxury Bus');
+      setType('حافلة VIP');
+      setPlateNumber('VB-');
+      setCapacity(isRTL ? '30 راكب' : '30 Passengers');
+      setPricePerTrip('600');
+      setStatus('متاح');
+    }
+    setWarningMessage(null);
+  }, [initialData, isOpen, isRTL]);
+
   if (!isOpen) return null;
 
   const handleTypeChange = (selectedType: VehicleItem['type']) => {
     setType(selectedType);
     if (selectedType === 'حافلة VIP') {
       setName(isRTL ? 'حافلة VIP' : 'VIP Luxury Bus');
-      setPlateNumber('VB-');
+      if (!initialData) setPlateNumber('VB-');
       setCapacity(isRTL ? '30 راكب' : '30 Passengers');
       setPricePerTrip('600');
     } else if (selectedType === 'حافلة عادية') {
       setName(isRTL ? 'حافلة عادية' : 'Standard Bus');
-      setPlateNumber('SB-');
+      if (!initialData) setPlateNumber('SB-');
       setCapacity(isRTL ? '45 راكب' : '45 Passengers');
       setPricePerTrip('350');
     } else if (selectedType === 'سيدان') {
       setName(isRTL ? 'سيدان' : 'Sedan Car');
-      setPlateNumber('SD-');
+      if (!initialData) setPlateNumber('SD-');
       setCapacity(isRTL ? '4 ركاب' : '4 Passengers');
       setPricePerTrip('150');
     } else if (selectedType === 'كوستر') {
       setName(isRTL ? 'كوستر' : 'Coaster Mini Bus');
-      setPlateNumber('CS-');
+      if (!initialData) setPlateNumber('CS-');
       setCapacity(isRTL ? '25 راكب' : '25 Passengers');
       setPricePerTrip('250');
     }
@@ -70,13 +91,15 @@ export default function AddVehicleModal({
   };
 
   const handleConfirmSave = () => {
-    let img = v1Vip;
-    if (type === 'حافلة عادية') img = v2Regular;
-    else if (type === 'سيدان') img = v4Sedan;
-    else if (type === 'كوستر') img = v5Coaster;
+    let img = initialData?.image || v1Vip;
+    if (!initialData) {
+      if (type === 'حافلة عادية') img = v2Regular;
+      else if (type === 'سيدان') img = v4Sedan;
+      else if (type === 'كوستر') img = v5Coaster;
+    }
 
-    const newVehicle: VehicleItem = {
-      id: Date.now().toString(),
+    const savedVehicle: VehicleItem = {
+      id: initialData?.id || Date.now().toString(),
       name,
       type,
       status,
@@ -86,7 +109,7 @@ export default function AddVehicleModal({
       image: img,
     };
 
-    onSuccess(newVehicle);
+    onSuccess(savedVehicle);
     setIsConfirmOpen(false);
     setIsSuccessOpen(true);
   };
@@ -105,7 +128,9 @@ export default function AddVehicleModal({
         {/* Header */}
         <div className="px-6 sm:px-8 py-4 border-b border-slate-200/80 flex items-center justify-between bg-white shrink-0">
           <h2 className="text-lg sm:text-xl font-bold text-[#0f172a] tracking-tight">
-            {t('transport.add_vehicle_btn', 'إضافة مركبة للأسطول')}
+            {initialData
+              ? (isRTL ? 'تعديل بيانات المركبة ورقم اللوحة' : 'Edit Vehicle & Plate Number')
+              : t('transport.add_vehicle_btn', 'إضافة مركبة للأسطول')}
           </h2>
           <button
             onClick={onClose}
@@ -218,7 +243,9 @@ export default function AddVehicleModal({
               type="submit"
               className="bg-[#00c48c] hover:bg-[#00b07d] text-white px-8 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shadow-xs cursor-pointer active:scale-95"
             >
-              {t('transport.add_vehicle', 'إضافة مركبة')}
+              {initialData
+                ? (isRTL ? 'حفظ التعديلات' : 'Save Changes')
+                : t('transport.add_vehicle', 'إضافة مركبة')}
             </button>
           </div>
         </form>
@@ -240,7 +267,9 @@ export default function AddVehicleModal({
                 {isRTL ? 'هل أنت متأكد؟' : 'Are you sure?'}
               </h3>
               <p className="text-sm sm:text-base text-slate-600 font-normal leading-relaxed">
-                {isRTL ? 'هل تريد إضافة وحفظ هذه المركبة في الأسطول؟' : 'Do you want to add and save this vehicle to the fleet?'}
+                {initialData
+                  ? (isRTL ? 'هل تريد حفظ التعديلات على هذه المركبة؟' : 'Do you want to save changes to this vehicle?')
+                  : (isRTL ? 'هل تريد إضافة وحفظ هذه المركبة في الأسطول؟' : 'Do you want to add and save this vehicle to the fleet?')}
               </p>
             </div>
 
@@ -281,7 +310,9 @@ export default function AddVehicleModal({
                 {t('common.success', 'تم بنجاح!')}
               </h3>
               <p className="text-sm sm:text-base text-slate-600 font-normal leading-relaxed">
-                {t('transport.save_vehicle_success', 'تمت إضافة المركبة إلى الأسطول بنجاح')}
+                {initialData
+                  ? (isRTL ? 'تم حفظ وتحديث بيانات المركبة ورقم اللوحة بنجاح.' : 'Vehicle details and plate number updated successfully.')
+                  : t('transport.save_vehicle_success', 'تمت إضافة المركبة إلى الأسطول بنجاح')}
               </p>
             </div>
 

@@ -10,6 +10,7 @@ import ContractsPage from './pages/ContractsPage';
 import AgreementDetailPage from './pages/AgreementDetailPage';
 import AgreementPdfPage from './pages/AgreementPdfPage';
 import NotesPage from './pages/NotesPage';
+import SettingsPage from './pages/SettingsPage';
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
           <Route path="/agreements/:id" element={<AgreementDetailPage />} />
           <Route path="/agreements/:id/pdf" element={<AgreementPdfPage />} />
           <Route path="/notes" element={<NotesPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           {/* Default route redirects to dashboard */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

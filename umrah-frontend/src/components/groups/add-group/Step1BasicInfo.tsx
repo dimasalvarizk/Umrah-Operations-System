@@ -99,6 +99,12 @@ export default function Step1BasicInfo({
               }`}
             >
               <option value="">{t('groups.agent_placeholder', 'اختر الوكيل...')}</option>
+              <option value={isRTL ? 'حاسوب لتجارة التقنية - 2067' : 'Hasoob Technology Trading - 2067'}>
+                {isRTL ? 'حاسوب لتجارة التقنية - 2067' : 'Hasoob Technology Trading - 2067'}
+              </option>
+              <option value={isRTL ? 'أودست للسياحة والسفر - 2114' : 'ODST Travel and Tourism - 2114'}>
+                {isRTL ? 'أودست للسياحة والسفر - 2114' : 'ODST Travel and Tourism - 2114'}
+              </option>
               <option value={isRTL ? 'وكالة مكة للطيران' : 'Makkah Aviation Agency'}>{isRTL ? 'وكالة مكة للطيران' : 'Makkah Aviation Agency'}</option>
               <option value={isRTL ? 'نور الإيمان الدولية' : 'Noor Al-Iman Intl'}>{isRTL ? 'نور الإيمان الدولية' : 'Noor Al-Iman Intl'}</option>
               <option value={isRTL ? 'إندونيسيا ترافيل' : 'Indonesia Travel'}>{isRTL ? 'إندونيسيا ترافيل' : 'Indonesia Travel'}</option>

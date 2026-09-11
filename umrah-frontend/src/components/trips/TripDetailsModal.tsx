@@ -20,6 +20,7 @@ export interface TripItem {
   makkahStay?: string;
   madinahHotel?: string;
   madinahStay?: string;
+  transportCompany?: string;
   transportType?: string;
   busNumber?: string;
   driverName?: string;
@@ -219,6 +220,13 @@ export default function TripDetailsModal({
             </div>
 
             <div className="space-y-3">
+              <div className="bg-white border border-slate-200/90 rounded-xl px-4 py-2.5 flex items-center justify-between shadow-2xs">
+                <span className="text-xs text-slate-400 font-normal">{t('trips.transport_company', isRTL ? 'شركة النقل' : 'Transportation Company')}</span>
+                <span className="text-xs sm:text-sm font-bold text-slate-800">
+                  {trip.transportCompany || (isRTL ? 'نقل الحرمين السريع' : 'Haramain Express Transport')}
+                </span>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="bg-white border border-slate-200/90 rounded-xl px-4 py-2.5 flex items-center justify-between shadow-2xs">
                   <span className="text-xs text-slate-400 font-normal">{t('transport.vehicle_type', 'نوع النقل')}</span>

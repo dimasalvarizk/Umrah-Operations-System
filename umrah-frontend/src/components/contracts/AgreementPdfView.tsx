@@ -35,7 +35,7 @@ export default function AgreementPdfView({ data }: AgreementPdfViewProps) {
     return String(val).replace(/[0-9]/g, (w) => easternDigits[+w]);
   };
 
-  const referenceNumber = data?.referenceNumber || '11259000967184173';
+  const referenceNumber = data?.referenceNumber || 'AGR-1125900';
   const date = data?.date || '29/08/2026';
   const status = data?.status || (isRTL ? 'رسمي / معتمد' : 'Official / Certified');
   const agreementTitle =

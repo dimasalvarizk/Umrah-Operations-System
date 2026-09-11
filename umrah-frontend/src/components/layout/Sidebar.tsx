@@ -7,6 +7,7 @@ import {
   Bus,
   FileText,
   MessageSquare,
+  Settings,
   MoreVertical,
   LogOut,
   Globe,
@@ -66,7 +67,9 @@ export default function Sidebar({
               ? 'contracts'
               : location.pathname.includes('/notes')
                 ? 'notes'
-                : 'dashboard');
+                : location.pathname.includes('/settings')
+                  ? 'settings'
+                  : 'dashboard');
 
   const menuItems = [
     { id: 'dashboard', label: t('nav.dashboard', 'لوحة التحكم'), icon: Home, path: '/dashboard' },
@@ -76,6 +79,7 @@ export default function Sidebar({
     { id: 'transport', label: t('nav.transport', 'النقل'), icon: Bus, path: '/transport' },
     { id: 'contracts', label: t('nav.contracts', 'الاتفاقيات'), icon: FileText, path: '/contracts' },
     { id: 'notes', label: t('nav.notes', 'الملاحظات'), icon: MessageSquare, path: '/notes' },
+    { id: 'settings', label: t('nav.settings', 'الإعدادات'), icon: Settings, path: '/settings' },
   ];
 
   // Dynamic positioning and border based on RTL/LTR
