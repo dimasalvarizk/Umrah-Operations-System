@@ -15,6 +15,12 @@
   [dir="ltr"], [dir="ltr"] * {
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
+
+  /* Disable default browser password reveal eye icon (Edge / Chrome / IE) */
+  input[type="password"]::-ms-reveal,
+  input[type="password"]::-ms-clear {
+    display: none !important;
+  }
 }
 
 @media print {
