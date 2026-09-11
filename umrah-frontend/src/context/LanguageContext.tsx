@@ -41,6 +41,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     document.documentElement.setAttribute('dir', direction);
     document.documentElement.setAttribute('lang', language);
     document.body.setAttribute('dir', direction);
+    document.title = language === 'ar' ? 'نظام عمليات الحج والعمرة' : 'Hajj & Umrah Operations System';
 
     // Apply font styling class to body
     if (language === 'ar') {
