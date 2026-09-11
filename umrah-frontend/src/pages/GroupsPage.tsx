@@ -3,6 +3,7 @@ import Sidebar from '../components/layout/Sidebar';
 import Navbar from '../components/layout/Navbar';
 import AddGroupModal from '../components/groups/AddGroupModal';
 import GroupDetailsModal, { type GroupDetailsModalData } from '../components/groups/GroupDetailsModal';
+import GroupStatusSelector, { type GroupStatusType } from '../components/groups/GroupStatusSelector';
 import {
   ChevronDown,
   Search,
@@ -142,27 +143,10 @@ export default function GroupsPage() {
     });
   }, [searchQuery, agentFilter, statusFilter, groupsList]);
 
-  const getStatusBadge = (status: GroupData['status']) => {
-    switch (status) {
-      case 'مكتمل':
-        return (
-          <span className="inline-flex items-center justify-center px-3 py-0.5 rounded-md text-xs font-bold bg-[#e6f9f0] text-[#10b981]">
-            {t('common.completed', 'مكتمل')}
-          </span>
-        );
-      case 'قيد التجهيز':
-        return (
-          <span className="inline-flex items-center justify-center px-3 py-0.5 rounded-md text-xs font-bold bg-[#fef3c7] text-[#d97706]">
-            {t('common.in_progress', 'قيد التجهيز')}
-          </span>
-        );
-      case 'ناقص':
-        return (
-          <span className="inline-flex items-center justify-center px-3 py-0.5 rounded-md text-xs font-bold bg-[#fee2e2] text-[#ef4444]">
-            {t('common.incomplete', 'ناقص')}
-          </span>
-        );
-    }
+  const handleStatusChange = (groupId: string, newStatus: GroupStatusType) => {
+    setGroupsList((prev) =>
+      prev.map((g) => (g.id === groupId ? { ...g, status: newStatus } : g))
+    );
   };
 
   return (
@@ -395,8 +379,11 @@ export default function GroupsPage() {
                         </td>
 
                         {/* Status */}
-                        <td className="py-4 px-6 text-center whitespace-nowrap">
-                          {getStatusBadge(group.status)}
+                        <td className="py-4 px-6 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                          <GroupStatusSelector
+                            value={group.status}
+                            onChange={(newStatus) => handleStatusChange(group.id, newStatus)}
+                          />
                         </td>
                       </tr>
                     ))

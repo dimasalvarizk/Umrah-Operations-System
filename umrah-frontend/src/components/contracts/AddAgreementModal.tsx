@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Calendar, Star, Check } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { getHotelsList, STANDARD_ROOM_TYPES, type HotelItem } from '../../utils/hotelsData';
 
 export interface AgreementItem {
   id: string;
+  hotelId?: string;
   agreementNo: string;
   agreementName: string;
   entityName: string;
@@ -31,18 +33,38 @@ export default function AddAgreementModal({
   onClose,
   onSuccess,
 }: AddAgreementModalProps) {
-  const { direction, t } = useLanguage();
+  const { direction, t, isRTL } = useLanguage();
+
+  const [availableHotels, setAvailableHotels] = useState<HotelItem[]>(() => getHotelsList());
+  const defaultHotel = availableHotels[0];
 
   // Form fields matching user mockup 1:1 with realistic defaults
+  const [selectedHotelId, setSelectedHotelId] = useState(defaultHotel ? defaultHotel.id : 'hotel-grand-zuwar');
   const [agentName, setAgentName] = useState('حاسوب لتجارة التقنية - 2067');
   const [groupNo, setGroupNo] = useState('400005436343');
   const [agreementNo, setAgreementNo] = useState('10800004324024');
-  const [agreementName, setAgreementName] = useState('اتفاقية فندق جراند زوار');
-  const [hotelName, setHotelName] = useState('فندق جراند زوار');
-  const [rating, setRating] = useState(4); // 4 outline orange stars + 1 gray star
+  const [agreementName, setAgreementName] = useState(defaultHotel ? (isRTL ? `اتفاقية ${defaultHotel.name}` : `${defaultHotel.nameEn || defaultHotel.name} Agreement`) : 'اتفاقية فندق جراند زوار');
+  const [hotelName, setHotelName] = useState(defaultHotel ? (isRTL ? defaultHotel.name : (defaultHotel.nameEn || defaultHotel.name)) : 'فندق جراند زوار');
+  const [rating, setRating] = useState(defaultHotel ? defaultHotel.rating : 5);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [totalPrice, setTotalPrice] = useState('');
+
+  // Refresh available hotels whenever modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const fresh = getHotelsList();
+      setAvailableHotels(fresh);
+      if (fresh.length > 0 && !fresh.some((h) => h.id === selectedHotelId)) {
+        const first = fresh[0];
+        setSelectedHotelId(first.id);
+        const hName = isRTL ? first.name : (first.nameEn || first.name);
+        setHotelName(hName);
+        setRating(first.rating);
+        setAgreementName(isRTL ? `اتفاقية ${first.name}` : `${first.nameEn || first.name} Agreement`);
+      }
+    }
+  }, [isOpen, isRTL]);
 
   // Dynamic Agents list from system master lists
   const availableAgents = (() => {
@@ -68,10 +90,20 @@ export default function AddAgreementModal({
     ];
   })();
 
-  // Room details section
-  const [roomsCount, setRoomsCount] = useState('');
-  const [roomType, setRoomType] = useState('');
-  const [bedsCount, setBedsCount] = useState('');
+  // Room details section with standard room types (Double, King, Single, Triple, Quad, etc.)
+  const [roomsCount, setRoomsCount] = useState('8');
+  const [roomType, setRoomType] = useState(isRTL ? STANDARD_ROOM_TYPES[0].nameAr : STANDARD_ROOM_TYPES[0].nameEn);
+  const [bedsCount, setBedsCount] = useState(String(STANDARD_ROOM_TYPES[0].bedsCount || 2));
+
+  const handleRoomTypeChange = (val: string) => {
+    setRoomType(val);
+    const found = STANDARD_ROOM_TYPES.find(
+      (r) => (isRTL ? r.nameAr : r.nameEn) === val || r.nameAr === val || r.nameEn === val
+    );
+    if (found) {
+      setBedsCount(String(found.bedsCount));
+    }
+  };
 
   // Notes
   const [notes, setNotes] = useState('');
@@ -90,13 +122,16 @@ export default function AddAgreementModal({
       ? endDate.split('-').reverse().join('/')
       : '06/09/2026';
 
+    const selectedHotel = availableHotels.find((h) => h.id === selectedHotelId || h.name === hotelName);
+
     const newAgreement: AgreementItem = {
       id: Date.now().toString(),
+      hotelId: selectedHotel ? selectedHotel.id : selectedHotelId,
       agreementNo: agreementNo.trim() || `AGR-${Math.floor(1000000 + Math.random() * 9000000)}`,
-      agreementName: agreementName.trim() || 'اتفاقية فندق جراند زوار',
+      agreementName: agreementName.trim() || (isRTL ? `اتفاقية ${hotelName}` : `${hotelName} Agreement`),
       entityName: hotelName.trim() || 'فندق جراند زوار',
       type: 'فندق',
-      city: 'مكة المكرمة',
+      city: selectedHotel ? selectedHotel.location : (isRTL ? 'مكة المكرمة' : 'Makkah'),
       roomsCount: parseInt(roomsCount) || 8,
       durationDays: 4,
       startDate: formattedStart,
@@ -206,20 +241,37 @@ export default function AddAgreementModal({
             />
           </div>
 
-          {/* 5. اسم الفندق & تقييم الفندق */}
-          <div className="grid grid-cols-2 gap-2.5">
-            {/* اسم الفندق */}
+          {/* 5. اختيار الفندق من قائمة الفنادق المضافة & تقييم الفندق */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {/* اختيار الفندق */}
             <div className="space-y-0.5">
-              <label className="block text-[11px] font-bold text-slate-700">
-                {t('contracts.hotel_name', 'اسم الفندق')}
+              <label className="block text-[11px] font-bold text-slate-700 flex items-center justify-between">
+                <span>{t('contracts.hotel_name', 'اسم الفندق')}</span>
+                <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-medium border border-emerald-200">
+                  {isRTL ? 'فنادق النظام' : 'System Hotels'}
+                </span>
               </label>
-              <input
-                type="text"
-                value={hotelName}
-                onChange={(e) => setHotelName(e.target.value)}
-                placeholder={t('contracts.hotel_name_placeholder', 'مثال: فندق جراند زوار')}
-                className="w-full bg-white border border-slate-200/90 rounded-xl px-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-hidden focus:border-[#1e293b] focus:ring-1 focus:ring-[#1e293b] transition shadow-2xs"
-              />
+              <select
+                value={selectedHotelId}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSelectedHotelId(val);
+                  const found = availableHotels.find((h) => h.id === val || h.name === val);
+                  if (found) {
+                    const hName = isRTL ? found.name : (found.nameEn || found.name);
+                    setHotelName(hName);
+                    setRating(found.rating);
+                    setAgreementName(isRTL ? `اتفاقية ${found.name}` : `${found.nameEn || found.name} Agreement`);
+                  }
+                }}
+                className="w-full bg-white border border-slate-200/90 rounded-xl px-3 py-1.5 text-xs text-slate-800 font-semibold focus:outline-hidden focus:border-[#1e293b] focus:ring-1 focus:ring-[#1e293b] transition shadow-2xs cursor-pointer"
+              >
+                {availableHotels.map((h) => (
+                  <option key={h.id} value={h.id}>
+                    {isRTL ? h.name : (h.nameEn || h.name)} ({h.location} - {h.rating}★)
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* تقييم الفندق */}
@@ -263,7 +315,6 @@ export default function AddAgreementModal({
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  onClick={(e) => e.currentTarget.showPicker?.()}
                   className="w-full bg-white border border-slate-200/90 rounded-xl px-3.5 py-2 text-xs text-slate-800 font-medium cursor-pointer focus:outline-hidden focus:border-[#1e293b] focus:ring-1 focus:ring-[#1e293b] transition shadow-2xs font-mono"
                 />
                 <Calendar className={`w-4 h-4 text-slate-400 absolute ${direction === 'rtl' ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 pointer-events-none stroke-[1.8]`} />
@@ -280,7 +331,6 @@ export default function AddAgreementModal({
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  onClick={(e) => e.currentTarget.showPicker?.()}
                   className="w-full bg-white border border-slate-200/90 rounded-xl px-3.5 py-2 text-xs text-slate-800 font-medium cursor-pointer focus:outline-hidden focus:border-[#1e293b] focus:ring-1 focus:ring-[#1e293b] transition shadow-2xs font-mono"
                 />
                 <Calendar className={`w-4 h-4 text-slate-400 absolute ${direction === 'rtl' ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 pointer-events-none stroke-[1.8]`} />
@@ -313,57 +363,55 @@ export default function AddAgreementModal({
               {t('contracts.room_details_title', 'تفاصيل الغرف المحجوزة في الاتفاقية')}
             </label>
 
-            <div className="grid grid-cols-3 gap-2.5">
-              {/* عدد الغرف */}
-              <div className="space-y-1 text-center">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              {/* عدد الغرف - Rooms Count */}
+              <div className="space-y-1">
                 <span className="block text-xs text-slate-700 font-bold">
                   {t('contracts.rooms_count', 'عدد الغرف')}
                 </span>
                 <input
-                  type="text"
+                  type="number"
+                  min="1"
                   value={roomsCount}
                   onChange={(e) => setRoomsCount(e.target.value)}
                   placeholder="0"
-                  className="w-full bg-white border border-slate-200/90 rounded-xl px-2 py-2 text-xs text-center text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:border-[#1e293b] shadow-2xs font-mono"
+                  className="w-full bg-white border border-slate-200/90 rounded-xl px-2.5 py-2 text-xs text-center text-slate-800 font-bold focus:outline-hidden focus:border-[#1e293b] shadow-2xs font-mono"
                 />
               </div>
 
-              {/* نوع الغرفة */}
-              <div className="space-y-1 text-center">
+              {/* نوع الغرفة - Room Type */}
+              <div className="space-y-1">
                 <span className="block text-xs text-slate-700 font-bold">
                   {t('contracts.room_type', 'نوع الغرفة')}
                 </span>
-                <input
-                  type="text"
+                <select
                   value={roomType}
-                  onChange={(e) => setRoomType(e.target.value)}
-                  placeholder="0 م²"
-                  className="w-full bg-white border border-slate-200/90 rounded-xl px-2 py-2 text-xs text-center text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:border-[#1e293b] shadow-2xs font-mono"
-                />
+                  onChange={(e) => handleRoomTypeChange(e.target.value)}
+                  className="w-full bg-white border border-slate-200/90 rounded-xl px-2.5 py-2 text-xs text-slate-800 font-semibold focus:outline-hidden focus:border-[#1e293b] shadow-2xs cursor-pointer truncate"
+                >
+                  {STANDARD_ROOM_TYPES.map((rt) => (
+                    <option key={rt.id} value={isRTL ? rt.nameAr : rt.nameEn}>
+                      {isRTL ? rt.nameAr : rt.nameEn} ({isRTL ? rt.capacityAr : rt.capacityEn})
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              {/* عدد الاسرة */}
-              <div className="space-y-1 text-center">
+              {/* عدد الأسرة - Beds Count */}
+              <div className="space-y-1">
                 <span className="block text-xs text-slate-700 font-bold">
-                  {t('contracts.beds_count', 'عدد الاسرة')}
+                  {t('contracts.beds_count', 'عدد الأسرة')}
                 </span>
                 <input
-                  type="text"
+                  type="number"
+                  min="1"
                   value={bedsCount}
                   onChange={(e) => setBedsCount(e.target.value)}
                   placeholder="0"
-                  className="w-full bg-white border border-slate-200/90 rounded-xl px-2 py-2 text-xs text-center text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:border-[#1e293b] shadow-2xs font-mono"
+                  className="w-full bg-white border border-slate-200/90 rounded-xl px-2.5 py-2 text-xs text-center text-slate-800 font-bold focus:outline-hidden focus:border-[#1e293b] shadow-2xs font-mono"
                 />
               </div>
             </div>
-
-            {/* Dashed button: + إضافة غرفة */}
-            <button
-              type="button"
-              className="w-full border border-dashed border-slate-400 hover:border-slate-600 bg-white hover:bg-slate-50/70 rounded-xl py-2 text-center text-xs sm:text-sm font-bold text-slate-800 transition cursor-pointer"
-            >
-              {t('contracts.add_room_btn', '+ إضافة غرفة')}
-            </button>
           </div>
 
           {/* 9. ملاحظات */}

@@ -162,6 +162,7 @@ export default function AddTripModal({
   const [code, setCode] = useState('TRP-9402');
   const [routePath, setRoutePath] = useState('مكة ← المدينة');
   const [programType, setProgramType] = useState('برنامج اقتصادي');
+  const [status, setStatus] = useState<TripItem['status']>('قيد التنفيذ');
 
   // Section 2: Dates & Duration
   const [startDate, setStartDate] = useState('');
@@ -279,6 +280,7 @@ export default function AddTripModal({
       setBusNumber(initialData.busNumber || 'BUS-101');
       setDriverName(initialData.driverName || (isRTL ? 'محمد العمري' : 'Mohammed Al-Omari'));
       setDriverPhone(initialData.driverPhone || '+966 50 123 4567');
+      setStatus(initialData.status || 'قيد التنفيذ');
     } else {
       setProgramName('');
       setCode(`TRP-${Math.floor(1000 + Math.random() * 9000)}`);
@@ -297,6 +299,7 @@ export default function AddTripModal({
       setBusNumber('BUS-101');
       setDriverName(isRTL ? 'محمد العمري' : 'Mohammed Al-Omari');
       setDriverPhone('+966 50 123 4567');
+      setStatus('قيد التنفيذ');
     }
   }, [initialData, isOpen, isRTL]);
 
@@ -325,7 +328,7 @@ export default function AddTripModal({
       dominantNationality,
       airline,
       flightNumber,
-      status: initialData?.status || 'قيد التنفيذ',
+      status: status || initialData?.status || 'قيد التنفيذ',
       transportCompany,
       transportType,
       busNumber,
@@ -400,7 +403,7 @@ export default function AddTripModal({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
                     {t('trips.route', 'المسار')} <span className="text-red-500 font-bold">*</span>
@@ -454,6 +457,28 @@ export default function AddTripModal({
                     }`} />
                   </div>
                 </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    {t('common.status', 'حالة الرحلة')} <span className="text-red-500 font-bold">*</span>
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={status}
+                      onChange={(e) => setStatus(e.target.value as TripItem['status'])}
+                      className={`w-full appearance-none bg-white border border-slate-200/90 rounded-xl py-2.5 text-xs sm:text-sm text-slate-800 font-medium focus:outline-none focus:ring-1 focus:ring-slate-300 cursor-pointer shadow-2xs ${
+                        isRTL ? 'pr-4 pl-9 text-right' : 'pl-4 pr-9 text-left'
+                      }`}
+                    >
+                      <option value="قيد التنفيذ">{isRTL ? 'قيد التنفيذ' : 'In Progress'}</option>
+                      <option value="مكتمل">{isRTL ? 'مكتمل' : 'Completed'}</option>
+                      <option value="معلق">{isRTL ? 'معلق' : 'Pending'}</option>
+                    </select>
+                    <ChevronDown className={`w-4 h-4 text-slate-400 absolute top-1/2 -translate-y-1/2 pointer-events-none ${
+                      isRTL ? 'left-3' : 'right-3'
+                    }`} />
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -473,7 +498,6 @@ export default function AddTripModal({
                       type="date"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
-                      onClick={(e) => e.currentTarget.showPicker?.()}
                       className={`w-full bg-white border border-slate-200/90 rounded-xl py-2.5 text-xs sm:text-sm text-slate-800 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-300 shadow-2xs ${
                         isRTL ? 'pr-4 pl-10 text-right' : 'pl-4 pr-10 text-left'
                       }`}
@@ -493,7 +517,6 @@ export default function AddTripModal({
                       type="date"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
-                      onClick={(e) => e.currentTarget.showPicker?.()}
                       className={`w-full bg-white border border-slate-200/90 rounded-xl py-2.5 text-xs sm:text-sm text-slate-800 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-300 shadow-2xs ${
                         isRTL ? 'pr-4 pl-10 text-right' : 'pl-4 pr-10 text-left'
                       }`}

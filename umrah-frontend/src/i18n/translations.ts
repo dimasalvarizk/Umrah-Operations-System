@@ -320,7 +320,7 @@ export const translations = {
     'contracts.total_stat': 'إجمالي الاتفاقيات',
     'contracts.contract_number': 'رقم الاتفاقية',
     'contracts.agreement_name': 'اسم الاتفاقية',
-    'contracts.hotel_name': 'اسم الفندق',
+    'contracts.hotel_name': 'اسم الفندق / الجهة',
     'contracts.city': 'المدينة',
     'contracts.rooms_count': 'عدد الغرف',
     'contracts.duration_days': 'عدد أيام الإتفاقية',

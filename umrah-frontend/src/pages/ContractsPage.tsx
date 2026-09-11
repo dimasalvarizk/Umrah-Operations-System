@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/layout/Sidebar';
 import Navbar from '../components/layout/Navbar';
@@ -15,6 +15,7 @@ import {
 import AddAgreementModal, { type AgreementItem } from '../components/contracts/AddAgreementModal';
 import AgreementDetailsModal from '../components/contracts/AgreementDetailsModal';
 import DeleteAgreementModal from '../components/contracts/DeleteAgreementModal';
+import AgreementStatusSelector, { type AgreementStatusType } from '../components/contracts/AgreementStatusSelector';
 import { useLanguage } from '../context/LanguageContext';
 
 export default function ContractsPage() {
@@ -32,22 +33,30 @@ export default function ContractsPage() {
   const [agreementToDelete, setAgreementToDelete] = useState<AgreementItem | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-  // Initial agreement data
-  const [agreementsList, setAgreementsList] = useState<AgreementItem[]>([
-    {
-      id: '1',
-      agreementNo: 'AGR-1125900',
-      agreementName: isRTL ? 'اتفاقية فندق جراند زوار' : 'Grand Zuwar Hotel Agreement',
-      entityName: isRTL ? 'فندق جراند زوار' : 'Grand Zuwar Hotel',
-      type: 'فندق',
-      city: isRTL ? 'مكة المكرمة' : 'Makkah',
-      roomsCount: 8,
-      durationDays: 4,
-      startDate: '02/09/2026',
-      endDate: '06/09/2026',
-      totalPrice: 19200,
-      status: 'نشطة',
-    },
+  // Initial agreement data with persistent localStorage synchronization
+  const [agreementsList, setAgreementsList] = useState<AgreementItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('contracts_agreements_list');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return [
+      {
+        id: '1',
+        agreementNo: 'AGR-1125900',
+        agreementName: isRTL ? 'اتفاقية فندق جراند زوار' : 'Grand Zuwar Hotel Agreement',
+        entityName: isRTL ? 'فندق جراند زوار' : 'Grand Zuwar Hotel',
+        type: 'فندق',
+        city: isRTL ? 'مكة المكرمة' : 'Makkah',
+        roomsCount: 8,
+        durationDays: 4,
+        startDate: '02/09/2026',
+        endDate: '06/09/2026',
+        totalPrice: 19200,
+        status: 'نشطة',
+      },
     {
       id: '2',
       agreementNo: 'AGR-2294103',
@@ -146,7 +155,8 @@ export default function ContractsPage() {
       totalPrice: 42000,
       status: 'في انتظار الموافقة',
     },
-  ]);
+  ];
+});
 
   // Dynamic Filtering
   const filteredAgreements = useMemo(() => {
@@ -171,7 +181,31 @@ export default function ContractsPage() {
     });
   }, [agreementsList, searchQuery, typeFilter]);
 
+  // Sync agreementsList with localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('contracts_agreements_list', JSON.stringify(agreementsList));
+    } catch (e) {
+      console.error('Failed to save contracts list:', e);
+    }
+  }, [agreementsList]);
+
   // Handlers
+  const handleStatusChange = (agreementId: string, newStatus: AgreementStatusType) => {
+    setAgreementsList((prev) =>
+      prev.map((item) => (item.id === agreementId ? { ...item, status: newStatus } : item))
+    );
+  };
+
+  const stats = useMemo(() => {
+    const expired = agreementsList.filter((a) => a.status === 'منتهية').length;
+    const pending = agreementsList.filter((a) => a.status === 'في انتظار الموافقة').length;
+    const active = agreementsList.filter((a) => a.status === 'نشطة').length;
+    const total = agreementsList.length;
+
+    return { expired, pending, active, total };
+  }, [agreementsList]);
+
   const handleAddSuccess = (newAgreement: AgreementItem) => {
     setAgreementsList((prev) => [newAgreement, ...prev]);
   };
@@ -291,7 +325,7 @@ export default function ContractsPage() {
             <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs flex justify-between items-stretch min-h-[105px]">
               <div className="flex flex-col justify-end">
                 <span className="text-3xl sm:text-4xl font-bold text-[#0f172a] leading-none">
-                  3
+                  {stats.expired}
                 </span>
               </div>
               <div className="flex flex-col justify-between items-end text-end">
@@ -308,7 +342,7 @@ export default function ContractsPage() {
             <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs flex justify-between items-stretch min-h-[105px]">
               <div className="flex flex-col justify-end">
                 <span className="text-3xl sm:text-4xl font-bold text-[#0f172a] leading-none">
-                  6
+                  {stats.pending}
                 </span>
               </div>
               <div className="flex flex-col justify-between items-end text-end">
@@ -325,7 +359,7 @@ export default function ContractsPage() {
             <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs flex justify-between items-stretch min-h-[105px]">
               <div className="flex flex-col justify-end">
                 <span className="text-3xl sm:text-4xl font-bold text-[#0f172a] leading-none">
-                  15
+                  {stats.active}
                 </span>
               </div>
               <div className="flex flex-col justify-between items-end text-end">
@@ -342,7 +376,7 @@ export default function ContractsPage() {
             <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs flex justify-between items-stretch min-h-[105px]">
               <div className="flex flex-col justify-end">
                 <span className="text-3xl sm:text-4xl font-bold text-[#0f172a] leading-none">
-                  24
+                  {stats.total}
                 </span>
               </div>
               <div className="flex flex-col justify-between items-end text-end">
@@ -440,21 +474,10 @@ export default function ContractsPage() {
 
                         {/* الحالة */}
                         <td className="py-3 px-2.5 text-center whitespace-nowrap">
-                          {agreement.status === 'نشطة' && (
-                            <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#e6fcf5] text-[#0ca678]">
-                              {t('contracts.status_active', 'نشطة')}
-                            </span>
-                          )}
-                          {agreement.status === 'في انتظار الموافقة' && (
-                            <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#fff9db] text-[#f59f00]">
-                              {t('contracts.status_pending', 'في انتظار الموافقة')}
-                            </span>
-                          )}
-                          {agreement.status === 'منتهية' && (
-                            <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#ffe3e3] text-[#f03e3e]">
-                              {t('contracts.status_expired', 'منتهية')}
-                            </span>
-                          )}
+                          <AgreementStatusSelector
+                            value={agreement.status}
+                            onChange={(newStatus) => handleStatusChange(agreement.id, newStatus)}
+                          />
                         </td>
 
                         {/* إجراءات (حذف & عرض) */}

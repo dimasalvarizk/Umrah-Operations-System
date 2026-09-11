@@ -128,7 +128,6 @@ export default function Step2Hotels({
                 type="date"
                 value={makkah1CheckIn}
                 onChange={(e) => setMakkah1CheckIn(e.target.value)}
-                onClick={(e) => e.currentTarget.showPicker?.()}
                 className={`w-full bg-white border border-slate-200/90 rounded-lg py-2.5 text-xs sm:text-sm text-slate-700 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-300 transition shadow-2xs ${
                   isRTL ? 'pr-3.5 pl-9 text-right' : 'pl-3.5 pr-9 text-left'
                 }`}
@@ -149,7 +148,6 @@ export default function Step2Hotels({
                 type="date"
                 value={makkah1CheckOut}
                 onChange={(e) => setMakkah1CheckOut(e.target.value)}
-                onClick={(e) => e.currentTarget.showPicker?.()}
                 className={`w-full bg-white border border-slate-200/90 rounded-lg py-2.5 text-xs sm:text-sm text-slate-700 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-300 transition shadow-2xs ${
                   isRTL ? 'pr-3.5 pl-9 text-right' : 'pl-3.5 pr-9 text-left'
                 }`}
@@ -205,7 +203,6 @@ export default function Step2Hotels({
                 type="date"
                 value={madinahCheckIn}
                 onChange={(e) => setMadinahCheckIn(e.target.value)}
-                onClick={(e) => e.currentTarget.showPicker?.()}
                 className={`w-full bg-white border border-slate-200/90 rounded-lg py-2.5 text-xs sm:text-sm text-slate-700 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-300 transition shadow-2xs ${
                   isRTL ? 'pr-3.5 pl-9 text-right' : 'pl-3.5 pr-9 text-left'
                 }`}
@@ -226,7 +223,6 @@ export default function Step2Hotels({
                 type="date"
                 value={madinahCheckOut}
                 onChange={(e) => setMadinahCheckOut(e.target.value)}
-                onClick={(e) => e.currentTarget.showPicker?.()}
                 className={`w-full bg-white border border-slate-200/90 rounded-lg py-2.5 text-xs sm:text-sm text-slate-700 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-300 transition shadow-2xs ${
                   isRTL ? 'pr-3.5 pl-9 text-right' : 'pl-3.5 pr-9 text-left'
                 }`}
@@ -280,7 +276,6 @@ export default function Step2Hotels({
                 type="date"
                 value={makkah2CheckIn}
                 onChange={(e) => setMakkah2CheckIn(e.target.value)}
-                onClick={(e) => e.currentTarget.showPicker?.()}
                 className={`w-full bg-white border border-slate-200/90 rounded-lg py-2.5 text-xs sm:text-sm text-slate-700 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-300 transition shadow-2xs ${
                   isRTL ? 'pr-3.5 pl-9 text-right' : 'pl-3.5 pr-9 text-left'
                 }`}
@@ -300,7 +295,6 @@ export default function Step2Hotels({
                 type="date"
                 value={makkah2CheckOut}
                 onChange={(e) => setMakkah2CheckOut(e.target.value)}
-                onClick={(e) => e.currentTarget.showPicker?.()}
                 className={`w-full bg-white border border-slate-200/90 rounded-lg py-2.5 text-xs sm:text-sm text-slate-700 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-300 transition shadow-2xs ${
                   isRTL ? 'pr-3.5 pl-9 text-right' : 'pl-3.5 pr-9 text-left'
                 }`}
@@ -370,7 +364,6 @@ export default function Step2Hotels({
                   type="date"
                   value={extra.checkIn}
                   onChange={(e) => handleUpdateHotel(extra.id, 'checkIn', e.target.value)}
-                  onClick={(e) => e.currentTarget.showPicker?.()}
                   className={`w-full bg-white border border-slate-200/90 rounded-lg py-2.5 text-xs sm:text-sm text-slate-700 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-300 transition shadow-2xs ${
                     isRTL ? 'pr-3.5 pl-9 text-right' : 'pl-3.5 pr-9 text-left'
                   }`}
@@ -390,7 +383,6 @@ export default function Step2Hotels({
                   type="date"
                   value={extra.checkOut}
                   onChange={(e) => handleUpdateHotel(extra.id, 'checkOut', e.target.value)}
-                  onClick={(e) => e.currentTarget.showPicker?.()}
                   className={`w-full bg-white border border-slate-200/90 rounded-lg py-2.5 text-xs sm:text-sm text-slate-700 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-300 transition shadow-2xs ${
                     isRTL ? 'pr-3.5 pl-9 text-right' : 'pl-3.5 pr-9 text-left'
                   }`}

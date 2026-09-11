@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Sidebar from '../components/layout/Sidebar';
 import Navbar from '../components/layout/Navbar';
 import {
@@ -14,28 +14,14 @@ import {
 import AddHotelModal, { type NewHotelData } from '../components/hotels/AddHotelModal';
 import HotelDetailsModal from '../components/hotels/HotelDetailsModal';
 import { useLanguage } from '../context/LanguageContext';
+import {
+  type HotelItem,
+  type RoomTypeRow,
+  getHotelsList,
+  saveHotelsList,
+} from '../utils/hotelsData';
 
-export interface RoomTypeRow {
-  id: string;
-  name: string;
-  capacity: string;
-  price: number;
-  roomsCount: number;
-}
-
-export interface HotelItem {
-  id: string;
-  name: string;
-  location: string;
-  address?: string;
-  status: string;
-  rating: number; // 1 to 5
-  availableRooms: number;
-  pricePerNight: number;
-  image: string;
-  roomTypes?: RoomTypeRow[];
-  amenities?: string[];
-}
+export type { HotelItem, RoomTypeRow };
 
 export default function HotelsPage() {
   const { t, isRTL, direction } = useLanguage();
@@ -50,132 +36,11 @@ export default function HotelsPage() {
   const [editingHotel, setEditingHotel] = useState<HotelItem | null>(null);
   const [hotelToDelete, setHotelToDelete] = useState<HotelItem | null>(null);
 
-  const defaultRooms: RoomTypeRow[] = [
-    {
-      id: '1',
-      name: isRTL ? 'غرفة مزدوجة (Double)' : 'Double Room',
-      capacity: isRTL ? '٢ أشخاص' : '2 Persons',
-      price: 450,
-      roomsCount: 40,
-    },
-    {
-      id: '2',
-      name: isRTL ? 'غرفة ثلاثية (Triple)' : 'Triple Room',
-      capacity: isRTL ? '٣ أشخاص' : '3 Persons',
-      price: 600,
-      roomsCount: 30,
-    },
-    {
-      id: '3',
-      name: isRTL ? 'غرفة رباعية (Quad)' : 'Quad Room',
-      capacity: isRTL ? '٤ أشخاص' : '4 Persons',
-      price: 750,
-      roomsCount: 25,
-    },
-    {
-      id: '4',
-      name: isRTL ? 'غرفة خماسية (Quint)' : 'Quint Room',
-      capacity: isRTL ? '٥ أشخاص' : '5 Persons',
-      price: 900,
-      roomsCount: 15,
-    },
-    {
-      id: '5',
-      name: isRTL ? 'غرفة جناح عائلي (Suite 5)' : 'Family Suite 5',
-      capacity: isRTL ? '٦ أشخاص' : '6 Persons',
-      price: 1100,
-      roomsCount: 10,
-    },
-  ];
+  const [hotelsList, setHotelsList] = useState<HotelItem[]>(() => getHotelsList());
 
-  const [hotelsList, setHotelsList] = useState<HotelItem[]>([
-    {
-      id: '1',
-      name: isRTL ? 'فندق برج جوار الحرم السكني' : 'Borj Jowar Al-Haram Residential Hotel',
-      location: isRTL ? 'مكة المكرمة' : 'Makkah',
-      address: isRTL ? 'شارع إبراهيم الخليل، مكة المكرمة' : 'Ibrahim Al-Khalil St, Makkah',
-      status: isRTL ? 'محجوز بالكامل' : 'Fully Booked',
-      rating: 5,
-      availableRooms: 120,
-      pricePerNight: 450,
-      image:
-        'https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?auto=format&fit=crop&w=800&q=80',
-      roomTypes: defaultRooms,
-    },
-    {
-      id: '2',
-      name: isRTL ? 'فندق المدينة السكني المتميز' : 'Madinah Premium Residential Hotel',
-      location: isRTL ? 'المدينة المنورة' : 'Madinah',
-      address: isRTL ? 'المنطقة المركزية الشمالية، المدينة' : 'Central North Zone, Madinah',
-      status: isRTL ? 'متاح للتسكين' : 'Available for Accommodation',
-      rating: 4,
-      availableRooms: 85,
-      pricePerNight: 380,
-      image:
-        'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80',
-      roomTypes: [
-        { id: '1', name: isRTL ? 'غرفة مزدوجة (Double)' : 'Double Room', capacity: isRTL ? '٢ أشخاص' : '2 Persons', price: 380, roomsCount: 35 },
-        { id: '2', name: isRTL ? 'غرفة ثلاثية (Triple)' : 'Triple Room', capacity: isRTL ? '٣ أشخاص' : '3 Persons', price: 520, roomsCount: 30 },
-        { id: '3', name: isRTL ? 'غرفة رباعية (Quad)' : 'Quad Room', capacity: isRTL ? '٤ أشخاص' : '4 Persons', price: 680, roomsCount: 20 },
-      ],
-    },
-    {
-      id: '3',
-      name: isRTL ? 'فندق مكة الكبير ذو المنارتين' : 'Grand Makkah Twin Minaret Hotel',
-      location: isRTL ? 'مكة المكرمة' : 'Makkah',
-      address: isRTL ? 'طريق أجياد، مكة المكرمة' : 'Ajyad Road, Makkah',
-      status: isRTL ? 'متاح للتسكين' : 'Available for Accommodation',
-      rating: 5,
-      availableRooms: 120,
-      pricePerNight: 450,
-      image:
-        'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80',
-      roomTypes: defaultRooms,
-    },
-    {
-      id: '4',
-      name: isRTL ? 'فندق رياض الحرم الفاخر' : 'Riyad Al-Haram Luxury Hotel',
-      location: isRTL ? 'المدينة المنورة' : 'Madinah',
-      address: isRTL ? 'شارع السلام، المدينة المنورة' : 'Al-Salam St, Madinah',
-      status: isRTL ? 'محجوز بالكامل' : 'Fully Booked',
-      rating: 5,
-      availableRooms: 200,
-      pricePerNight: 550,
-      image:
-        'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=80',
-      roomTypes: defaultRooms,
-    },
-    {
-      id: '5',
-      name: isRTL ? 'فندق ضيافة مكة الاستثماري' : 'Diyafat Makkah Investment Hotel',
-      location: isRTL ? 'مكة المكرمة' : 'Makkah',
-      address: isRTL ? 'حي المعابدة، مكة المكرمة' : 'Al-Maabda, Makkah',
-      status: isRTL ? 'متاح للتسكين' : 'Available for Accommodation',
-      rating: 4,
-      availableRooms: 150,
-      pricePerNight: 410,
-      image:
-        'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=800&q=80',
-      roomTypes: defaultRooms,
-    },
-    {
-      id: '6',
-      name: isRTL ? 'فندق أنوار المدينة الحديث' : 'Anwar Al-Madinah Modern Hotel',
-      location: isRTL ? 'المدينة المنورة' : 'Madinah',
-      address: isRTL ? 'المنطقة المركزية الغربية، المدينة' : 'Central West Zone, Madinah',
-      status: isRTL ? 'متاح للتسكين' : 'Available for Accommodation',
-      rating: 3,
-      availableRooms: 95,
-      pricePerNight: 290,
-      image:
-        'https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=800&q=80',
-      roomTypes: [
-        { id: '1', name: isRTL ? 'غرفة مزدوجة (Double)' : 'Double Room', capacity: isRTL ? '٢ أشخاص' : '2 Persons', price: 290, roomsCount: 45 },
-        { id: '2', name: isRTL ? 'غرفة ثلاثية (Triple)' : 'Triple Room', capacity: isRTL ? '٣ أشخاص' : '3 Persons', price: 420, roomsCount: 30 },
-        { id: '3', name: isRTL ? 'غرفة رباعية (Quad)' : 'Quad Room', capacity: isRTL ? '٤ أشخاص' : '4 Persons', price: 550, roomsCount: 20 },
-      ],
-    },
-  ]);
+  useEffect(() => {
+    saveHotelsList(hotelsList);
+  }, [hotelsList]);
 
   // Filtering
   const filteredHotels = useMemo(() => {

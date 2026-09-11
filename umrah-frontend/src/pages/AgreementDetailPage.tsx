@@ -14,9 +14,27 @@ import {
   X,
   XCircle,
   Calendar,
+  MapPin,
+  Building2,
+  Bed,
+  Wifi,
+  Bus,
+  Utensils,
+  Clock,
+  ShieldCheck,
+  Sparkles,
+  ExternalLink,
+  CheckCircle2,
+  Award,
 } from 'lucide-react';
 import AgreementPdfModal from '../components/contracts/AgreementPdfModal';
 import { useLanguage } from '../context/LanguageContext';
+import {
+  getHotelsList,
+  getHotelByIdOrName,
+  STANDARD_ROOM_TYPES,
+  type HotelItem,
+} from '../utils/hotelsData';
 
 interface RoomDetailRow {
   id: string;
@@ -29,6 +47,7 @@ interface RoomDetailRow {
 const MOCK_AGREEMENTS_DATA = [
   {
     id: '1',
+    hotelId: 'hotel-grand-zuwar',
     agreementNo: 'AGR-1125900',
     agreementName: 'اتفاقية فندق جراند زوار للضيافة السياحي',
     agreementNameEn: 'Grand Zuwar Hospitality Hotel Agreement',
@@ -42,10 +61,11 @@ const MOCK_AGREEMENTS_DATA = [
     endDate: '06/09/2026',
     durationDays: '4',
     totalPrice: '19,200',
-    rating: 4,
+    rating: 5,
   },
   {
     id: '2',
+    hotelId: '1',
     agreementNo: 'AGR-2294103',
     agreementName: 'اتفاقية فندق جراند زوار',
     agreementNameEn: 'Grand Zuwar Hotel Agreement',
@@ -63,6 +83,7 @@ const MOCK_AGREEMENTS_DATA = [
   },
   {
     id: '3',
+    hotelId: '6',
     agreementNo: 'AGR-3382910',
     agreementName: 'اتفاقية فندق أنوار المدينة',
     agreementNameEn: 'Anwar Al-Madinah Hotel Agreement',
@@ -76,10 +97,11 @@ const MOCK_AGREEMENTS_DATA = [
     endDate: '20/09/2026',
     durationDays: '10',
     totalPrice: '12,500',
-    rating: 5,
+    rating: 4,
   },
   {
     id: '4',
+    hotelId: '7',
     agreementNo: 'AGR-4401824',
     agreementName: 'اتفاقية سكن طيبة للزوار',
     agreementNameEn: 'Taiba Visitors Residence Agreement',
@@ -97,6 +119,7 @@ const MOCK_AGREEMENTS_DATA = [
   },
   {
     id: '5',
+    hotelId: 'hotel-grand-zuwar',
     agreementNo: 'AGR-5561029',
     agreementName: 'اتفاقية فندق جراند زوار',
     agreementNameEn: 'Grand Zuwar Hotel Agreement',
@@ -114,6 +137,7 @@ const MOCK_AGREEMENTS_DATA = [
   },
   {
     id: '6',
+    hotelId: '8',
     agreementNo: 'AGR-6629104',
     agreementName: 'اتفاقية مجموعة فنادق البركة',
     agreementNameEn: 'Al Barakah Hotels Group Agreement',
@@ -131,6 +155,7 @@ const MOCK_AGREEMENTS_DATA = [
   },
   {
     id: '7',
+    hotelId: '3',
     agreementNo: 'AGR-7738219',
     agreementName: 'اتفاقية نقل الحرمين السريع',
     agreementNameEn: 'Haramain Express Transport Agreement',
@@ -148,6 +173,7 @@ const MOCK_AGREEMENTS_DATA = [
   },
   {
     id: '8',
+    hotelId: '4',
     agreementNo: 'AGR-8849201',
     agreementName: 'اتفاقية حافلات الراجحي VIP',
     agreementNameEn: 'Al Rajhi VIP Buses Agreement',
@@ -165,6 +191,49 @@ const MOCK_AGREEMENTS_DATA = [
   },
 ];
 
+// Helper to convert DD/MM/YYYY -> YYYY-MM-DD for <input type="date">
+function toIsoDate(dateStr: string): string {
+  if (!dateStr) return '';
+  const trimmed = dateStr.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+  const parts = trimmed.split('/');
+  if (parts.length === 3) {
+    const [day, month, year] = parts;
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+  return trimmed;
+}
+
+// Helper to convert YYYY-MM-DD -> DD/MM/YYYY for UI display & saving
+function toDisplayDate(dateStr: string): string {
+  if (!dateStr) return '';
+  const trimmed = dateStr.trim();
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(trimmed)) return trimmed;
+  const parts = trimmed.split('-');
+  if (parts.length === 3) {
+    const [year, month, day] = parts;
+    return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`;
+  }
+  return trimmed;
+}
+
+// Helper to calculate days between two dates
+function calculateDurationDays(s: string, e: string, fallback: string | number = '4'): string {
+  try {
+    const sIso = toIsoDate(s);
+    const eIso = toIsoDate(e);
+    if (sIso && eIso) {
+      const startMs = new Date(sIso).getTime();
+      const endMs = new Date(eIso).getTime();
+      if (!isNaN(startMs) && !isNaN(endMs) && endMs >= startMs) {
+        const diff = Math.round((endMs - startMs) / (1000 * 60 * 60 * 24));
+        return diff > 0 ? diff.toString() : '1';
+      }
+    }
+  } catch {}
+  return String(fallback);
+}
+
 export default function AgreementDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id?: string }>();
@@ -177,10 +246,8 @@ export default function AgreementDetailPage() {
   // PDF Preview Modal State
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
 
-  // Match agreement from params or default to first
-  const matchedAgreement = MOCK_AGREEMENTS_DATA.find(
-    (item) => item.id === id || item.agreementNo === id
-  ) || MOCK_AGREEMENTS_DATA[0];
+  // Dynamic system hotels list
+  const availableHotels = getHotelsList();
 
   // Dynamic Agents list from system master lists
   const availableAgents = (() => {
@@ -227,53 +294,39 @@ export default function AgreementDetailPage() {
     ];
   })();
 
-  // Agreement No. (e.g., AGR-1125900)
-  const [agreementNo, setAgreementNo] = useState(matchedAgreement.agreementNo);
+  // Agreement Header Info
+  const [agreementNo, setAgreementNo] = useState('AGR-1125900');
+  const [agreementTitle, setAgreementTitle] = useState(
+    isRTL ? 'اتفاقية فندق جراند زوار للضيافة السياحي' : 'Grand Zuwar Hospitality Hotel Agreement'
+  );
 
   // Copy state
   const [copied, setCopied] = useState(false);
 
-  // Agreement Header Info
-  const [agreementTitle, setAgreementTitle] = useState(
-    isRTL ? matchedAgreement.agreementName : matchedAgreement.agreementNameEn
+  // Hotel Linkage State
+  const [hotelId, setHotelId] = useState<string>('hotel-grand-zuwar');
+  const [hotelName, setHotelName] = useState(
+    isRTL ? 'فندق جراند زوار للضيافة السياحي' : 'Grand Zuwar Hospitality Hotel'
   );
 
   // Basic Info State
   const [agreementDate, setAgreementDate] = useState('29/08/2026');
-  const [hotelName, setHotelName] = useState(
-    isRTL ? matchedAgreement.entityName : matchedAgreement.entityNameEn
-  );
   const [agentName, setAgentName] = useState(
-    isRTL ? (matchedAgreement.agentName || 'حاسوب لتجارة التقنية - 2067') : (matchedAgreement.agentNameEn || 'Hasoob Technology Trading - 2067')
+    isRTL ? 'حاسوب لتجارة التقنية - 2067' : 'Hasoob Technology Trading - 2067'
   );
   const [packageTier, setPackageTier] = useState(
     isRTL ? 'باقة كبار الشخصيات التنفيذية (١٤ يوم)' : 'VIP Executive 14 Days'
   );
-  const [rating, setRating] = useState(matchedAgreement.rating);
+  const [rating, setRating] = useState(5);
 
   // Agreement Info State
-  const [startDate, setStartDate] = useState(matchedAgreement.startDate);
-  const [endDate, setEndDate] = useState(matchedAgreement.endDate);
-  const [period, setPeriod] = useState(`${matchedAgreement.startDate} - ${matchedAgreement.endDate}`);
-  const [durationDays, setDurationDays] = useState(matchedAgreement.durationDays);
-  const [totalPrice, setTotalPrice] = useState(matchedAgreement.totalPrice);
+  const [startDate, setStartDate] = useState('02/09/2026');
+  const [endDate, setEndDate] = useState('06/09/2026');
+  const [period, setPeriod] = useState('02/09/2026 - 06/09/2026');
+  const [durationDays, setDurationDays] = useState('4');
+  const [totalPrice, setTotalPrice] = useState('19,200');
 
-  useEffect(() => {
-    if (matchedAgreement) {
-      setAgreementNo(matchedAgreement.agreementNo);
-      setAgreementTitle(isRTL ? matchedAgreement.agreementName : matchedAgreement.agreementNameEn);
-      setHotelName(isRTL ? matchedAgreement.entityName : matchedAgreement.entityNameEn);
-      setAgentName(isRTL ? (matchedAgreement.agentName || 'حاسوب لتجارة التقنية - 2067') : (matchedAgreement.agentNameEn || 'Hasoob Technology Trading - 2067'));
-      setStartDate(matchedAgreement.startDate);
-      setEndDate(matchedAgreement.endDate);
-      setPeriod(`${matchedAgreement.startDate} - ${matchedAgreement.endDate}`);
-      setDurationDays(matchedAgreement.durationDays);
-      setTotalPrice(matchedAgreement.totalPrice);
-      setRating(matchedAgreement.rating);
-    }
-  }, [id, isRTL, matchedAgreement]);
-
-  // Room details rows matching mockup
+  // Room details rows
   const [rooms, setRooms] = useState<RoomDetailRow[]>([
     { id: '1', type: isRTL ? 'غرفة ثلاثية' : 'Triple Room', capacity: isRTL ? '٣ أشخاص' : '3 Persons', size: isRTL ? '٢٥ م²' : '25 m²', count: 6 },
     { id: '2', type: isRTL ? 'غرفة ثنائية' : 'Double Room', capacity: isRTL ? 'شخصين' : '2 Persons', size: isRTL ? '٢٨ م²' : '28 m²', count: 8 },
@@ -291,12 +344,79 @@ export default function AgreementDetailPage() {
   const [newRoomSize, setNewRoomSize] = useState(isRTL ? '35 م²' : '35 m²');
   const [newRoomCount, setNewRoomCount] = useState('4');
 
+  // Helper to load matching agreement
+  const getMatchedAgreement = () => {
+    try {
+      const saved = localStorage.getItem('contracts_agreements_list');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const found = parsed.find((item: any) => item.id === id || item.agreementNo === id);
+          if (found) return found;
+        }
+      }
+    } catch {}
+    return (
+      MOCK_AGREEMENTS_DATA.find((item) => item.id === id || item.agreementNo === id) ||
+      MOCK_AGREEMENTS_DATA[0]
+    );
+  };
+
+  useEffect(() => {
+    const agreement = getMatchedAgreement();
+    if (agreement) {
+      setAgreementNo(agreement.agreementNo || 'AGR-1125900');
+      setAgreementTitle(
+        isRTL
+          ? (agreement.agreementName || agreement.agreementNameEn || 'اتفاقية فندق جراند زوار')
+          : (agreement.agreementNameEn || agreement.agreementName || 'Grand Zuwar Hotel Agreement')
+      );
+      const hName = isRTL
+        ? (agreement.entityName || agreement.entityNameEn || 'فندق جراند زوار للضيافة السياحي')
+        : (agreement.entityNameEn || agreement.entityName || 'Grand Zuwar Hospitality Hotel');
+      setHotelName(hName);
+      setHotelId(agreement.hotelId || 'hotel-grand-zuwar');
+      setAgentName(
+        isRTL
+          ? (agreement.agentName || 'حاسوب لتجارة التقنية - 2067')
+          : (agreement.agentNameEn || 'Hasoob Technology Trading - 2067')
+      );
+      const startDisp = toDisplayDate(agreement.startDate || '02/09/2026');
+      const endDisp = toDisplayDate(agreement.endDate || '06/09/2026');
+      setAgreementDate(startDisp);
+      setStartDate(startDisp);
+      setEndDate(endDisp);
+      setPeriod(`${startDisp} - ${endDisp}`);
+      setDurationDays(String(agreement.durationDays || '4'));
+      setTotalPrice(
+        typeof agreement.totalPrice === 'number'
+          ? agreement.totalPrice.toLocaleString('en-US')
+          : String(agreement.totalPrice || '19,200')
+      );
+      setRating(agreement.rating || 5);
+
+      // Load saved rooms if available
+      try {
+        const savedRooms = localStorage.getItem(`agreement_rooms_${agreement.id || agreement.agreementNo}`);
+        if (savedRooms) {
+          const parsedRooms = JSON.parse(savedRooms);
+          if (Array.isArray(parsedRooms) && parsedRooms.length > 0) {
+            setRooms(parsedRooms);
+          }
+        }
+      } catch {}
+    }
+  }, [id, isRTL]);
+
   // Copy agreement number
   const handleCopyAgreementNo = () => {
     navigator.clipboard.writeText(agreementNo);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  // Matched Hotel Data from Hotels module
+  const currentHotel: HotelItem | undefined = getHotelByIdOrName(hotelId || hotelName);
 
   // Calculate totals
   const totalRooms = rooms.reduce((acc, r) => acc + r.count, 0);
@@ -313,6 +433,104 @@ export default function AgreementDetailPage() {
     return acc + perRoom * r.count;
   }, 0);
 
+  // Save Basic Info Handler
+  const handleSaveBasicInfo = () => {
+    try {
+      const saved = localStorage.getItem('contracts_agreements_list');
+      let list = saved ? JSON.parse(saved) : null;
+      if (!Array.isArray(list) || list.length === 0) {
+        list = [...MOCK_AGREEMENTS_DATA];
+      }
+
+      const targetId = id;
+      const idx = list.findIndex(
+        (item: any) => item.id === targetId || item.agreementNo === targetId || item.agreementNo === agreementNo
+      );
+
+      const formattedAgreementDate = toDisplayDate(agreementDate);
+
+      const updatedRecord = {
+        id: idx !== -1 ? list[idx].id : (targetId || Date.now().toString()),
+        hotelId,
+        agreementNo,
+        agreementName: agreementTitle,
+        agreementNameEn: agreementTitle,
+        entityName: hotelName,
+        entityNameEn: hotelName,
+        agentName,
+        agentNameEn: agentName,
+        packageTier,
+        rating,
+        startDate: formattedAgreementDate || toDisplayDate(startDate),
+        endDate: toDisplayDate(endDate),
+        durationDays,
+        totalPrice,
+        status: idx !== -1 ? list[idx].status : 'نشطة',
+        type: idx !== -1 ? list[idx].type : 'فندق',
+        city: currentHotel ? currentHotel.location : (isRTL ? 'مكة المكرمة' : 'Makkah'),
+        roomsCount: rooms.reduce((acc, r) => acc + r.count, 0),
+      };
+
+      if (idx !== -1) {
+        list[idx] = { ...list[idx], ...updatedRecord };
+      } else {
+        list.unshift(updatedRecord);
+      }
+
+      localStorage.setItem('contracts_agreements_list', JSON.stringify(list));
+    } catch (e) {
+      console.error('Failed to save agreement basic info:', e);
+    }
+
+    setIsEditBasicOpen(false);
+  };
+
+  // Save Agreement Details Handler
+  const handleSaveAgreementDetails = () => {
+    const formattedStart = toDisplayDate(startDate);
+    const formattedEnd = toDisplayDate(endDate);
+    const updatedPeriod = `${formattedStart} - ${formattedEnd}`;
+    const calculatedDays = calculateDurationDays(formattedStart, formattedEnd, durationDays);
+
+    setStartDate(formattedStart);
+    setEndDate(formattedEnd);
+    setPeriod(updatedPeriod);
+    setDurationDays(calculatedDays);
+
+    try {
+      const saved = localStorage.getItem('contracts_agreements_list');
+      let list = saved ? JSON.parse(saved) : null;
+      if (!Array.isArray(list) || list.length === 0) {
+        list = [...MOCK_AGREEMENTS_DATA];
+      }
+
+      const targetId = id;
+      const idx = list.findIndex(
+        (item: any) => item.id === targetId || item.agreementNo === targetId || item.agreementNo === agreementNo
+      );
+
+      const numericPrice = typeof totalPrice === 'string'
+        ? parseFloat(totalPrice.replace(/,/g, '')) || 0
+        : totalPrice;
+
+      if (idx !== -1) {
+        list[idx] = {
+          ...list[idx],
+          startDate: formattedStart,
+          endDate: formattedEnd,
+          durationDays: parseInt(calculatedDays) || 4,
+          totalPrice: numericPrice || list[idx].totalPrice,
+        };
+      }
+
+      localStorage.setItem('contracts_agreements_list', JSON.stringify(list));
+    } catch (e) {
+      console.error('Failed to save agreement details:', e);
+    }
+
+    setIsEditAgreementOpen(false);
+  };
+
   // Add room handler
   const handleSaveRoom = (e: React.FormEvent) => {
     e.preventDefault();
@@ -323,7 +541,13 @@ export default function AgreementDetailPage() {
       size: newRoomSize,
       count: parseInt(newRoomCount) || 1,
     };
-    setRooms((prev) => [...prev, newRoom]);
+    const updatedRooms = [...rooms, newRoom];
+    setRooms(updatedRooms);
+
+    try {
+      localStorage.setItem(`agreement_rooms_${id || agreementNo}`, JSON.stringify(updatedRooms));
+    } catch {}
+
     setIsAddRoomOpen(false);
   };
 
@@ -475,7 +699,17 @@ export default function AgreementDetailPage() {
 
                     <div className="flex items-center justify-between">
                       <span className="text-slate-400">{t('contracts.hotel_name', 'اسم الفندق')}</span>
-                      <span className="font-bold text-slate-800">{hotelName}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-800">{hotelName}</span>
+                        {currentHotel && (
+                          <span
+                            onClick={() => setActiveTab(isRTL ? 'تفاصيل الفندق' : 'Hotel Details')}
+                            className="text-[11px] text-blue-600 hover:underline cursor-pointer font-medium"
+                          >
+                            ({isRTL ? 'عرض تفاصيل الفندق' : 'View Hotel'})
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex items-center justify-between">
@@ -500,7 +734,7 @@ export default function AgreementDetailPage() {
                             key={s}
                             className="w-3.5 h-3.5"
                             stroke={s <= rating ? '#f59e0b' : '#cbd5e1'}
-                            fill="none"
+                            fill={s <= rating ? '#f59e0b' : 'none'}
                             strokeWidth={2.2}
                           />
                         ))}
@@ -620,20 +854,239 @@ export default function AgreementDetailPage() {
             </div>
           )}
 
-          {/* Other Tabs Placeholder */}
-          {activeTab !== 'تفاصيل الاتفاقية' && activeTab !== 'Agreement Details' && (
-            <div className="bg-white rounded-2xl p-12 border border-slate-100 text-center space-y-3">
-              <div className="w-12 h-12 rounded-full bg-slate-100 mx-auto flex items-center justify-center text-slate-400">
-                <FileText className="w-6 h-6" />
+          {/* Tab 4 Content: Hotel Details (Integrated with Hotels Module) */}
+          {(activeTab === 'تفاصيل الفندق' || activeTab === 'Hotel Details') && currentHotel && (
+            <div className="space-y-6 animate-fadeIn">
+              {/* Hotel Hero Banner Card */}
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-2xs overflow-hidden">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 p-6">
+                  {/* Hotel Image with Overlay Badge */}
+                  <div className="lg:col-span-4 relative rounded-xl overflow-hidden min-h-[220px] bg-slate-100 border border-slate-200/80 group">
+                    <img
+                      src={currentHotel.image}
+                      alt={currentHotel.name}
+                      className="w-full h-full object-cover min-h-[220px] max-h-[260px] group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute top-3 right-3 flex items-center gap-2">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-bold shadow-sm backdrop-blur-md ${
+                          currentHotel.status.includes('متاح') || currentHotel.status.includes('Available')
+                            ? 'bg-emerald-500/95 text-white'
+                            : 'bg-rose-500/95 text-white'
+                        }`}
+                      >
+                        {currentHotel.status}
+                      </span>
+                    </div>
+                    {currentHotel.distanceToHaram && (
+                      <div className="absolute bottom-3 left-3 right-3 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg text-white text-xs flex items-center gap-1.5 font-medium">
+                        <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        <span className="truncate">{currentHotel.distanceToHaram}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Hotel Details Column */}
+                  <div className="lg:col-span-8 flex flex-col justify-between space-y-4">
+                    <div>
+                      {/* Rating & City Row */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            {currentHotel.location}
+                          </span>
+                          <span className="px-2.5 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold flex items-center gap-1">
+                            <Award className="w-3 h-3" />
+                            {isRTL ? 'فندق معتمد في نسك' : 'Nusuk Approved'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1" dir="ltr">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star
+                              key={s}
+                              className="w-4 h-4"
+                              stroke={s <= currentHotel.rating ? '#f59e0b' : '#cbd5e1'}
+                              fill={s <= currentHotel.rating ? '#f59e0b' : 'none'}
+                              strokeWidth={2}
+                            />
+                          ))}
+                          <span className="text-xs font-bold text-slate-700 ml-1">
+                            ({currentHotel.rating}.0)
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Title */}
+                      <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                        {isRTL ? currentHotel.name : (currentHotel.nameEn || currentHotel.name)}
+                      </h2>
+                      {currentHotel.address && (
+                        <p className="text-xs sm:text-sm text-slate-500 mt-1 flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span>{isRTL ? currentHotel.address : (currentHotel.addressEn || currentHotel.address)}</span>
+                        </p>
+                      )}
+                    </div>
+
+                    {/* 3 Metric Badges */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-100">
+                      <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3">
+                        <div className="text-[11px] text-slate-500 font-medium">
+                          {isRTL ? 'إجمالي الغرف المتاحة بالفندق' : 'Total Available Rooms'}
+                        </div>
+                        <div className="text-base sm:text-lg font-bold text-slate-900 mt-0.5">
+                          {currentHotel.availableRooms} {isRTL ? 'غرفة' : 'Rooms'}
+                        </div>
+                      </div>
+
+                      <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-xl p-3">
+                        <div className="text-[11px] text-emerald-800 font-medium">
+                          {isRTL ? 'سعر الليلة يبدأ من' : 'Starting Rate / Night'}
+                        </div>
+                        <div className="text-base sm:text-lg font-bold text-emerald-600 mt-0.5">
+                          {currentHotel.pricePerNight} {t('common.currency', 'ر.س')}
+                        </div>
+                      </div>
+
+                      <div className="bg-blue-50/60 border border-blue-200/80 rounded-xl p-3">
+                        <div className="text-[11px] text-blue-800 font-medium">
+                          {isRTL ? 'الغرف المحجوزة بهذه الاتفاقية' : 'Rooms in this Agreement'}
+                        </div>
+                        <div className="text-base sm:text-lg font-bold text-blue-600 mt-0.5">
+                          {totalRooms} {isRTL ? 'غرف' : 'Rooms'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom Action link */}
+                    <div className="flex items-center justify-between pt-2">
+                      <span className="text-xs text-slate-400">
+                        {isRTL
+                          ? 'بيانات الفندق متطابقة ومتزامنة بالكامل مع قسم الفنادق والإسكان.'
+                          : 'Hotel details are fully synchronized with the Hotels Management module.'}
+                      </span>
+                      <button
+                        onClick={() => navigate('/hotels')}
+                        className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 transition cursor-pointer hover:underline"
+                      >
+                        <span>{isRTL ? 'إدارة الفندق في قسم الفنادق' : 'Manage in Hotels Module'}</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <h3 className="text-base font-bold text-slate-800">{activeTab}</h3>
-              <p className="text-xs sm:text-sm text-slate-400 max-w-sm mx-auto">
-                {isRTL
-                  ? `قسم ${activeTab} قيد التحديث والربط المباشر مع مزودي الخدمات المعتمدين.`
-                  : `${activeTab} section is synchronized with verified service providers.`}
-              </p>
+
+              {/* Room Types & Rates Breakdown Table */}
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-2xs overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <Bed className="w-5 h-5 text-emerald-600" />
+                    <h3 className="text-sm sm:text-base font-bold text-slate-900">
+                      {isRTL ? 'أنواع الغرف والأسعار المعتمدة بالفندق' : 'Approved Room Types & Rates in Hotel'}
+                    </h3>
+                  </div>
+                  <span className="text-xs text-slate-500 font-medium">
+                    {currentHotel.roomTypes?.length || 0} {isRTL ? 'أنواع غرف' : 'Room Types'}
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs sm:text-sm border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-100 bg-slate-50/60 text-slate-600 font-bold text-xs">
+                        <th className="py-3 px-6 text-start">{t('contracts.room_type', 'نوع الغرفة')}</th>
+                        <th className="py-3 px-6 text-start">{t('contracts.room_capacity', 'سعة الغرفة')}</th>
+                        <th className="py-3 px-6 text-start">{isRTL ? 'السعر لليلة' : 'Price / Night'}</th>
+                        <th className="py-3 px-6 text-start">{isRTL ? 'الغرف المتوفرة' : 'Available Rooms'}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+                      {(currentHotel.roomTypes || []).map((room) => (
+                        <tr key={room.id} className="hover:bg-slate-50/50 transition">
+                          <td className="py-4 px-6 font-bold text-slate-900 whitespace-nowrap flex items-center gap-2">
+                            <Bed className="w-4 h-4 text-slate-400 shrink-0" />
+                            <span>{room.name}</span>
+                          </td>
+                          <td className="py-4 px-6 text-slate-600 whitespace-nowrap">
+                            {room.capacity}
+                          </td>
+                          <td className="py-4 px-6 font-bold text-emerald-600 whitespace-nowrap font-mono">
+                            {room.price} {t('common.currency', 'ر.س')}
+                          </td>
+                          <td className="py-4 px-6 text-slate-700 whitespace-nowrap font-bold">
+                            {room.roomsCount} {isRTL ? 'غرفة' : 'Rooms'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Hotel Amenities & Services Grid */}
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-2xs p-6 space-y-4">
+                <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+                  <Sparkles className="w-5 h-5 text-amber-500" />
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900">
+                    {isRTL ? 'المرافق والخدمات الفندقية المقدمة' : 'Hotel Amenities & Services'}
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                  {((isRTL ? currentHotel?.amenities : (currentHotel?.amenitiesEn || currentHotel?.amenities)) || []).map(
+                    (amenity, idx) => (
+                      <div
+                        key={idx}
+                        className="bg-slate-50/80 border border-slate-200/70 rounded-xl p-3 flex items-center gap-3 hover:bg-emerald-50/30 hover:border-emerald-200 transition-colors"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-white shadow-2xs flex items-center justify-center text-emerald-600 shrink-0 border border-slate-100">
+                          {idx === 0 ? (
+                            <Wifi className="w-4 h-4" />
+                          ) : idx === 1 ? (
+                            <Bus className="w-4 h-4" />
+                          ) : idx === 2 ? (
+                            <Utensils className="w-4 h-4" />
+                          ) : idx === 3 ? (
+                            <Clock className="w-4 h-4" />
+                          ) : idx === 4 ? (
+                            <ShieldCheck className="w-4 h-4" />
+                          ) : idx === 5 ? (
+                            <Building2 className="w-4 h-4" />
+                          ) : (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          )}
+                        </div>
+                        <span className="text-xs font-semibold text-slate-800 leading-tight">
+                          {amenity}
+                        </span>
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
             </div>
           )}
+
+          {/* Other Tabs Placeholder */}
+          {activeTab !== 'تفاصيل الاتفاقية' &&
+            activeTab !== 'Agreement Details' &&
+            activeTab !== 'تفاصيل الفندق' &&
+            activeTab !== 'Hotel Details' && (
+              <div className="bg-white rounded-2xl p-12 border border-slate-100 text-center space-y-3">
+                <div className="w-12 h-12 rounded-full bg-slate-100 mx-auto flex items-center justify-center text-slate-400">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <h3 className="text-base font-bold text-slate-800">{activeTab}</h3>
+                <p className="text-xs sm:text-sm text-slate-400 max-w-sm mx-auto">
+                  {isRTL
+                    ? `قسم ${activeTab} قيد التحديث والربط المباشر مع مزودي الخدمات المعتمدين.`
+                    : `${activeTab} section is synchronized with verified service providers.`}
+                </p>
+              </div>
+            )}
         </main>
       </div>
 
@@ -661,7 +1114,7 @@ export default function AgreementDetailPage() {
             <div className="space-y-3.5">
               {/* Field 0: Agreement Number (Nusuk System Contract Number) */}
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5 flex items-center justify-between">
+                <label className="text-xs font-semibold text-slate-600 mb-1.5 flex items-center justify-between">
                   <span>{isRTL ? 'رقم الاتفاقية (نظام نسك / وزارة الحج والعمرة)' : 'Agreement Number (Nusuk System)'}</span>
                   <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-medium border border-emerald-200">
                     {isRTL ? 'معتمد في نسك' : 'Nusuk Integrated'}
@@ -681,31 +1134,50 @@ export default function AgreementDetailPage() {
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">
                   {t('contracts.agreement_date', 'تاريخ الاتفاقية')}
                 </label>
-                <div
-                  className="border border-slate-200/90 rounded-xl px-3.5 py-2.5 bg-[#f8fafc] flex items-center justify-between"
-                >
-                  <Calendar className="w-4 h-4 text-slate-500 shrink-0" />
+                <div className="relative border border-slate-200/90 rounded-xl px-3.5 py-2.5 bg-[#f8fafc] flex items-center justify-between">
+                  <Calendar className="w-4 h-4 text-slate-500 shrink-0 pointer-events-none" />
                   <input
                     type="date"
-                    value={agreementDate}
-                    onChange={(e) => setAgreementDate(e.target.value)}
-                    onClick={(e) => e.currentTarget.showPicker?.()}
+                    value={toIsoDate(agreementDate)}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        setAgreementDate(toDisplayDate(e.target.value));
+                      }
+                    }}
                     className="w-full bg-transparent text-center text-xs sm:text-sm text-slate-800 font-semibold focus:outline-hidden cursor-pointer"
                   />
                 </div>
               </div>
 
-              {/* Field 2: Hotel Name */}
+              {/* Field 2: Hotel Selector from Added Hotels */}
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                  {isRTL ? 'اسم الفندق / الجهة' : 'Hotel / Entity Name'}
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5 flex items-center justify-between">
+                  <span>{isRTL ? 'اسم الفندق / المنشأة المضافة' : 'Hotel / Added Entity'}</span>
+                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-medium border border-emerald-200">
+                    {isRTL ? 'قائمة الفنادق المضافة' : 'From Added Hotels'}
+                  </span>
                 </label>
-                <input
-                  type="text"
-                  value={hotelName}
-                  onChange={(e) => setHotelName(e.target.value)}
-                  className="w-full border border-slate-200/90 rounded-xl px-3.5 py-2.5 bg-[#f8fafc] text-xs sm:text-sm text-slate-800 font-semibold focus:outline-hidden focus:border-emerald-500"
-                />
+                <select
+                  value={hotelId}
+                  onChange={(e) => {
+                    const selectedId = e.target.value;
+                    setHotelId(selectedId);
+                    const found = availableHotels.find((h) => h.id === selectedId || h.name === selectedId);
+                    if (found) {
+                      const hName = isRTL ? found.name : (found.nameEn || found.name);
+                      setHotelName(hName);
+                      setRating(found.rating);
+                      setAgreementTitle(isRTL ? `اتفاقية ${found.name}` : `${found.nameEn || found.name} Agreement`);
+                    }
+                  }}
+                  className="w-full border border-slate-200/90 rounded-xl px-3.5 py-2.5 bg-[#f8fafc] text-xs sm:text-sm text-slate-800 font-bold focus:outline-hidden focus:border-emerald-500 cursor-pointer"
+                >
+                  {availableHotels.map((h) => (
+                    <option key={h.id} value={h.id}>
+                      {isRTL ? h.name : (h.nameEn || h.name)} ({h.location} - {h.rating}★)
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Field: External Agent & Partner */}
@@ -721,7 +1193,7 @@ export default function AgreementDetailPage() {
                   {availableAgents.map((a, idx) => {
                     const label = isRTL ? a.nameAr : a.nameEn;
                     return (
-                      <option key={a.id || idx} value={label}>
+                      <option key={a.nameEn || idx} value={label}>
                         {label}
                       </option>
                     );
@@ -756,22 +1228,20 @@ export default function AgreementDetailPage() {
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">
                   {t('common.rating', 'التصنيف')}
                 </label>
-                <div
-                  className="border border-slate-200/90 rounded-xl px-3.5 py-2.5 bg-[#f8fafc] flex items-center justify-center"
-                >
+                <div className="border border-slate-200/90 rounded-xl px-3.5 py-2.5 bg-[#f8fafc] flex items-center justify-center">
                   <div className="flex items-center gap-1.5 cursor-pointer" dir="ltr">
                     {[1, 2, 3, 4, 5].map((s) => (
                       <button
                         type="button"
                         key={s}
                         onClick={() => setRating(s)}
-                        className="transition hover:scale-110 focus:outline-hidden"
+                        className="transition hover:scale-110 focus:outline-hidden cursor-pointer"
                         title={`${s} Stars`}
                       >
                         <Star
                           className="w-4 h-4"
                           stroke={s <= rating ? '#f59e0b' : '#cbd5e1'}
-                          fill="none"
+                          fill={s <= rating ? '#f59e0b' : 'none'}
                           strokeWidth={2.2}
                         />
                       </button>
@@ -792,10 +1262,10 @@ export default function AgreementDetailPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setIsEditBasicOpen(false)}
+                onClick={handleSaveBasicInfo}
                 className="px-8 py-2.5 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white text-xs sm:text-sm font-bold shadow-xs transition cursor-pointer"
               >
-                {t('common.save', 'حفظ')}
+                {t('common.save', 'حفظ التعديلات')}
               </button>
             </div>
           </div>
@@ -830,32 +1300,42 @@ export default function AgreementDetailPage() {
                   {isRTL ? 'فترة الاتفاقية' : 'Agreement Period'}
                 </label>
                 <div className="grid grid-cols-2 gap-3">
-                  <div
-                    className="border border-slate-200/90 rounded-xl px-3 py-2.5 bg-[#f8fafc] flex items-center justify-between"
-                  >
-                    <Calendar className="w-4 h-4 text-slate-500 shrink-0" />
+                  <div className="relative border border-slate-200/90 rounded-xl px-3 py-2.5 bg-[#f8fafc] flex items-center justify-between">
+                    <Calendar className="w-4 h-4 text-slate-500 shrink-0 pointer-events-none" />
                     <input
                       type="date"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      onClick={(e) => e.currentTarget.showPicker?.()}
+                      value={toIsoDate(startDate)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val) {
+                          const newStart = toDisplayDate(val);
+                          setStartDate(newStart);
+                          const days = calculateDurationDays(newStart, endDate, durationDays);
+                          setDurationDays(days);
+                        }
+                      }}
                       className="w-full bg-transparent text-center text-xs sm:text-sm text-slate-800 font-semibold focus:outline-hidden px-1 cursor-pointer"
                     />
-                    <span className="text-xs text-slate-500 font-medium shrink-0">{isRTL ? 'من' : 'From'}</span>
+                    <span className="text-xs text-slate-500 font-medium shrink-0 pointer-events-none">{isRTL ? 'من' : 'From'}</span>
                   </div>
 
-                  <div
-                    className="border border-slate-200/90 rounded-xl px-3 py-2.5 bg-[#f8fafc] flex items-center justify-between"
-                  >
-                    <Calendar className="w-4 h-4 text-slate-500 shrink-0" />
+                  <div className="relative border border-slate-200/90 rounded-xl px-3 py-2.5 bg-[#f8fafc] flex items-center justify-between">
+                    <Calendar className="w-4 h-4 text-slate-500 shrink-0 pointer-events-none" />
                     <input
                       type="date"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      onClick={(e) => e.currentTarget.showPicker?.()}
+                      value={toIsoDate(endDate)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val) {
+                          const newEnd = toDisplayDate(val);
+                          setEndDate(newEnd);
+                          const days = calculateDurationDays(startDate, newEnd, durationDays);
+                          setDurationDays(days);
+                        }
+                      }}
                       className="w-full bg-transparent text-center text-xs sm:text-sm text-slate-800 font-semibold focus:outline-hidden px-1 cursor-pointer"
                     />
-                    <span className="text-xs text-slate-500 font-medium shrink-0">{isRTL ? 'إلى' : 'To'}</span>
+                    <span className="text-xs text-slate-500 font-medium shrink-0 pointer-events-none">{isRTL ? 'إلى' : 'To'}</span>
                   </div>
                 </div>
               </div>
@@ -865,9 +1345,7 @@ export default function AgreementDetailPage() {
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">
                   {t('contracts.duration_days', 'عدد أيام الاتفاقية')}
                 </label>
-                <div
-                  className="border border-slate-200/90 rounded-xl px-3.5 py-2.5 bg-white flex items-center justify-between"
-                >
+                <div className="border border-slate-200/90 rounded-xl px-3.5 py-2.5 bg-white flex items-center justify-between">
                   <span className="text-xs text-slate-400 font-medium shrink-0">{isRTL ? 'أيام' : 'Days'}</span>
                   <input
                     type="text"
@@ -883,9 +1361,7 @@ export default function AgreementDetailPage() {
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">
                   {t('contracts.total_price', 'إجمالي السعر')}
                 </label>
-                <div
-                  className="border border-slate-200/90 rounded-xl px-3.5 py-2.5 bg-white flex items-center justify-between"
-                >
+                <div className="border border-slate-200/90 rounded-xl px-3.5 py-2.5 bg-white flex items-center justify-between">
                   <span className="text-xs font-bold text-[#10b981] shrink-0">{t('common.currency', 'ر.س')}</span>
                   <input
                     type="text"
@@ -908,10 +1384,7 @@ export default function AgreementDetailPage() {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setPeriod(`${startDate} - ${endDate}`);
-                  setIsEditAgreementOpen(false);
-                }}
+                onClick={handleSaveAgreementDetails}
                 className="px-6 py-2.5 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white text-xs sm:text-sm font-bold shadow-xs transition cursor-pointer"
               >
                 {t('common.save', 'حفظ التعديلات')}
@@ -934,7 +1407,7 @@ export default function AgreementDetailPage() {
               <button
                 type="button"
                 onClick={() => setIsAddRoomOpen(false)}
-                className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"
+                className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -943,12 +1416,27 @@ export default function AgreementDetailPage() {
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">{t('contracts.room_type', 'نوع الغرفة')}</label>
-                <input
-                  type="text"
+                <select
                   value={newRoomType}
-                  onChange={(e) => setNewRoomType(e.target.value)}
-                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm focus:outline-hidden focus:border-blue-600"
-                />
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setNewRoomType(val);
+                    const found = STANDARD_ROOM_TYPES.find(
+                      (r) => (isRTL ? r.nameAr : r.nameEn) === val || r.nameAr === val || r.nameEn === val
+                    );
+                    if (found) {
+                      setNewRoomCapacity(isRTL ? found.capacityAr : found.capacityEn);
+                      setNewRoomSize(found.defaultSize);
+                    }
+                  }}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold focus:outline-hidden focus:border-blue-600 bg-white cursor-pointer"
+                >
+                  {STANDARD_ROOM_TYPES.map((rt) => (
+                    <option key={rt.id} value={isRTL ? rt.nameAr : rt.nameEn}>
+                      {isRTL ? rt.nameAr : rt.nameEn} ({isRTL ? rt.capacityAr : rt.capacityEn})
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">{t('contracts.room_capacity', 'سعة الغرفة')}</label>
@@ -983,13 +1471,13 @@ export default function AgreementDetailPage() {
               <button
                 type="button"
                 onClick={() => setIsAddRoomOpen(false)}
-                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600"
+                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 cursor-pointer"
               >
                 {t('common.cancel', 'إلغاء')}
               </button>
               <button
                 type="submit"
-                className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold"
+                className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold cursor-pointer"
               >
                 {t('common.add', 'إضافة الغرفة')}
               </button>
@@ -1010,7 +1498,7 @@ export default function AgreementDetailPage() {
           hotelName,
           agentName,
           packageTier,
-          city: isRTL ? 'مكة المكرمة' : 'Makkah',
+          city: currentHotel ? currentHotel.location : (isRTL ? 'مكة المكرمة' : 'Makkah'),
           rating,
           period,
           durationDays,
@@ -1027,4 +1515,3 @@ export default function AgreementDetailPage() {
     </div>
   );
 }
-

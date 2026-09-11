@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import TripDetailsModal, { type TripItem } from '../components/trips/TripDetailsModal';
 import AddTripModal from '../components/trips/AddTripModal';
+import TripStatusSelector, { type TripStatusType } from '../components/trips/TripStatusSelector';
 import { useLanguage } from '../context/LanguageContext';
 
 export default function TripsPage() {
@@ -112,6 +113,23 @@ export default function TripsPage() {
     ]);
   }, [isRTL]);
 
+  const handleStatusChange = (tripId: string, newStatus: TripStatusType) => {
+    setTripsList((prev) =>
+      prev.map((t) => (t.id === tripId ? { ...t, status: newStatus } : t))
+    );
+  };
+
+  const stats = useMemo(() => {
+    const inProgress = tripsList.filter((t) => t.status === 'قيد التنفيذ').length;
+    const completed = tripsList.filter((t) => t.status === 'مكتمل').length;
+    const pending = tripsList.filter((t) => t.status === 'معلق').length;
+    const total = tripsList.length;
+    const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+    const inProgressRate = total > 0 ? Math.round((inProgress / total) * 100) : 0;
+
+    return { inProgress, completed, pending, total, completionRate, inProgressRate };
+  }, [tripsList]);
+
   const filteredTrips = useMemo(() => {
     return tripsList.filter((trip) => {
       const q = searchQuery.trim().toLowerCase();
@@ -171,7 +189,7 @@ export default function TripsPage() {
 
               <div className="flex items-baseline justify-between pt-1">
                 <div className="text-3xl sm:text-4xl font-extrabold text-[#f59e0b] tracking-tight">
-                  8 {isRTL ? 'رحلات' : 'Trips'}
+                  {stats.inProgress} {isRTL ? 'رحلات' : 'Trips'}
                 </div>
                 <div className="text-xs sm:text-sm text-slate-500 font-normal">
                   {t('trips.buses_trains_sub', 'Haramain Buses & Trains')}
@@ -179,7 +197,10 @@ export default function TripsPage() {
               </div>
 
               <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden flex">
-                <div className="bg-[#f59e0b] h-full w-[28%] rounded-full" />
+                <div
+                  className="bg-[#f59e0b] h-full rounded-full transition-all duration-300"
+                  style={{ width: `${Math.max(stats.inProgressRate, stats.inProgress > 0 ? 15 : 0)}%` }}
+                />
               </div>
 
               <div className="text-xs text-slate-400 font-normal">
@@ -200,15 +221,18 @@ export default function TripsPage() {
 
               <div className="flex items-baseline justify-between pt-1">
                 <div className="text-3xl sm:text-4xl font-extrabold text-[#10b981] tracking-tight">
-                  24 {isRTL ? 'رحلة' : 'Trips'}
+                  {stats.completed} {isRTL ? 'رحلة' : 'Trips'}
                 </div>
                 <div className="text-xs sm:text-sm text-slate-500 font-normal">
-                  {t('trips.daily_completion_rate', '75% Daily Completion Rate')}
+                  {stats.completionRate}% {isRTL ? 'نسبة الإنجاز' : 'Daily Completion Rate'}
                 </div>
               </div>
 
               <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden flex">
-                <div className="bg-[#10b981] h-full w-[75%] rounded-full" />
+                <div
+                  className="bg-[#10b981] h-full rounded-full transition-all duration-300"
+                  style={{ width: `${Math.max(stats.completionRate, stats.completed > 0 ? 15 : 0)}%` }}
+                />
               </div>
 
               <div className="text-xs text-slate-400 font-normal">
@@ -229,7 +253,7 @@ export default function TripsPage() {
 
               <div className="flex items-baseline justify-between pt-1">
                 <div className="text-3xl sm:text-4xl font-extrabold text-[#0f172a] tracking-tight">
-                  32 {isRTL ? 'برنامجاً' : 'Programs'}
+                  {stats.total} {isRTL ? 'برنامجاً' : 'Programs'}
                 </div>
                 <div className="text-xs sm:text-sm text-slate-500 font-normal">
                   {t('trips.active_operation_prog', 'Active Operation Program')}
@@ -306,12 +330,6 @@ export default function TripsPage() {
                     </tr>
                   ) : (
                     filteredTrips.map((trip) => {
-                      const displayStatus = trip.status === 'مكتمل'
-                        ? (isRTL ? 'مكتمل' : 'Completed')
-                        : trip.status === 'قيد التنفيذ'
-                        ? (isRTL ? 'قيد التنفيذ' : 'In Progress')
-                        : (isRTL ? 'معلق' : 'Pending');
-
                       return (
                         <tr
                           key={trip.id}
@@ -343,17 +361,10 @@ export default function TripsPage() {
                           </td>
 
                           <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                            <span
-                              className={`text-xs font-bold px-3 py-1 rounded-md shadow-2xs inline-block ${
-                                trip.status === 'مكتمل'
-                                  ? 'bg-[#dcfce7] text-[#15803d]'
-                                  : trip.status === 'قيد التنفيذ'
-                                  ? 'bg-[#fef3c7] text-[#b45309]'
-                                  : 'bg-[#fee2e2] text-[#e11d48]'
-                              }`}
-                            >
-                              {displayStatus}
-                            </span>
+                            <TripStatusSelector
+                              value={trip.status}
+                              onChange={(newStatus) => handleStatusChange(trip.id, newStatus)}
+                            />
                           </td>
 
                           <td className="py-3.5 px-4 text-center whitespace-nowrap">
