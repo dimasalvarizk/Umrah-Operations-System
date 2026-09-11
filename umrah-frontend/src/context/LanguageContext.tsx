@@ -44,13 +44,8 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     document.title = language === 'ar' ? 'نظام عمليات الحج والعمرة' : 'Hajj & Umrah Operations System';
 
     // Apply font styling class to body
-    if (language === 'ar') {
-      document.body.classList.add('font-cairo');
-      document.body.classList.remove('font-sans');
-    } else {
-      document.body.classList.add('font-sans');
-      document.body.classList.remove('font-cairo');
-    }
+    document.body.classList.add('font-sans');
+    document.body.classList.remove('font-cairo');
   }, [language, direction]);
 
   const setLanguage = (lang: Language) => {
@@ -85,7 +80,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         t,
       }}
     >
-      <div dir={direction} className={language === 'ar' ? 'font-cairo' : 'font-sans'}>
+      <div dir={direction} className="font-sans">
         {children}
       </div>
     </LanguageContext.Provider>
