@@ -5,10 +5,13 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Ensure devDependencies are installed
+ENV NODE_ENV=development
+
 # Copy package files from umrah-frontend
 COPY umrah-frontend/package*.json ./
 
-RUN npm install
+RUN npm install --include=dev
 
 # Copy source code
 COPY umrah-frontend/ ./

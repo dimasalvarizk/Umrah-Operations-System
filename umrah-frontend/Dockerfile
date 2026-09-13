@@ -5,11 +5,14 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Ensure devDependencies (Vite, TypeScript, etc.) are installed even if NODE_ENV=production is passed by Coolify
+ENV NODE_ENV=development
+
 # Copy dependency definition files
 COPY package*.json ./
 
-# Install dependencies (using npm ci for reproducible clean builds)
-RUN npm install
+# Install all dependencies required for building the Vite bundle
+RUN npm install --include=dev
 
 # Copy application source code
 COPY . .
