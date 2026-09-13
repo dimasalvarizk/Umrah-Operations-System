@@ -2,10 +2,37 @@ const { pool } = require('../config/db');
 
 class NotificationFeedModel {
   /**
+   * Helper to ensure all required columns exist in notifications table
+   */
+  static async ensureSchema() {
+    try {
+      const [notifCols] = await pool.query(`SHOW COLUMNS FROM \`notifications\``);
+      const colNames = notifCols.map((c) => c.Field);
+
+      if (!colNames.includes('user_id')) {
+        await pool.query('ALTER TABLE `notifications` ADD COLUMN `user_id` INT DEFAULT NULL AFTER `is_read`');
+      }
+      if (!colNames.includes('updated_at')) {
+        await pool.query('ALTER TABLE `notifications` ADD COLUMN `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP');
+      }
+      if (!colNames.includes('reference_link')) {
+        await pool.query('ALTER TABLE `notifications` ADD COLUMN `reference_link` VARCHAR(255) DEFAULT NULL AFTER `reference_id`');
+      }
+      if (!colNames.includes('reference_id')) {
+        await pool.query('ALTER TABLE `notifications` ADD COLUMN `reference_id` VARCHAR(100) DEFAULT NULL AFTER `type`');
+      }
+    } catch (e) {
+      console.warn('Schema check warning in NotificationFeedModel:', e.message);
+    }
+  }
+
+  /**
    * Get all notifications with unread count
    */
   static async getAll({ limit = 50, offset = 0, unreadOnly = false, userId = null } = {}) {
     try {
+      await this.ensureSchema();
+
       let whereClause = 'WHERE 1=1';
       const params = [];
 
@@ -62,15 +89,30 @@ class NotificationFeedModel {
         total,
       };
     } catch (err) {
-      if (err.message && err.message.includes("Unknown column 'user_id'")) {
-        try {
-          await pool.query('ALTER TABLE `notifications` ADD COLUMN `user_id` INT DEFAULT NULL AFTER `is_read`');
-          return this.getAll({ limit, offset, unreadOnly, userId });
-        } catch (alterErr) {
-          console.error('Auto migration failed:', alterErr.message);
-        }
+      console.error('NotificationFeedModel.getAll error:', err.message);
+      try {
+        const [fallbackRows] = await pool.query('SELECT * FROM notifications ORDER BY id DESC LIMIT ?', [Number(limit)]);
+        return {
+          notifications: fallbackRows.map((r) => ({
+            id: r.id,
+            titleEn: r.title_en || '',
+            titleAr: r.title_ar || '',
+            descEn: r.desc_en || '',
+            descAr: r.desc_ar || '',
+            type: r.type || 'system',
+            referenceId: r.reference_id || null,
+            referenceLink: r.reference_link || null,
+            isRead: Boolean(r.is_read),
+            userId: r.user_id || null,
+            createdAt: r.created_at || new Date().toISOString(),
+            updatedAt: r.updated_at || r.created_at || new Date().toISOString(),
+          })),
+          unreadCount: 0,
+          total: fallbackRows.length,
+        };
+      } catch (fbErr) {
+        return { notifications: [], unreadCount: 0, total: 0 };
       }
-      throw err;
     }
   }
 

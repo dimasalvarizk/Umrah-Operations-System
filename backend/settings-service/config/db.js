@@ -279,18 +279,43 @@ async function initDb() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
-    // Auto-migrate newly added columns if table previously created
+    // Complete Auto-migrate for notifications table
     try {
       const [notifCols] = await pool.query(`SHOW COLUMNS FROM \`notifications\``);
       const notifColNames = notifCols.map((c) => c.Field);
-      if (!notifColNames.includes('user_id')) {
-        await pool.query(`ALTER TABLE \`notifications\` ADD COLUMN \`user_id\` INT DEFAULT NULL AFTER \`is_read\``);
+
+      if (!notifColNames.includes('title_en')) {
+        await pool.query(`ALTER TABLE \`notifications\` ADD COLUMN \`title_en\` VARCHAR(255) NOT NULL DEFAULT 'Notification' AFTER \`id\``);
+      }
+      if (!notifColNames.includes('title_ar')) {
+        await pool.query(`ALTER TABLE \`notifications\` ADD COLUMN \`title_ar\` VARCHAR(255) NOT NULL DEFAULT 'إشعار' AFTER \`title_en\``);
+      }
+      if (!notifColNames.includes('desc_en')) {
+        await pool.query(`ALTER TABLE \`notifications\` ADD COLUMN \`desc_en\` TEXT DEFAULT NULL AFTER \`title_ar\``);
+      }
+      if (!notifColNames.includes('desc_ar')) {
+        await pool.query(`ALTER TABLE \`notifications\` ADD COLUMN \`desc_ar\` TEXT DEFAULT NULL AFTER \`desc_en\``);
+      }
+      if (!notifColNames.includes('type')) {
+        await pool.query(`ALTER TABLE \`notifications\` ADD COLUMN \`type\` VARCHAR(50) DEFAULT 'system' AFTER \`desc_ar\``);
+      }
+      if (!notifColNames.includes('reference_id')) {
+        await pool.query(`ALTER TABLE \`notifications\` ADD COLUMN \`reference_id\` VARCHAR(100) DEFAULT NULL AFTER \`type\``);
       }
       if (!notifColNames.includes('reference_link')) {
         await pool.query(`ALTER TABLE \`notifications\` ADD COLUMN \`reference_link\` VARCHAR(255) DEFAULT NULL AFTER \`reference_id\``);
       }
-      if (!notifColNames.includes('reference_id')) {
-        await pool.query(`ALTER TABLE \`notifications\` ADD COLUMN \`reference_id\` VARCHAR(100) DEFAULT NULL AFTER \`type\``);
+      if (!notifColNames.includes('is_read')) {
+        await pool.query(`ALTER TABLE \`notifications\` ADD COLUMN \`is_read\` TINYINT(1) DEFAULT 0 AFTER \`reference_link\``);
+      }
+      if (!notifColNames.includes('user_id')) {
+        await pool.query(`ALTER TABLE \`notifications\` ADD COLUMN \`user_id\` INT DEFAULT NULL AFTER \`is_read\``);
+      }
+      if (!notifColNames.includes('created_at')) {
+        await pool.query(`ALTER TABLE \`notifications\` ADD COLUMN \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+      }
+      if (!notifColNames.includes('updated_at')) {
+        await pool.query(`ALTER TABLE \`notifications\` ADD COLUMN \`updated_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`);
       }
     } catch (migErr) {
       console.warn('Notifications migration check note:', migErr.message);
