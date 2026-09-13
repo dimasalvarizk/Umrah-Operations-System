@@ -3,12 +3,18 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
+const DB_HOST = process.env.DB_HOST || process.env.MYSQL_HOST || '127.0.0.1';
+const DB_PORT = parseInt(process.env.DB_PORT || process.env.MYSQL_PORT || '3306', 10);
+const DB_USER = process.env.DB_USER || process.env.MYSQL_USER || 'root';
+const DB_PASSWORD = process.env.MYSQL_ROOT_PASSWORD || process.env.DB_PASSWORD || process.env.MYSQL_PASSWORD || 'root_password';
+const DB_NAME = process.env.MYSQL_DATABASE || process.env.DB_NAME || 'umrah_db';
+
 const pool = mysql.createPool({
-  host: process.env.DB_HOST || '127.0.0.1',
-  port: parseInt(process.env.DB_PORT || '3306', 10),
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || 'root_password',
-  database: process.env.DB_NAME || 'umrah_db',
+  host: DB_HOST,
+  port: DB_PORT,
+  user: DB_USER,
+  password: DB_PASSWORD,
+  database: DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,

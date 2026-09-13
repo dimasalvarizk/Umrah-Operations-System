@@ -93,9 +93,9 @@ services:
       NODE_ENV: ${NODE_ENV:-production}
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_USER: ${DB_USER:-root}
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      DB_NAME: ${MYSQL_DATABASE}
+      DB_USER: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       SMTP_HOST: ${SMTP_HOST}
@@ -126,9 +126,9 @@ services:
       NODE_ENV: ${NODE_ENV:-production}
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_USER: ${DB_USER:-root}
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      DB_NAME: ${MYSQL_DATABASE}
+      DB_USER: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
       JWT_SECRET: ${JWT_SECRET}
       SMTP_HOST: ${SMTP_HOST}
       SMTP_PORT: ${SMTP_PORT}
@@ -157,9 +157,9 @@ services:
       NODE_ENV: ${NODE_ENV:-production}
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_USER: ${DB_USER:-root}
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      DB_NAME: ${MYSQL_DATABASE}
+      DB_USER: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
       SETTINGS_SERVICE_URL: http://settings-service:5002
     depends_on:
       mysql:
@@ -181,9 +181,9 @@ services:
       NODE_ENV: ${NODE_ENV:-production}
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_USER: ${DB_USER:-root}
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      DB_NAME: ${MYSQL_DATABASE}
+      DB_USER: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
       SETTINGS_SERVICE_URL: http://settings-service:5002
     depends_on:
       mysql:
@@ -205,9 +205,9 @@ services:
       NODE_ENV: ${NODE_ENV:-production}
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_USER: ${DB_USER:-root}
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      DB_NAME: ${MYSQL_DATABASE}
+      DB_USER: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
       SETTINGS_SERVICE_URL: http://settings-service:5002
     depends_on:
       mysql:
@@ -229,9 +229,9 @@ services:
       NODE_ENV: ${NODE_ENV:-production}
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_USER: ${DB_USER:-root}
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      DB_NAME: ${MYSQL_DATABASE}
+      DB_USER: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
       SETTINGS_SERVICE_URL: http://settings-service:5002
     depends_on:
       mysql:
@@ -253,9 +253,9 @@ services:
       NODE_ENV: ${NODE_ENV:-production}
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_USER: ${DB_USER:-root}
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      DB_NAME: ${MYSQL_DATABASE}
+      DB_USER: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
       SETTINGS_SERVICE_URL: http://settings-service:5002
     depends_on:
       mysql:
@@ -277,9 +277,9 @@ services:
       NODE_ENV: ${NODE_ENV:-production}
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_USER: ${DB_USER:-root}
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      DB_NAME: ${MYSQL_DATABASE}
+      DB_USER: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
       SETTINGS_SERVICE_URL: http://settings-service:5002
     depends_on:
       mysql:
