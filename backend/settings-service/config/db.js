@@ -279,6 +279,23 @@ async function initDb() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    // Auto-migrate newly added columns if table previously created
+    try {
+      const [notifCols] = await pool.query(`SHOW COLUMNS FROM \`notifications\``);
+      const notifColNames = notifCols.map((c) => c.Field);
+      if (!notifColNames.includes('user_id')) {
+        await pool.query(`ALTER TABLE \`notifications\` ADD COLUMN \`user_id\` INT DEFAULT NULL AFTER \`is_read\``);
+      }
+      if (!notifColNames.includes('reference_link')) {
+        await pool.query(`ALTER TABLE \`notifications\` ADD COLUMN \`reference_link\` VARCHAR(255) DEFAULT NULL AFTER \`reference_id\``);
+      }
+      if (!notifColNames.includes('reference_id')) {
+        await pool.query(`ALTER TABLE \`notifications\` ADD COLUMN \`reference_id\` VARCHAR(100) DEFAULT NULL AFTER \`type\``);
+      }
+    } catch (migErr) {
+      console.warn('Notifications migration check note:', migErr.message);
+    }
+
     console.log('✅ Settings Service database and tables verified successfully.');
   } catch (error) {
     console.error('❌ Settings Service DB error:', error.message);

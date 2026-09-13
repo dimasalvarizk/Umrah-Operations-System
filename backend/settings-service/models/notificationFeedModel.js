@@ -5,61 +5,73 @@ class NotificationFeedModel {
    * Get all notifications with unread count
    */
   static async getAll({ limit = 50, offset = 0, unreadOnly = false, userId = null } = {}) {
-    let whereClause = 'WHERE 1=1';
-    const params = [];
+    try {
+      let whereClause = 'WHERE 1=1';
+      const params = [];
 
-    if (unreadOnly) {
-      whereClause += ' AND is_read = 0';
+      if (unreadOnly) {
+        whereClause += ' AND is_read = 0';
+      }
+
+      if (userId) {
+        whereClause += ' AND (user_id = ? OR user_id IS NULL)';
+        params.push(userId);
+      }
+
+      const query = `
+        SELECT 
+          id, 
+          title_en AS titleEn, 
+          title_ar AS titleAr, 
+          desc_en AS descEn, 
+          desc_ar AS descAr, 
+          type, 
+          reference_id AS referenceId, 
+          reference_link AS referenceLink, 
+          is_read = 1 AS isRead, 
+          user_id AS userId, 
+          created_at AS createdAt, 
+          updated_at AS updatedAt
+        FROM notifications
+        ${whereClause}
+        ORDER BY created_at DESC
+        LIMIT ? OFFSET ?
+      `;
+
+      params.push(Number(limit), Number(offset));
+
+      const [rows] = await pool.query(query, params);
+
+      // Count unread
+      let unreadCountQuery = 'SELECT COUNT(*) as unreadCount FROM notifications WHERE is_read = 0';
+      const unreadParams = [];
+      if (userId) {
+        unreadCountQuery += ' AND (user_id = ? OR user_id IS NULL)';
+        unreadParams.push(userId);
+      }
+      const [countRows] = await pool.query(unreadCountQuery, unreadParams);
+      const unreadCount = countRows[0]?.unreadCount || 0;
+
+      // Count total
+      const [totalRows] = await pool.query(`SELECT COUNT(*) as total FROM notifications ${whereClause}`, params.slice(0, -2));
+      const total = totalRows[0]?.total || 0;
+
+      return {
+        notifications: rows,
+        unreadCount,
+        total,
+      };
+    } catch (err) {
+      if (err.message && err.message.includes("Unknown column 'user_id'")) {
+        try {
+          await pool.query('ALTER TABLE `notifications` ADD COLUMN `user_id` INT DEFAULT NULL AFTER `is_read`');
+          return this.getAll({ limit, offset, unreadOnly, userId });
+        } catch (alterErr) {
+          console.error('Auto migration failed:', alterErr.message);
+        }
+      }
+      throw err;
     }
-
-    if (userId) {
-      whereClause += ' AND (user_id = ? OR user_id IS NULL)';
-      params.push(userId);
-    }
-
-    const query = `
-      SELECT 
-        id, 
-        title_en AS titleEn, 
-        title_ar AS titleAr, 
-        desc_en AS descEn, 
-        desc_ar AS descAr, 
-        type, 
-        reference_id AS referenceId, 
-        reference_link AS referenceLink, 
-        is_read = 1 AS isRead, 
-        user_id AS userId, 
-        created_at AS createdAt, 
-        updated_at AS updatedAt
-      FROM notifications
-      ${whereClause}
-      ORDER BY created_at DESC
-      LIMIT ? OFFSET ?
-    `;
-
-    params.push(Number(limit), Number(offset));
-
-    const [rows] = await pool.query(query, params);
-
-    // Count unread
-    let unreadCountQuery = 'SELECT COUNT(*) as unreadCount FROM notifications WHERE is_read = 0';
-    const unreadParams = [];
-    if (userId) {
-      unreadCountQuery += ' AND (user_id = ? OR user_id IS NULL)';
-      unreadParams.push(userId);
-    }
-    const [countRows] = await pool.query(unreadCountQuery, unreadParams);
-    const unreadCount = countRows[0]?.unreadCount || 0;
-
-    // Count total
-    const [totalRows] = await pool.query(`SELECT COUNT(*) as total FROM notifications ${whereClause}`, params.slice(0, -2));
-    const total = totalRows[0]?.total || 0;
-
-    return {
-      notifications: rows,
-      unreadCount,
-      total,
-    };
   }
 
   /**
