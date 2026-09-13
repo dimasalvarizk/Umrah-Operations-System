@@ -38,8 +38,6 @@ services:
       PMA_USER: root
       PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       UPLOAD_LIMIT: 64M
-    ports:
-      - "8080:80"
     networks:
       - umrah-network
 
