@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { API_BASE_URL, createApiUrl } from './apiConfig';
 
 export interface GroupItemApi {
   id: string;
@@ -25,7 +25,7 @@ export async function getGroupsApi(params: {
   limit?: number;
   offset?: number;
 } = {}): Promise<{ groups: GroupItemApi[]; total: number }> {
-  const url = new URL(`${API_BASE_URL}/groups`);
+  const url = createApiUrl('/groups');
 
   if (params.search) url.searchParams.append('search', params.search);
   if (params.agent && params.agent !== 'الكل' && params.agent !== 'All') url.searchParams.append('agent', params.agent);

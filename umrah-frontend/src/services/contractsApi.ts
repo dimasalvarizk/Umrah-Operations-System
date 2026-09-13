@@ -1,13 +1,13 @@
 import type { AgreementItem } from '../components/contracts/AddAgreementModal';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { API_BASE_URL, createApiUrl } from './apiConfig';
 
 export async function getContractsApi(params: {
   search?: string;
   type?: string;
   status?: string;
 } = {}): Promise<{ contracts: AgreementItem[]; total: number }> {
-  const url = new URL(`${API_BASE_URL}/contracts`);
+  const url = createApiUrl('/contracts');
 
   if (params.search) url.searchParams.append('search', params.search);
   if (params.type && params.type !== 'الكل' && params.type !== 'All') {

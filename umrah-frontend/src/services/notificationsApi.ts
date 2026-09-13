@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { API_BASE_URL, createApiUrl } from './apiConfig';
 
 export interface ChannelSettings {
   email: boolean;
@@ -52,7 +52,7 @@ export async function getNotificationFeedApi(params: {
   unreadOnly?: boolean;
   userId?: number;
 } = {}): Promise<NotificationFeedResponse> {
-  const url = new URL(`${API_BASE_URL}/notifications/feed`);
+  const url = createApiUrl('/notifications/feed');
   if (params.limit) url.searchParams.append('limit', String(params.limit));
   if (params.offset) url.searchParams.append('offset', String(params.offset));
   if (params.unreadOnly) url.searchParams.append('unreadOnly', 'true');

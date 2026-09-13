@@ -1,13 +1,13 @@
 import type { TransportCompany } from '../components/transport/TransportDetailsModal';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { API_BASE_URL, createApiUrl } from './apiConfig';
 
 export async function getTransportsApi(params: {
   search?: string;
   region?: string;
   status?: string;
 } = {}): Promise<{ transports: TransportCompany[]; total: number }> {
-  const url = new URL(`${API_BASE_URL}/transport`);
+  const url = createApiUrl('/transport');
 
   if (params.search) url.searchParams.append('search', params.search);
   if (params.region && params.region !== 'الكل' && params.region !== 'All') {

@@ -1,13 +1,13 @@
 import type { TripItem } from '../components/trips/TripDetailsModal';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { API_BASE_URL, createApiUrl } from './apiConfig';
 
 export async function getTripsApi(params: {
   search?: string;
   status?: string;
   route?: string;
 } = {}): Promise<{ trips: TripItem[]; total: number }> {
-  const url = new URL(`${API_BASE_URL}/trips`);
+  const url = createApiUrl('/trips');
 
   if (params.search) url.searchParams.append('search', params.search);
   if (params.status && params.status !== 'الكل' && params.status !== 'All') {

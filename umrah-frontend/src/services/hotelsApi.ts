@@ -1,13 +1,13 @@
 import type { HotelItem } from '../utils/hotelsData';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { API_BASE_URL, createApiUrl } from './apiConfig';
 
 export async function getHotelsApi(params: {
   search?: string;
   location?: string;
   status?: string;
 } = {}): Promise<{ hotels: HotelItem[]; total: number }> {
-  const url = new URL(`${API_BASE_URL}/hotels`);
+  const url = createApiUrl('/hotels');
 
   if (params.search) url.searchParams.append('search', params.search);
   if (params.location && params.location !== 'الكل' && params.location !== 'All') {

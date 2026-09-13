@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { API_BASE_URL, createApiUrl } from './apiConfig';
 
 export interface TeamMemberApi {
   id: string;
@@ -17,7 +17,7 @@ export interface TeamMemberApi {
 }
 
 export async function getTeamMembersApi(search = ''): Promise<TeamMemberApi[]> {
-  const url = new URL(`${API_BASE_URL}/settings/team`);
+  const url = createApiUrl('/settings/team');
   if (search) {
     url.searchParams.append('search', search);
   }

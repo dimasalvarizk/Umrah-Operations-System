@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { API_BASE_URL, createApiUrl } from './apiConfig';
 
 export type ListCategory =
   | 'agents'
@@ -39,7 +39,7 @@ export interface SystemStats {
  * Get items by category with optional search
  */
 export async function getSystemListsApi(category: ListCategory, search = ''): Promise<BaseListItem[]> {
-  const url = new URL(`${API_BASE_URL}/settings/lists/${category}`);
+  const url = createApiUrl(`/settings/lists/${category}`);
   if (search) {
     url.searchParams.append('search', search);
   }

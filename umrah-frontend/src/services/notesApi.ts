@@ -1,6 +1,6 @@
 import type { NoteItem } from '../pages/NotesPage';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { API_BASE_URL, createApiUrl } from './apiConfig';
 
 export async function getNotesApi(params: {
   search?: string;
@@ -8,7 +8,7 @@ export async function getNotesApi(params: {
   priority?: string;
   status?: string;
 } = {}): Promise<{ notes: NoteItem[]; total: number }> {
-  const url = new URL(`${API_BASE_URL}/notes`);
+  const url = createApiUrl('/notes');
 
   if (params.search) url.searchParams.append('search', params.search);
   if (params.category && params.category !== 'الكل' && params.category !== 'All') {
