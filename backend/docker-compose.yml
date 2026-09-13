@@ -11,8 +11,6 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-umrah_db}
       MYSQL_USER: ${MYSQL_USER:-umrah_user}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-    ports:
-      - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
