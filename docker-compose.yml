@@ -1,5 +1,21 @@
 services:
   # ===================================================
+  # 0. Frontend Web Application (React SPA + Nginx)
+  # ===================================================
+  frontend:
+    build:
+      context: ./umrah-frontend
+      dockerfile: Dockerfile
+    container_name: umrah-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - umrah-network
+
+  # ===================================================
   # 1. MySQL Database Service
   # ===================================================
   mysql:
