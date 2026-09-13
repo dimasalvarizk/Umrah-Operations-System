@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ChevronDown, Calendar, Plus, X } from 'lucide-react';
 import { useLanguage } from '../../../context/LanguageContext';
+import { getHotelsApi } from '../../../services/hotelsApi';
+import type { HotelItem } from '../../../utils/hotelsData';
 
 interface Step2HotelsProps {
   makkahHotel1: string;
@@ -49,9 +51,40 @@ export default function Step2Hotels({
 }: Step2HotelsProps) {
   const { t, isRTL } = useLanguage();
 
+  const [allHotels, setAllHotels] = useState<HotelItem[]>([]);
   const [extraHotels, setExtraHotels] = useState<
     Array<{ id: string; name: string; hotel: string; checkIn: string; checkOut: string }>
   >([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadHotels() {
+      try {
+        const res = await getHotelsApi();
+        if (isMounted && Array.isArray(res.hotels)) {
+          setAllHotels(res.hotels);
+        }
+      } catch (err) {
+        console.error('Failed to load hotels from database:', err);
+      }
+    }
+    loadHotels();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const makkahHotels = useMemo(() => {
+    return allHotels.filter(
+      (h) => (h.location && h.location.includes('مكة')) || (h.locationEn && h.locationEn.toLowerCase().includes('makkah'))
+    );
+  }, [allHotels]);
+
+  const madinahHotels = useMemo(() => {
+    return allHotels.filter(
+      (h) => (h.location && h.location.includes('المدينة')) || (h.locationEn && h.locationEn.toLowerCase().includes('madinah'))
+    );
+  }, [allHotels]);
 
   const handleAddHotel = () => {
     const nextIdx = extraHotels.length + 3;
@@ -107,10 +140,11 @@ export default function Step2Hotels({
                 }`}
               >
                 <option value="">{isRTL ? 'اختر فندق مكة ١' : 'Select Makkah Hotel 1'}</option>
-                <option value="فندق مكة هيلتون">{isRTL ? 'فندق مكة هيلتون' : 'Makkah Hilton Hotel'}</option>
-                <option value="فندق أبراج الكسوة">{isRTL ? 'فندق أبراج الكسوة' : 'Kiswah Towers Hotel'}</option>
-                <option value="فندق أنجم مكة">{isRTL ? 'فندق أنجم مكة' : 'Anjum Makkah Hotel'}</option>
-                <option value="فندق موفنبيك مكة">{isRTL ? 'فندق موفنبيك مكة' : 'Mövenpick Makkah'}</option>
+                {(makkahHotels.length > 0 ? makkahHotels : allHotels).map((h) => (
+                  <option key={h.id} value={isRTL ? h.name : (h.nameEn || h.name)}>
+                    {isRTL ? h.name : (h.nameEn || h.name)}
+                  </option>
+                ))}
               </select>
               <ChevronDown className={`w-4 h-4 text-slate-400 absolute top-1/2 -translate-y-1/2 pointer-events-none ${
                 isRTL ? 'left-3' : 'right-3'
@@ -183,9 +217,11 @@ export default function Step2Hotels({
                 }`}
               >
                 <option value="">{isRTL ? 'اختر فندق المدينة' : 'Select Madinah Hotel'}</option>
-                <option value="فندق دار التقوى">{isRTL ? 'فندق دار التقوى' : 'Dar Al Taqwa Hotel'}</option>
-                <option value="فندق أنوار المدينة موفنبيك">{isRTL ? 'فندق أنوار المدينة موفنبيك' : 'Anwar Al Madinah Mövenpick'}</option>
-                <option value="فندق روضة العقيق">{isRTL ? 'فندق روضة العقيق' : 'Rawdat Al Aqeeq Hotel'}</option>
+                {(madinahHotels.length > 0 ? madinahHotels : allHotels).map((h) => (
+                  <option key={h.id} value={isRTL ? h.name : (h.nameEn || h.name)}>
+                    {isRTL ? h.name : (h.nameEn || h.name)}
+                  </option>
+                ))}
               </select>
               <ChevronDown className={`w-4 h-4 text-slate-400 absolute top-1/2 -translate-y-1/2 pointer-events-none ${
                 isRTL ? 'left-3' : 'right-3'
@@ -257,9 +293,11 @@ export default function Step2Hotels({
                 }`}
               >
                 <option value="">{isRTL ? 'اختر فندق مكة ٢' : 'Select Makkah Hotel 2'}</option>
-                <option value="فندق مكة هيلتون">{isRTL ? 'فندق مكة هيلتون' : 'Makkah Hilton Hotel'}</option>
-                <option value="فندق أبراج الكسوة">{isRTL ? 'فندق أبراج الكسوة' : 'Kiswah Towers Hotel'}</option>
-                <option value="فندق أنجم مكة">{isRTL ? 'فندق أنجم مكة' : 'Anjum Makkah Hotel'}</option>
+                {(makkahHotels.length > 0 ? makkahHotels : allHotels).map((h) => (
+                  <option key={h.id} value={isRTL ? h.name : (h.nameEn || h.name)}>
+                    {isRTL ? h.name : (h.nameEn || h.name)}
+                  </option>
+                ))}
               </select>
               <ChevronDown className={`w-4 h-4 text-slate-400 absolute top-1/2 -translate-y-1/2 pointer-events-none ${
                 isRTL ? 'left-3' : 'right-3'
@@ -341,13 +379,11 @@ export default function Step2Hotels({
                   }`}
                 >
                   <option value="">{isRTL ? 'اختر الفندق...' : 'Select Hotel...'}</option>
-                  <option value="فندق مكة هيلتون">{isRTL ? 'فندق مكة هيلتون' : 'Makkah Hilton Hotel'}</option>
-                  <option value="فندق أبراج الكسوة">{isRTL ? 'فندق أبراج الكسوة' : 'Kiswah Towers Hotel'}</option>
-                  <option value="فندق أنجم مكة">{isRTL ? 'فندق أنجم مكة' : 'Anjum Makkah Hotel'}</option>
-                  <option value="فندق موفنبيك مكة">{isRTL ? 'فندق موفنبيك مكة' : 'Mövenpick Makkah'}</option>
-                  <option value="فندق دار التقوى">{isRTL ? 'فندق دار التقوى' : 'Dar Al Taqwa Hotel'}</option>
-                  <option value="فندق أنوار المدينة موفنبيك">{isRTL ? 'فندق أنوار المدينة موفنبيك' : 'Anwar Al Madinah Mövenpick'}</option>
-                  <option value="فندق روضة العقيق">{isRTL ? 'فندق روضة العقيق' : 'Rawdat Al Aqeeq Hotel'}</option>
+                  {allHotels.map((h) => (
+                    <option key={h.id} value={isRTL ? h.name : (h.nameEn || h.name)}>
+                      {isRTL ? h.name : (h.nameEn || h.name)}
+                    </option>
+                  ))}
                 </select>
                 <ChevronDown className={`w-4 h-4 text-slate-400 absolute top-1/2 -translate-y-1/2 pointer-events-none ${
                   isRTL ? 'left-3' : 'right-3'

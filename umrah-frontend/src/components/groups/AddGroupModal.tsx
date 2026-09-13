@@ -23,21 +23,21 @@ export default function AddGroupModal({ isOpen, onClose, onSuccess, initialData 
   // Step 1 State (Basic Info)
   const [groupName, setGroupName] = useState('');
   const [groupCode, setGroupCode] = useState('');
-  const [agreementNumber, setAgreementNumber] = useState('AGR-1125900');
+  const [agreementNumber, setAgreementNumber] = useState('');
   const [subAgent, setSubAgent] = useState('');
   const [mainAgent, setMainAgent] = useState('');
-  const [pilgrimsCount, setPilgrimsCount] = useState(150);
+  const [pilgrimsCount, setPilgrimsCount] = useState(0);
   const [nationality, setNationality] = useState('');
-  const [packageType, setPackageType] = useState('باقة كبار الشخصيات التنفيذية (١٤ يوم)');
+  const [packageType, setPackageType] = useState('');
 
   // Step 2 State (Hotels)
   const [makkahHotel1, setMakkahHotel1] = useState('');
-  const [makkah1CheckIn, setMakkah1CheckIn] = useState('2024-08-15');
-  const [makkah1CheckOut, setMakkah1CheckOut] = useState('2024-08-20');
+  const [makkah1CheckIn, setMakkah1CheckIn] = useState('');
+  const [makkah1CheckOut, setMakkah1CheckOut] = useState('');
 
   const [madinahHotel, setMadinahHotel] = useState('');
-  const [madinahCheckIn, setMadinahCheckIn] = useState('2024-08-20');
-  const [madinahCheckOut, setMadinahCheckOut] = useState('2024-08-25');
+  const [madinahCheckIn, setMadinahCheckIn] = useState('');
+  const [madinahCheckOut, setMadinahCheckOut] = useState('');
 
   const [makkahHotel2, setMakkahHotel2] = useState('');
   const [makkah2CheckIn, setMakkah2CheckIn] = useState('');
@@ -46,17 +46,17 @@ export default function AddGroupModal({ isOpen, onClose, onSuccess, initialData 
   const [hospitalityNotes, setHospitalityNotes] = useState('');
 
   // Step 3 State (Flights & Transport)
-  const [departureAirline, setDepartureAirline] = useState('الخطوط السعودية');
-  const [departureFlightNo, setDepartureFlightNo] = useState('SV-0379');
-  const [departureDate, setDepartureDate] = useState('2024-08-25');
-  const [departureDestination, setDepartureDestination] = useState(isRTL ? 'المغرب, كازابلانكا' : 'Morocco, Casablanca');
-  const [departureAirport, setDepartureAirport] = useState('مطار الأمير محمد بن عبدالعزيز - المدينة (MED)');
+  const [departureAirline, setDepartureAirline] = useState('');
+  const [departureFlightNo, setDepartureFlightNo] = useState('');
+  const [departureDate, setDepartureDate] = useState('');
+  const [departureDestination, setDepartureDestination] = useState('');
+  const [departureAirport, setDepartureAirport] = useState('');
 
-  const [arrivalAirline, setArrivalAirline] = useState('الخطوط السعودية');
-  const [arrivalFlightNo, setArrivalFlightNo] = useState('SV-0378');
-  const [arrivalDate, setArrivalDate] = useState('2024-08-15');
-  const [arrivalOrigin, setArrivalOrigin] = useState(isRTL ? 'المغرب, كازابلانكا' : 'Morocco, Casablanca');
-  const [arrivalAirport, setArrivalAirport] = useState('مطار الملك عبد العزيز - جدة (JED)');
+  const [arrivalAirline, setArrivalAirline] = useState('');
+  const [arrivalFlightNo, setArrivalFlightNo] = useState('');
+  const [arrivalDate, setArrivalDate] = useState('');
+  const [arrivalOrigin, setArrivalOrigin] = useState('');
+  const [arrivalAirport, setArrivalAirport] = useState('');
 
   const [transportCompany, setTransportCompany] = useState('');
   const [operationNumber, setOperationNumber] = useState('');
@@ -65,27 +65,20 @@ export default function AddGroupModal({ isOpen, onClose, onSuccess, initialData 
   const [busPlateNo, setBusPlateNo] = useState('');
 
   // Step 4 State (Movements, Agreements & Additional Notes)
-  const [arrivalGrouping, setArrivalGrouping] = useState('مكتمل');
+  const [arrivalGrouping, setArrivalGrouping] = useState('معلق');
   const [interCityGrouping, setInterCityGrouping] = useState('معلق');
   const [departureGrouping, setDepartureGrouping] = useState('لا يوجد');
   const [makkahZiyarat, setMakkahZiyarat] = useState('');
   const [madinahZiyarat, setMadinahZiyarat] = useState('');
 
-  const [umrahPermitStatus, setUmrahPermitStatus] = useState('مقبول');
+  const [umrahPermitStatus, setUmrahPermitStatus] = useState('قيد المراجعة');
   const [rawdahMenPermitStatus, setRawdahMenPermitStatus] = useState('قيد المراجعة');
   const [rawdahWomenPermitStatus, setRawdahWomenPermitStatus] = useState('لم يقدم');
 
   const [enrichmentProgram, setEnrichmentProgram] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
   const [missingRequirements, setMissingRequirements] = useState('');
-  const [uploadedFiles, setUploadedFiles] = useState<Record<string, { name: string; size?: number; url?: string; type?: string; uploadedAt?: string; categoryTitle?: string }>>({
-    arrivalGrouping: {
-      name: 'Frame 82717156.png',
-      size: 348120,
-      uploadedAt: new Date().toLocaleDateString('en-GB'),
-      categoryTitle: isRTL ? 'تفويج الوصول' : 'Arrival Grouping',
-    },
-  });
+  const [uploadedFiles, setUploadedFiles] = useState<Record<string, any>>({});
 
   useEffect(() => {
     if (isOpen) {
@@ -93,98 +86,108 @@ export default function AddGroupModal({ isOpen, onClose, onSuccess, initialData 
       setIsSuccess(false);
 
       if (initialData) {
-        setGroupName(initialData.name || '');
-        setGroupCode(initialData.groupCodeNumber || initialData.code || '');
-        setAgreementNumber(initialData.agreementNumber || 'AGR-1125900');
-        setSubAgent(initialData.subAgent || '');
-        setMainAgent(initialData.mainAgent || '');
-        setPilgrimsCount(initialData.pilgrimsCount || 150);
-        setNationality(initialData.nationality || '');
-        setPackageType(initialData.packageType || (isRTL ? 'باقة كبار الشخصيات التنفيذية (١٤ يوم)' : 'VIP Executive 14 Days'));
-        setMakkahHotel1(initialData.makkahHotel || '');
-        setMakkah1CheckIn(initialData.makkahCheckIn || '2024-08-15');
-        setMakkah1CheckOut(initialData.makkahCheckOut || '2024-08-20');
-        setMadinahHotel(initialData.madinahHotel || '');
-        setMadinahCheckIn(initialData.madinahCheckIn || '2024-08-20');
-        setMadinahCheckOut(initialData.madinahCheckOut || '2024-08-25');
-        setDepartureFlightNo(initialData.departureFlightNo || '');
-        setDepartureDate(initialData.departureDate || '2024-08-25');
-        setDepartureAirport(initialData.departureAirport || 'مطار الأمير محمد بن عبدالعزيز - المدينة');
-        setArrivalFlightNo(initialData.arrivalFlightNo || 'SV-0378');
-        setArrivalDate(initialData.arrivalDate || '2024-08-15');
-        setArrivalAirport(initialData.arrivalAirport || 'مطار الملك عبد العزيز - جدة');
-        setTransportCompany(initialData.transportCompany || '');
-        setOperationNumber(initialData.operationNumber || '');
-        setDriverName(initialData.driverName || '');
-        setDriverPhone(initialData.driverPhone || '');
-        setBusPlateNo(initialData.busPlateNo || initialData.busNumber || '');
-        setArrivalGrouping(initialData.arrivalGrouping || 'مكتمل');
-        setInterCityGrouping(initialData.interCityGrouping || 'معلق');
-        setDepartureGrouping(initialData.departureGrouping || 'لا يوجد');
-        setUmrahPermitStatus(initialData.umrahPermitStatus || 'مقبول');
-        setRawdahMenPermitStatus(initialData.rawdahMenPermitStatus || 'قيد المراجعة');
-        setRawdahWomenPermitStatus(initialData.rawdahWomenPermitStatus || 'لم يقدم');
-        setUploadedFiles(initialData.uploadedFiles || {
-          arrivalGrouping: {
-            name: 'Frame 82717156.png',
-            size: 348120,
-            uploadedAt: new Date().toLocaleDateString('en-GB'),
-            categoryTitle: isRTL ? 'تفويج الوصول' : 'Arrival Grouping',
-          },
-        });
+        const clean = (val: any) => (val === '-' || val === null || val === undefined ? '' : String(val));
+
+        setGroupName(clean(initialData.name));
+        setGroupCode(clean(initialData.groupCodeNumber || initialData.code));
+        setAgreementNumber(clean(initialData.agreementNumber));
+        setSubAgent(clean(initialData.subAgent));
+        setMainAgent(clean(initialData.mainAgent));
+        setPilgrimsCount(Number(initialData.pilgrimsCount) || 0);
+        setNationality(clean(initialData.nationality));
+        setPackageType(clean(initialData.packageType || initialData.package_type));
+
+        const hotels = initialData.hotelsData || {};
+        setMakkahHotel1(clean(initialData.makkahHotel || hotels.makkahHotel || hotels.makkahHotel1));
+        setMakkah1CheckIn(clean(initialData.makkahCheckIn || hotels.makkahCheckIn || hotels.makkah1CheckIn));
+        setMakkah1CheckOut(clean(initialData.makkahCheckOut || hotels.makkahCheckOut || hotels.makkah1CheckOut));
+        setMadinahHotel(clean(initialData.madinahHotel || hotels.madinahHotel));
+        setMadinahCheckIn(clean(initialData.madinahCheckIn || hotels.madinahCheckIn));
+        setMadinahCheckOut(clean(initialData.madinahCheckOut || hotels.madinahCheckOut));
+        setMakkahHotel2(clean(initialData.makkahHotel2 || hotels.makkahHotel2));
+        setMakkah2CheckIn(clean(initialData.makkah2CheckIn || hotels.makkah2CheckIn));
+        setMakkah2CheckOut(clean(initialData.makkah2CheckOut || hotels.makkah2CheckOut));
+        setHospitalityNotes(clean(initialData.hospitalityNotes || hotels.hospitalityNotes));
+
+        const flights = initialData.flightTransportData || {};
+        setDepartureAirline(clean(initialData.departureAirline || flights.departureAirline));
+        setDepartureFlightNo(clean(initialData.departureFlightNo || flights.departureFlightNo));
+        setDepartureDate(clean(initialData.departureDate || flights.departureDate));
+        setDepartureDestination(clean(initialData.departureDestination || flights.departureDestination));
+        setDepartureAirport(clean(initialData.departureAirport || flights.departureAirport));
+        setArrivalAirline(clean(initialData.arrivalAirline || flights.arrivalAirline));
+        setArrivalFlightNo(clean(initialData.arrivalFlightNo || flights.arrivalFlightNo));
+        setArrivalDate(clean(initialData.arrivalDate || flights.arrivalDate));
+        setArrivalOrigin(clean(initialData.arrivalOrigin || flights.arrivalOrigin));
+        setArrivalAirport(clean(initialData.arrivalAirport || flights.arrivalAirport));
+        setTransportCompany(clean(initialData.transportCompany || flights.transportCompany));
+        setOperationNumber(clean(initialData.operationNumber || flights.operationNumber));
+        setDriverName(clean(initialData.driverName || flights.driverName));
+        setDriverPhone(clean(initialData.driverPhone || flights.driverPhone));
+        setBusPlateNo(clean(initialData.busPlateNo || initialData.busNumber || flights.busPlateNo));
+
+        const permits = initialData.permitsNotesData || {};
+        setArrivalGrouping(clean(initialData.arrivalGrouping || initialData.arrivalGroupingStatus || permits.arrivalGrouping) || 'معلق');
+        setInterCityGrouping(clean(initialData.interCityGrouping || initialData.intercityGroupingStatus || permits.interCityGrouping) || 'معلق');
+        setDepartureGrouping(clean(initialData.departureGrouping || initialData.departureGroupingStatus || permits.departureGrouping) || 'لا يوجد');
+        setMakkahZiyarat(clean(initialData.makkahZiyarat || permits.makkahZiyarat));
+        setMadinahZiyarat(clean(initialData.madinahZiyarat || permits.madinahZiyarat));
+        setUmrahPermitStatus(clean(initialData.umrahPermitStatus || permits.umrahPermitStatus) || 'قيد المراجعة');
+        setRawdahMenPermitStatus(clean(initialData.rawdahMenPermitStatus || permits.rawdahMenPermitStatus) || 'قيد المراجعة');
+        setRawdahWomenPermitStatus(clean(initialData.rawdahWomenPermitStatus || permits.rawdahWomenPermitStatus) || 'لم يقدم');
+        setEnrichmentProgram(clean(initialData.enrichmentProgram || permits.enrichmentProgram));
+        setAdditionalNotes(clean(initialData.additionalNotes || permits.additionalNotes));
+        setMissingRequirements(clean(initialData.missingRequirements || permits.missingRequirements));
+        setUploadedFiles(initialData.uploadedFiles || permits.uploadedFiles || {});
       } else {
         setGroupName('');
         setGroupCode('');
+        setAgreementNumber('');
         setSubAgent('');
         setMainAgent('');
-        setPilgrimsCount(150);
+        setPilgrimsCount(0);
         setNationality('');
-        setPackageType(isRTL ? 'باقة كبار الشخصيات التنفيذية (١٤ يوم)' : 'VIP Executive 14 Days');
+        setPackageType('');
         setMakkahHotel1('');
-        setMakkah1CheckIn('2024-08-15');
-        setMakkah1CheckOut('2024-08-20');
+        setMakkah1CheckIn('');
+        setMakkah1CheckOut('');
         setMadinahHotel('');
-        setMadinahCheckIn('2024-08-20');
-        setMadinahCheckOut('2024-08-25');
+        setMadinahCheckIn('');
+        setMadinahCheckOut('');
         setMakkahHotel2('');
         setMakkah2CheckIn('');
         setMakkah2CheckOut('');
         setHospitalityNotes('');
+        setDepartureAirline('');
         setDepartureFlightNo('');
-        setDepartureDate('2024-08-25');
-        setDepartureDestination(isRTL ? 'المغرب, كازابلانكا' : 'Morocco, Casablanca');
-        setDepartureAirport('مطار الأمير محمد بن عبدالعزيز - المدينة');
-        setArrivalFlightNo('SV-0378');
-        setArrivalDate('2024-08-15');
-        setArrivalOrigin(isRTL ? 'المغرب, كازابلانكا' : 'Morocco, Casablanca');
-        setArrivalAirport('مطار الملك عبد العزيز - جدة');
+        setDepartureDate('');
+        setDepartureDestination('');
+        setDepartureAirport('');
+        setArrivalAirline('');
+        setArrivalFlightNo('');
+        setArrivalDate('');
+        setArrivalOrigin('');
+        setArrivalAirport('');
         setTransportCompany('');
         setOperationNumber('');
         setDriverName('');
         setDriverPhone('');
         setBusPlateNo('');
-        setArrivalGrouping('مكتمل');
+        setArrivalGrouping('معلق');
         setInterCityGrouping('معلق');
         setDepartureGrouping('لا يوجد');
         setMakkahZiyarat('');
         setMadinahZiyarat('');
-        setUmrahPermitStatus('مقبول');
+        setUmrahPermitStatus('قيد المراجعة');
         setRawdahMenPermitStatus('قيد المراجعة');
         setRawdahWomenPermitStatus('لم يقدم');
         setEnrichmentProgram('');
         setAdditionalNotes('');
         setMissingRequirements('');
-        setUploadedFiles({
-          arrivalGrouping: {
-            name: 'Frame 82717156.png',
-            size: 348120,
-            uploadedAt: new Date().toLocaleDateString('en-GB'),
-            categoryTitle: isRTL ? 'تفويج الوصول' : 'Arrival Grouping',
-          },
-        });
+        setUploadedFiles({});
       }
     }
-  }, [isOpen, initialData, isRTL]);
+  }, [isOpen, initialData]);
 
   if (!isOpen) return null;
 
@@ -204,22 +207,65 @@ export default function AddGroupModal({ isOpen, onClose, onSuccess, initialData 
 
   const handleFinish = () => {
     if (onSuccess) {
+      const generatedCode = groupCode.trim() || `GRP-${Math.floor(1000 + Math.random() * 9000)}`;
+      const finalName = groupName.trim() || (isRTL ? 'مجموعة جديدة' : 'New Group');
+
       onSuccess({
-        code: groupCode || '#GRP-2401',
-        name: groupName || (isRTL ? 'مجموعة جديدة' : 'New Group'),
-        agreementNumber: agreementNumber || 'AGR-1125900',
-        mainAgent: mainAgent || (isRTL ? 'وكالة مكة للطيران' : 'Makkah Aviation Agency'),
-        subAgent: subAgent || (isRTL ? 'شركة تسهيل' : 'Tasheel Tours'),
-        nationality: nationality || (isRTL ? 'إندونيسيا' : 'Indonesia'),
-        packageType: packageType || (isRTL ? 'باقة كبار الشخصيات التنفيذية (١٤ يوم)' : 'VIP Executive 14 Days'),
-        pilgrimsCount: pilgrimsCount,
-        transportCompany: transportCompany,
-        operationNumber: operationNumber,
-        driverName: driverName,
-        driverPhone: driverPhone,
-        busPlateNo: busPlateNo,
-        uploadedFiles: uploadedFiles,
-        status: 'قيد التجهيز',
+        code: generatedCode,
+        name: finalName,
+        agreementNumber: agreementNumber.trim() || null,
+        mainAgent: mainAgent.trim() || null,
+        subAgent: subAgent.trim() || null,
+        nationality: nationality.trim() || null,
+        packageType: packageType.trim() || null,
+        pilgrimsCount: Number(pilgrimsCount) || 1,
+        status: initialData?.status || 'قيد التجهيز',
+        hotelsData: {
+          makkahHotel: makkahHotel1 || null,
+          makkahHotel1: makkahHotel1 || null,
+          makkahCheckIn: makkah1CheckIn || null,
+          makkah1CheckIn: makkah1CheckIn || null,
+          makkahCheckOut: makkah1CheckOut || null,
+          makkah1CheckOut: makkah1CheckOut || null,
+          madinahHotel: madinahHotel || null,
+          madinahCheckIn: madinahCheckIn || null,
+          madinahCheckOut: madinahCheckOut || null,
+          makkahHotel2: makkahHotel2 || null,
+          makkah2CheckIn: makkah2CheckIn || null,
+          makkah2CheckOut: makkah2CheckOut || null,
+          hospitalityNotes: hospitalityNotes || null,
+        },
+        flightTransportData: {
+          departureAirline: departureAirline || null,
+          departureFlightNo: departureFlightNo || null,
+          departureDate: departureDate || null,
+          departureDestination: departureDestination || null,
+          departureAirport: departureAirport || null,
+          arrivalAirline: arrivalAirline || null,
+          arrivalFlightNo: arrivalFlightNo || null,
+          arrivalDate: arrivalDate || null,
+          arrivalOrigin: arrivalOrigin || null,
+          arrivalAirport: arrivalAirport || null,
+          transportCompany: transportCompany || null,
+          operationNumber: operationNumber || null,
+          driverName: driverName || null,
+          driverPhone: driverPhone || null,
+          busPlateNo: busPlateNo || null,
+        },
+        permitsNotesData: {
+          arrivalGrouping: arrivalGrouping || 'معلق',
+          interCityGrouping: interCityGrouping || 'معلق',
+          departureGrouping: departureGrouping || 'لا يوجد',
+          makkahZiyarat: makkahZiyarat || null,
+          madinahZiyarat: madinahZiyarat || null,
+          umrahPermitStatus: umrahPermitStatus || 'قيد المراجعة',
+          rawdahMenPermitStatus: rawdahMenPermitStatus || 'قيد المراجعة',
+          rawdahWomenPermitStatus: rawdahWomenPermitStatus || 'لم يقدم',
+          enrichmentProgram: enrichmentProgram || null,
+          additionalNotes: additionalNotes || null,
+          missingRequirements: missingRequirements || null,
+          uploadedFiles: uploadedFiles || {},
+        },
       });
     }
     setIsSuccess(false);
@@ -231,7 +277,7 @@ export default function AddGroupModal({ isOpen, onClose, onSuccess, initialData 
   if (isSuccess) {
     return (
       <StepSuccessDialog
-        groupCode={groupCode}
+        groupCode={groupCode || `GRP-${Math.floor(1000 + Math.random() * 9000)}`}
         pilgrimsCount={pilgrimsCount}
         onFinish={handleFinish}
       />

@@ -17,6 +17,12 @@ import AgreementDetailsModal from '../components/contracts/AgreementDetailsModal
 import DeleteAgreementModal from '../components/contracts/DeleteAgreementModal';
 import AgreementStatusSelector, { type AgreementStatusType } from '../components/contracts/AgreementStatusSelector';
 import { useLanguage } from '../context/LanguageContext';
+import {
+  getContractsApi,
+  createContractApi,
+  updateContractStatusApi,
+  deleteContractApi,
+} from '../services/contractsApi';
 
 export default function ContractsPage() {
   const navigate = useNavigate();
@@ -37,126 +43,51 @@ export default function ContractsPage() {
   const [agreementsList, setAgreementsList] = useState<AgreementItem[]>(() => {
     try {
       const saved = localStorage.getItem('contracts_agreements_list');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const fetchContracts = async () => {
+    try {
+      const { contracts } = await getContractsApi({
+        search: searchQuery,
+        type: typeFilter,
+      });
+      if (Array.isArray(contracts)) {
+        setAgreementsList(contracts);
       }
-    } catch {}
-    return [
-      {
-        id: '1',
-        agreementNo: 'AGR-1125900',
-        agreementName: isRTL ? 'اتفاقية فندق جراند زوار' : 'Grand Zuwar Hotel Agreement',
-        entityName: isRTL ? 'فندق جراند زوار' : 'Grand Zuwar Hotel',
-        type: 'فندق',
-        city: isRTL ? 'مكة المكرمة' : 'Makkah',
-        roomsCount: 8,
-        durationDays: 4,
-        startDate: '02/09/2026',
-        endDate: '06/09/2026',
-        totalPrice: 19200,
-        status: 'نشطة',
-      },
-    {
-      id: '2',
-      agreementNo: 'AGR-2294103',
-      agreementName: isRTL ? 'اتفاقية فندق جراند زوار' : 'Grand Zuwar Hotel Agreement',
-      entityName: isRTL ? 'فندق جراند زوار' : 'Grand Zuwar Hotel',
-      type: 'فندق',
-      city: isRTL ? 'مكة المكرمة' : 'Makkah',
-      roomsCount: 5,
-      durationDays: 14,
-      startDate: '01/09/2026',
-      endDate: '15/09/2026',
-      totalPrice: 45000,
-      status: 'في انتظار الموافقة',
-    },
-    {
-      id: '3',
-      agreementNo: 'AGR-3382910',
-      agreementName: isRTL ? 'اتفاقية فندق أنوار المدينة' : 'Anwar Al-Madinah Hotel Agreement',
-      entityName: isRTL ? 'فندق أنوار المدينة' : 'Anwar Al-Madinah Hotel',
-      type: 'فندق',
-      city: isRTL ? 'المدينة المنورة' : 'Madinah',
-      roomsCount: 3,
-      durationDays: 10,
-      startDate: '10/09/2026',
-      endDate: '20/09/2026',
-      totalPrice: 12500,
-      status: 'نشطة',
-    },
-    {
-      id: '4',
-      agreementNo: 'AGR-4401824',
-      agreementName: isRTL ? 'اتفاقية سكن طيبة للزوار' : 'Taiba Visitors Residence Agreement',
-      entityName: isRTL ? 'سكن طيبة للزوار' : 'Taiba Visitors Residence',
-      type: 'فندق',
-      city: isRTL ? 'المدينة المنورة' : 'Madinah',
-      roomsCount: 2,
-      durationDays: 10,
-      startDate: '15/08/2026',
-      endDate: '25/08/2026',
-      totalPrice: 8400,
-      status: 'منتهية',
-    },
-    {
-      id: '5',
-      agreementNo: 'AGR-5561029',
-      agreementName: isRTL ? 'اتفاقية فندق جراند زوار' : 'Grand Zuwar Hotel Agreement',
-      entityName: isRTL ? 'فندق جراند زوار' : 'Grand Zuwar Hotel',
-      type: 'فندق',
-      city: isRTL ? 'مكة المكرمة' : 'Makkah',
-      roomsCount: 6,
-      durationDays: 29,
-      startDate: '01/10/2026',
-      endDate: '30/10/2026',
-      totalPrice: 32000,
-      status: 'نشطة',
-    },
-    {
-      id: '6',
-      agreementNo: 'AGR-6629104',
-      agreementName: isRTL ? 'اتفاقية مجموعة فنادق البركة' : 'Al Barakah Hotels Group Agreement',
-      entityName: isRTL ? 'مجموعة فنادق البركة' : 'Al Barakah Hotels Group',
-      type: 'فندق',
-      city: isRTL ? 'مكة المكرمة' : 'Makkah',
-      roomsCount: 4,
-      durationDays: 10,
-      startDate: '02/09/2026',
-      endDate: '12/09/2026',
-      totalPrice: 64500,
-      status: 'في انتظار الموافقة',
-    },
-    {
-      id: '7',
-      agreementNo: 'AGR-7738219',
-      agreementName: isRTL ? 'اتفاقية نقل الحرمين السريع' : 'Haramain Express Transport Agreement',
-      entityName: isRTL ? 'شركة نقل الحرمين السريع' : 'Haramain Express Transport Co.',
-      type: 'نقل',
-      city: isRTL ? 'مكة المكرمة' : 'Makkah',
-      roomsCount: 15,
-      durationDays: 30,
-      startDate: '01/09/2026',
-      endDate: '30/09/2026',
-      totalPrice: 85000,
-      status: 'نشطة',
-    },
-    {
-      id: '8',
-      agreementNo: 'AGR-8849201',
-      agreementName: isRTL ? 'اتفاقية حافلات الراجحي VIP' : 'Al Rajhi VIP Buses Agreement',
-      entityName: isRTL ? 'شركة الراجحي للنقل' : 'Al Rajhi Transport Co.',
-      type: 'نقل',
-      city: isRTL ? 'المدينة المنورة' : 'Madinah',
-      roomsCount: 10,
-      durationDays: 15,
-      startDate: '05/09/2026',
-      endDate: '20/09/2026',
-      totalPrice: 42000,
-      status: 'في انتظار الموافقة',
-    },
-  ];
-});
+    } catch {
+      // Offline fallback to current state/localStorage
+    }
+  };
+
+  useEffect(() => {
+    fetchContracts();
+  }, [searchQuery, typeFilter]);
+
+  // Real-time synchronization: interval polling + event listeners
+  useEffect(() => {
+    const handleSync = () => {
+      fetchContracts();
+    };
+
+    window.addEventListener('umrah_contracts_updated', handleSync);
+    window.addEventListener('umrah_notification_refresh', handleSync);
+    window.addEventListener('storage', handleSync);
+
+    const interval = setInterval(() => {
+      fetchContracts();
+    }, 4000);
+
+    return () => {
+      window.removeEventListener('umrah_contracts_updated', handleSync);
+      window.removeEventListener('umrah_notification_refresh', handleSync);
+      window.removeEventListener('storage', handleSync);
+      clearInterval(interval);
+    };
+  }, [searchQuery, typeFilter]);
 
   // Dynamic Filtering
   const filteredAgreements = useMemo(() => {
@@ -191,10 +122,17 @@ export default function ContractsPage() {
   }, [agreementsList]);
 
   // Handlers
-  const handleStatusChange = (agreementId: string, newStatus: AgreementStatusType) => {
+  const handleStatusChange = async (agreementId: string, newStatus: AgreementStatusType) => {
     setAgreementsList((prev) =>
       prev.map((item) => (item.id === agreementId ? { ...item, status: newStatus } : item))
     );
+    try {
+      await updateContractStatusApi(agreementId, newStatus);
+      window.dispatchEvent(new CustomEvent('umrah_notification_refresh'));
+      window.dispatchEvent(new CustomEvent('umrah_contracts_updated'));
+    } catch (e) {
+      console.error('Failed to update status on server:', e);
+    }
   };
 
   const stats = useMemo(() => {
@@ -206,8 +144,18 @@ export default function ContractsPage() {
     return { expired, pending, active, total };
   }, [agreementsList]);
 
-  const handleAddSuccess = (newAgreement: AgreementItem) => {
-    setAgreementsList((prev) => [newAgreement, ...prev]);
+  const handleAddSuccess = async (newAgreement: AgreementItem) => {
+    try {
+      const created = await createContractApi(newAgreement as any);
+      const toAdd = created || newAgreement;
+      setAgreementsList((prev) => [toAdd, ...prev.filter((x) => x.id !== toAdd.id && x.agreementNo !== toAdd.agreementNo)]);
+      window.dispatchEvent(new CustomEvent('umrah_notification_refresh'));
+      window.dispatchEvent(new CustomEvent('umrah_contracts_updated'));
+    } catch (err) {
+      console.error('Failed to save contract to database:', err);
+      setAgreementsList((prev) => [newAgreement, ...prev]);
+      window.dispatchEvent(new CustomEvent('umrah_notification_refresh'));
+    }
   };
 
   const handleOpenDetails = (agreement: AgreementItem) => {
@@ -219,11 +167,19 @@ export default function ContractsPage() {
     setIsDeleteModalOpen(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (agreementToDelete) {
-      setAgreementsList((prev) => prev.filter((item) => item.id !== agreementToDelete.id));
+      const id = agreementToDelete.id;
+      setAgreementsList((prev) => prev.filter((item) => item.id !== id));
       setIsDeleteModalOpen(false);
       setAgreementToDelete(null);
+      try {
+        await deleteContractApi(id);
+        window.dispatchEvent(new CustomEvent('umrah_notification_refresh'));
+        window.dispatchEvent(new CustomEvent('umrah_contracts_updated'));
+      } catch (e) {
+        console.error('Failed to delete on server:', e);
+      }
     }
   };
 

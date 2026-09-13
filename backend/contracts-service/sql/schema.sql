@@ -1,0 +1,18 @@
+CREATE TABLE IF NOT EXISTS contracts (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  agreement_no VARCHAR(50) NOT NULL UNIQUE,
+  agreement_name VARCHAR(255) NOT NULL,
+  entity_name VARCHAR(255) NOT NULL,
+  type VARCHAR(100) DEFAULT 'فندق',
+  city VARCHAR(100),
+  rooms_count INT DEFAULT 0,
+  duration_days INT DEFAULT 1,
+  start_date VARCHAR(100) NOT NULL,
+  end_date VARCHAR(100) NOT NULL,
+  total_price DECIMAL(12,2) DEFAULT 0.00,
+  status VARCHAR(50) DEFAULT 'نشطة',
+  notes TEXT,
+  details_data JSON,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

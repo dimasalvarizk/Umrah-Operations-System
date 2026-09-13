@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { X, AlertTriangle, Check, ChevronDown } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { X, AlertTriangle, Check, ChevronDown, Star } from 'lucide-react';
 import type { TransportCompany } from './TransportDetailsModal';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -18,11 +19,30 @@ export default function EditCompanyModal({
 }: EditCompanyModalProps) {
   const { t, isRTL, direction } = useLanguage();
 
-  const [name, setName] = useState(company.name || (isRTL ? 'نقل الحرمين السريع' : 'Haramain Express Transport'));
+  const [name, setName] = useState(company.name || '');
   const [region, setRegion] = useState(company.region || (isRTL ? 'مكة المكرمة' : 'Makkah'));
   const [status, setStatus] = useState(company.status || 'متاح');
-  const [phone, setPhone] = useState(company.phone || '+966 50 123 4567');
-  const [email, setEmail] = useState('support@haramainexpress.com');
+  const [phone, setPhone] = useState(company.phone || '');
+  const [email, setEmail] = useState(company.email || '');
+  const [address, setAddress] = useState(company.address || '');
+  const [rating, setRating] = useState<number>(company.rating ?? 5.0);
+  const [hoverRating, setHoverRating] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setName(company.name || '');
+      setRegion(company.region || (isRTL ? 'مكة المكرمة' : 'Makkah'));
+      setStatus(company.status || 'متاح');
+      setPhone(company.phone || '');
+      setEmail(company.email || '');
+      setAddress(company.address || '');
+      setRating(company.rating ?? 5.0);
+      setHoverRating(null);
+      setWarningMessage(null);
+      setIsConfirmOpen(false);
+      setIsSuccessOpen(false);
+    }
+  }, [company, isRTL, isOpen]);
 
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -46,6 +66,9 @@ export default function EditCompanyModal({
       region,
       status,
       phone: phone.trim(),
+      email: email.trim(),
+      address: address.trim(),
+      rating: Number(rating) || 5.0,
     };
 
     onSuccess(updated);
@@ -58,10 +81,10 @@ export default function EditCompanyModal({
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/30 backdrop-blur-xs animate-fadeIn">
       <div
-        className="bg-white rounded-2xl max-w-lg w-full shadow-2xl relative border border-slate-100 flex flex-col justify-between max-h-[92vh] overflow-hidden"
+        className="bg-white rounded-2xl max-w-xl w-full shadow-2xl relative border border-slate-100 flex flex-col justify-between max-h-[92vh] overflow-hidden animate-scaleUp"
         dir={direction}
       >
         {/* Header */}
@@ -159,6 +182,54 @@ export default function EditCompanyModal({
             </div>
           </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="block text-xs sm:text-sm font-semibold text-slate-700">
+                {t('common.address', 'العنوان / الموقع')}
+              </label>
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder={isRTL ? 'مثال: حي المعابدة، مكة المكرمة' : 'e.g. Al-Maabda District, Makkah'}
+                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-hidden focus:border-[#00c48c] transition"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs sm:text-sm font-semibold text-slate-700">
+                {t('transport.company_rating', 'تقييم الشركة (النجوم)')}
+              </label>
+              <div className="flex items-center bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs sm:text-sm min-h-[44px]">
+                <div className="flex items-center gap-2" dir="ltr">
+                  {[1, 2, 3, 4, 5].map((starVal) => {
+                    const displayScore = hoverRating !== null ? hoverRating : rating;
+                    const isFilled = displayScore >= starVal;
+                    return (
+                      <button
+                        key={starVal}
+                        type="button"
+                        onClick={() => setRating(starVal)}
+                        onMouseEnter={() => setHoverRating(starVal)}
+                        onMouseLeave={() => setHoverRating(null)}
+                        className="p-1 hover:scale-120 transition-transform cursor-pointer focus:outline-hidden group"
+                        title={`${starVal}.0 / 5.0`}
+                      >
+                        <Star
+                          className={`w-5 h-5 transition-colors ${
+                            isFilled
+                              ? 'text-amber-500 stroke-amber-500 fill-none stroke-[2.3]'
+                              : 'text-slate-300 stroke-slate-300 fill-none stroke-[1.8] group-hover:stroke-amber-300'
+                          }`}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Footer Action Buttons */}
           <div className="pt-4 flex items-center justify-between border-t border-slate-200/80">
             <button
@@ -181,9 +252,9 @@ export default function EditCompanyModal({
 
       {/* Confirmation Dialog */}
       {isConfirmOpen && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fadeIn">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-xs animate-fadeIn">
           <div
-            className="bg-white rounded-3xl p-6 sm:p-8 max-w-[370px] sm:max-w-[400px] w-full shadow-2xl text-center space-y-5 border border-slate-100"
+            className="bg-white rounded-3xl p-6 sm:p-8 max-w-[370px] sm:max-w-[400px] w-full shadow-2xl text-center space-y-5 border border-slate-100 animate-scaleUp"
             dir={direction}
           >
             <div className="w-20 h-20 rounded-full bg-[#fef3c7] mx-auto flex items-center justify-center">
@@ -192,10 +263,10 @@ export default function EditCompanyModal({
 
             <div className="space-y-1.5 pt-1">
               <h3 className="text-xl sm:text-2xl font-bold text-[#0f172a] tracking-tight">
-                {isRTL ? 'هل أنت متأكد؟' : 'Are you sure?'}
+                {t('common.are_you_sure', 'هل أنت متأكد؟')}
               </h3>
               <p className="text-sm sm:text-base text-slate-600 font-normal leading-relaxed">
-                {isRTL ? 'هل تريد حفظ التعديلات؟' : 'Do you want to save the changes?'}
+                {t('common.confirm_save_changes', 'هل تريد حفظ التعديلات؟')}
               </p>
             </div>
 
@@ -222,7 +293,7 @@ export default function EditCompanyModal({
 
       {/* Success Dialog */}
       {isSuccessOpen && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fadeIn">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-xs animate-fadeIn">
           <div
             className="bg-white rounded-3xl p-6 sm:p-8 max-w-[370px] sm:max-w-[400px] w-full shadow-2xl text-center space-y-5 border border-slate-100 animate-scaleUp"
             dir={direction}
@@ -236,7 +307,7 @@ export default function EditCompanyModal({
                 {t('common.success', 'تم بنجاح!')}
               </h3>
               <p className="text-sm sm:text-base text-slate-600 font-normal leading-relaxed">
-                {isRTL ? 'تم حفظ التعديلات بنجاح' : 'Changes have been saved successfully'}
+                {t('transport.company_updated_success', 'تم حفظ التعديلات بنجاح')}
               </p>
             </div>
 
@@ -246,7 +317,7 @@ export default function EditCompanyModal({
                 onClick={handleDoneSuccess}
                 className="w-full bg-[#00c48c] hover:bg-[#00b07d] text-white font-bold py-3 px-8 rounded-xl transition shadow-xs text-sm sm:text-base cursor-pointer active:scale-95"
               >
-                {t('common.close', 'حسناً')}
+                {t('common.done', 'حسناً')}
               </button>
             </div>
           </div>
@@ -255,7 +326,7 @@ export default function EditCompanyModal({
 
       {/* Warning Dialog */}
       {warningMessage && (
-        <div className="fixed inset-0 z-[85] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fadeIn">
+        <div className="fixed inset-0 z-[85] flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-xs animate-fadeIn">
           <div
             className="bg-white rounded-3xl p-6 sm:p-8 max-w-[370px] sm:max-w-[400px] w-full shadow-2xl text-center space-y-5 border border-slate-100 animate-scaleUp"
             dir={direction}
@@ -266,7 +337,7 @@ export default function EditCompanyModal({
 
             <div className="space-y-1.5 pt-1">
               <h3 className="text-xl sm:text-2xl font-bold text-[#0f172a] tracking-tight">
-                {isRTL ? 'تنبيه' : 'Warning'}
+                {t('common.warning', 'تنبيه')}
               </h3>
               <p className="text-sm sm:text-base text-slate-600 font-normal leading-relaxed">
                 {warningMessage}
@@ -285,7 +356,7 @@ export default function EditCompanyModal({
           </div>
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   );
 }
-

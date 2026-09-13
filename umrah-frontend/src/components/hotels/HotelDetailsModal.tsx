@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, MapPin, Building2, Bed, CheckCircle2, SquarePen, Star, Plus, Pencil, Trash2, Check } from 'lucide-react';
+import { X, MapPin, Building2, Bed, CheckCircle2, SquarePen, Star, Plus, Pencil, Trash2, Check, ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
 import type { HotelItem, RoomTypeRow } from '../../pages/HotelsPage';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -31,53 +31,26 @@ export default function HotelDetailsModal({
   const [draftRoomsCount, setDraftRoomsCount] = useState<number>(20);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
 
-  const defaultAmenitiesAr = [
-    'إنترنت واي فاي مجاني فائق السرعة',
-    'حافلات ترددية مجانية للحرم على مدار الساعة',
-    'مطعم وبوفيه إفطار مفتوح فاخر',
-    'خدمة استقبال وغرف 24/7',
-    'مكتب حجز وتفويج للمعتمرين',
-    'مصاعد بانورامية وسريعة',
-    'مرافق مهيأة لذوي الاحتياجات الخاصة',
-    'خدمة غسيل وكي الملابس السريعة',
-  ];
-
-  const defaultAmenitiesEn = [
-    'High-Speed Free Wi-Fi Internet',
-    '24/7 Free Haram Shuttle Buses',
-    'Gourmet Buffet & On-Site Restaurant',
-    '24/7 Front Desk & Concierge Service',
-    'Pilgrim Logistics & Booking Center',
-    'High-Speed Panoramic Elevators',
-    'Accessible Facilities for Disabled Guests',
-    'Express Laundry & Dry Cleaning',
-  ];
-
   const [amenitiesList, setAmenitiesList] = useState<string[]>([]);
   const [editingAmenityIdx, setEditingAmenityIdx] = useState<number | null>(null);
   const [draftAmenityText, setDraftAmenityText] = useState('');
   const [isAddingAmenity, setIsAddingAmenity] = useState(false);
   const [newAmenityText, setNewAmenityText] = useState('');
+  const [activePhotoIdx, setActivePhotoIdx] = useState(0);
 
   useEffect(() => {
     if (hotel) {
-      if (hotel.roomTypes && hotel.roomTypes.length > 0) {
+      setActivePhotoIdx(0);
+      if (hotel.roomTypes && Array.isArray(hotel.roomTypes)) {
         setRooms(hotel.roomTypes);
       } else {
-        // Default 5 room types matching reference
-        setRooms([
-          { id: '1', name: isRTL ? 'غرفة مزدوجة (Double)' : 'Double Room', capacity: isRTL ? '٢ أشخاص' : '2 Persons', price: hotel.pricePerNight || 450, roomsCount: Math.round((hotel.availableRooms || 100) * 0.35) },
-          { id: '2', name: isRTL ? 'غرفة ثلاثية (Triple)' : 'Triple Room', capacity: isRTL ? '٣ أشخاص' : '3 Persons', price: Math.round((hotel.pricePerNight || 450) * 1.3), roomsCount: Math.round((hotel.availableRooms || 100) * 0.25) },
-          { id: '3', name: isRTL ? 'غرفة رباعية (Quad)' : 'Quad Room', capacity: isRTL ? '٤ أشخاص' : '4 Persons', price: Math.round((hotel.pricePerNight || 450) * 1.6), roomsCount: Math.round((hotel.availableRooms || 100) * 0.2) },
-          { id: '4', name: isRTL ? 'غرفة خماسية (Quint)' : 'Quint Room', capacity: isRTL ? '٥ أشخاص' : '5 Persons', price: Math.round((hotel.pricePerNight || 450) * 2), roomsCount: Math.round((hotel.availableRooms || 100) * 0.12) },
-          { id: '5', name: isRTL ? 'غرفة جناح عائلي (Suite 5)' : 'Family Suite (Suite 5)', capacity: isRTL ? '٦ أشخاص' : '6 Persons', price: Math.round((hotel.pricePerNight || 450) * 2.4), roomsCount: Math.round((hotel.availableRooms || 100) * 0.08) },
-        ]);
+        setRooms([]);
       }
 
-      if (hotel.amenities && hotel.amenities.length > 0) {
+      if (hotel.amenities && Array.isArray(hotel.amenities)) {
         setAmenitiesList(hotel.amenities);
       } else {
-        setAmenitiesList(isRTL ? defaultAmenitiesAr : defaultAmenitiesEn);
+        setAmenitiesList([]);
       }
 
       setEditingRoomId(null);
@@ -86,7 +59,7 @@ export default function HotelDetailsModal({
       setIsAddingAmenity(false);
       setNewAmenityText('');
     }
-  }, [hotel, isRTL]);
+  }, [hotel]);
 
   if (!isOpen || !hotel) return null;
 
@@ -258,26 +231,106 @@ export default function HotelDetailsModal({
           )}
 
           {/* Hotel Hero Banner & Quick Info */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 items-stretch">
-            {/* Image Preview */}
-            <div className="md:col-span-1 rounded-2xl overflow-hidden border border-slate-200/80 h-48 md:h-full min-h-[190px] relative shadow-2xs">
-              <img
-                src={hotel.image}
-                alt={hotel.name}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute top-2.5 right-2.5">
-                <span
-                  className={`text-[11px] font-bold px-2.5 py-0.5 rounded-md shadow-sm ${
-                    hotel.status.includes('متاح') || hotel.status.includes('Available')
-                      ? 'bg-[#dcfce7] text-[#15803d]'
-                      : 'bg-[#fee2e2] text-[#e11d48]'
-                  }`}
-                >
-                  {hotel.status}
-                </span>
-              </div>
-            </div>
+          {(() => {
+            const allImages =
+              hotel.images && Array.isArray(hotel.images) && hotel.images.length > 0
+                ? hotel.images
+                : hotel.image
+                  ? [hotel.image]
+                  : [];
+            const safeIdx = Math.min(activePhotoIdx, Math.max(0, allImages.length - 1));
+            const currentImg = allImages[safeIdx] || hotel.image || '';
+
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 items-stretch">
+                {/* Image Preview & Multi-Photo Carousel */}
+                <div className="md:col-span-1 flex flex-col gap-2">
+                  <div className="rounded-2xl overflow-hidden border border-slate-200/80 h-48 md:h-full min-h-[190px] relative shadow-2xs group bg-slate-900">
+                    <img
+                      src={currentImg}
+                      alt={`${hotel.name} - Photo ${safeIdx + 1}`}
+                      className="w-full h-full object-cover transition-all duration-300"
+                    />
+
+                    {/* Status Badge */}
+                    <div className="absolute top-2.5 right-2.5 z-10">
+                      <span
+                        className={`text-[11px] font-bold px-2.5 py-0.5 rounded-md shadow-sm ${
+                          hotel.status.includes('متاح') || hotel.status.includes('Available')
+                            ? 'bg-[#dcfce7] text-[#15803d]'
+                            : 'bg-[#fee2e2] text-[#e11d48]'
+                        }`}
+                      >
+                        {hotel.status}
+                      </span>
+                    </div>
+
+                    {/* Photo Counter Badge (if multiple photos) */}
+                    {allImages.length > 1 && (
+                      <div className="absolute bottom-2.5 left-2.5 z-10 bg-black/70 backdrop-blur-xs text-white text-[11px] font-semibold px-2.5 py-0.5 rounded-md flex items-center gap-1.5 shadow-sm">
+                        <ImageIcon className="w-3 h-3 text-emerald-400" />
+                        <span>
+                          {isRTL
+                            ? `صورة ${safeIdx + 1} من ${allImages.length}`
+                            : `Photo ${safeIdx + 1} of ${allImages.length}`}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Carousel Navigation Arrows */}
+                    {allImages.length > 1 && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActivePhotoIdx((prev) => (prev > 0 ? prev - 1 : allImages.length - 1));
+                          }}
+                          className="absolute top-1/2 -translate-y-1/2 left-2 w-7 h-7 rounded-full bg-white/90 hover:bg-white text-slate-800 flex items-center justify-center transition shadow-md opacity-90 group-hover:opacity-100 cursor-pointer active:scale-90"
+                          title={isRTL ? 'الصورة السابقة' : 'Previous Photo'}
+                        >
+                          <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActivePhotoIdx((prev) => (prev < allImages.length - 1 ? prev + 1 : 0));
+                          }}
+                          className="absolute top-1/2 -translate-y-1/2 right-2 w-7 h-7 rounded-full bg-white/90 hover:bg-white text-slate-800 flex items-center justify-center transition shadow-md opacity-90 group-hover:opacity-100 cursor-pointer active:scale-90"
+                          title={isRTL ? 'الصورة التالية' : 'Next Photo'}
+                        >
+                          <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Thumbnails Strip */}
+                  {allImages.length > 1 && (
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5">
+                      {allImages.map((imgUrl, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setActivePhotoIdx(idx)}
+                          className={`relative w-14 h-11 rounded-lg overflow-hidden shrink-0 border-2 transition-all cursor-pointer ${
+                            safeIdx === idx
+                              ? 'border-emerald-500 ring-2 ring-emerald-300/60 scale-105 shadow-sm'
+                              : 'border-slate-200 opacity-60 hover:opacity-100'
+                          }`}
+                          title={`Photo ${idx + 1}`}
+                        >
+                          <img
+                            src={imgUrl}
+                            alt={`Thumb ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
             {/* Quick Cards in 2x2 Grid */}
             <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -323,6 +376,8 @@ export default function HotelDetailsModal({
               </div>
             </div>
           </div>
+            );
+          })()}
 
           {/* SECTION 1: Room types & pricing table */}
           <div className="space-y-3">

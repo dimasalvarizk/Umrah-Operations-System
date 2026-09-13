@@ -1,0 +1,8 @@
+{
+  "name": "umrah-backend-microservices",
+  "version": "1.0.0",
+  "description": "Backend Microservices Monorepo for Umrah Operations System",
+  "scripts": {
+    "install:all": "npm --prefix api-gateway install && npm --prefix auth-service install && npm --prefix settings-service install && npm --prefix groups-service install && npm --prefix trips-service install && npm --prefix hotels-service install && npm --prefix transport-service install && npm --prefix contracts-service install && npm --prefix notes-service install"
+  }
+}

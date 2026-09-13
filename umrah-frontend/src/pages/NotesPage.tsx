@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Sidebar from '../components/layout/Sidebar';
 import Navbar from '../components/layout/Navbar';
 import { useLanguage } from '../context/LanguageContext';
@@ -22,7 +22,16 @@ import {
   LayoutGrid,
   List,
   X,
+  BellRing,
 } from 'lucide-react';
+import {
+  getNotesApi,
+  createNoteApi,
+  updateNoteApi,
+  togglePinNoteApi,
+  deleteNoteApi,
+} from '../services/notesApi';
+import { createNotificationApi } from '../services/notificationsApi';
 
 export interface NoteItem {
   id: string;
@@ -55,106 +64,39 @@ export default function NotesPage() {
   const [deleteNoteId, setDeleteNoteId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Initial Real-world Umrah Operational Notes
-  const [notes, setNotes] = useState<NoteItem[]>([
-    {
-      id: '1',
-      title: 'تأكيد وصول حافلات الفوج الباكستاني VIP',
-      content:
-        'متابعة وصول 4 حافلات VIP من مطار الملك عبد العزيز (الصالة الشمالية) ونقل 185 معتمراً مباشرة إلى فندق برج جوار الحرم السكني مع تسليم بطاقات الغرف المسبقة.',
-      category: 'نقل',
-      priority: 'عاجل',
-      status: 'نشط',
-      isPinned: true,
-      relatedEntity: 'مجموعة الأنوار 1 • حافلات VIP',
-      author: 'فهد المطيري (مشرف العمليات)',
-      date: 'اليوم، 09:30 ص',
-      tags: ['مطار جدة', 'VIP', 'تفويج'],
-      checklist: [
-        { id: 'c1', text: 'التأكد من جاهزية السائقين وتصاريح الدخول', done: true },
-        { id: 'c2', text: 'استلام حقائب المعتمرين وتوزيع الأساور', done: false },
-        { id: 'c3', text: 'التنسيق مع استقبال الفندق للتسكين السريع', done: false },
-      ],
-    },
-    {
-      id: '2',
-      title: 'تجهيز كراسي متحركة وغرف متصلة لكبار السن',
-      content:
-        'طلب خاص من وكيل إندونيسيا لتوفير 6 كراسي متحركة كهربائية وتخصيص غرف بالطوابق السفلية بالقرب من المصاعد لـ 12 معتمراً من كبار السن.',
-      category: 'رعاية صحية',
-      priority: 'هام',
-      status: 'نشط',
-      isPinned: true,
-      relatedEntity: 'حجاج جاكرتا المميز • فندق مكة الكبير',
-      author: 'سعود الشمري',
-      date: 'اليوم، 08:15 ص',
-      tags: ['كبار السن', 'كراسي متحركة', 'تسكين خاص'],
-      checklist: [
-        { id: 'c4', text: 'فحص جاهزية الكراسي وشحن البطاريات', done: true },
-        { id: 'c5', text: 'تأكيد أرقام الغرف مع إدارة الفندق', done: true },
-      ],
-    },
-    {
-      id: '3',
-      title: 'تعديل موعد إقلاع رحلة العودة SV-124',
-      content:
-        'تم تأجيل موعد الرحلة ساعتين من قبل الخطوط السعودية. يجب إعادة جدولة خروج الحافلات من الفندق بمكة المكرمة إلى مطار جدة ليكون عند الساعة 04:00 عصراً.',
-      category: 'طيران',
-      priority: 'عاجل',
-      status: 'نشط',
-      isPinned: false,
-      relatedEntity: 'مجموعة الأنوار 1 • رحلة SV-124',
-      author: 'أحمد العتيبي',
-      date: 'أمس، 06:40 م',
-      tags: ['تأخير طيران', 'جدولة النقل', 'الخطوط السعودية'],
-    },
-    {
-      id: '4',
-      title: 'مراجعة بيانات المسار الإلكتروني لمجموعة الصفا',
-      content:
-        'يوجد 8 معتمرين لم تظهر تأشيراتهم على نظام مخاع الإلكتروني. تم التواصل مع الوكيل الخارجي لإعادة رفع صور الجوازات المحدثة.',
-      category: 'جوازات',
-      priority: 'هام',
-      status: 'نشط',
-      isPinned: false,
-      relatedEntity: 'فوج الصفا والمروة • الوكيل بالهند',
-      author: 'يوسف مكي',
-      date: 'أمس، 02:15 م',
-      tags: ['المسار الإلكتروني', 'تأشيرات', 'ناقص'],
-      checklist: [
-        { id: 'c6', text: 'مطابقة أرقام الجوازات مع النظام', done: true },
-        { id: 'c7', text: 'إصدار أرقام المرجع وإرسالها للوكيل', done: false },
-      ],
-    },
-    {
-      id: '5',
-      title: 'تنظيم جولة المزارات الدينية بالمدينة المنورة',
-      content:
-        'انطلاق 5 حافلات لزيارة مسجد قباء، وميدان شهداء أحد، ومسجد القبلتين بعد صلاة الفجر مباشرة. المرشد الديني الشيخ عبد الرحمن متواجد مع الفوج.',
-      category: 'فنادق',
-      priority: 'عادي',
-      status: 'مكتمل',
-      isPinned: false,
-      relatedEntity: 'أفواج التوحيد • فندق رياض الحرم',
-      author: 'جمال مصطفى',
-      date: '08 سبتمبر 2026',
-      tags: ['مزارات', 'المدينة المنورة', 'إرشاد سياحي'],
-    },
-    {
-      id: '6',
-      title: 'تجديد اتفاقية شركة الليموزين السعودي للموسم',
-      content:
-        'مراجعة بنود العقد وتثبيت أسعار سيارات الليموزين لنقل الضيوف وكبار الشخصيات للموسم القادم بعد اعتماد الخصم الإضافي بنسبة 10%.',
-      category: 'عام',
-      priority: 'عادي',
-      status: 'مكتمل',
-      isPinned: false,
-      relatedEntity: 'الليموزين السعودي • إدارة العقود',
-      author: 'فيصل الحربي',
-      date: '05 سبتمبر 2026',
-      tags: ['اتفاقيات', 'عقود', 'VIP'],
-    },
-  ]);
+  // Notes State with backend synchronization
+  const [notes, setNotes] = useState<NoteItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('umrah_notes_list');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const fetchNotes = async () => {
+    try {
+      const { notes: fetched } = await getNotesApi({
+        search: searchQuery,
+        category: selectedCategory,
+        priority: selectedPriority,
+        status: selectedStatus,
+      });
+      if (Array.isArray(fetched)) {
+        setNotes(fetched);
+      }
+    } catch {
+      // Offline fallback
+    }
+  };
+
+  useEffect(() => {
+    fetchNotes();
+  }, [searchQuery, selectedCategory, selectedPriority, selectedStatus]);
+
+  useEffect(() => {
+    localStorage.setItem('umrah_notes_list', JSON.stringify(notes));
+  }, [notes]);
 
   // Form State for Add / Edit
   const [formTitle, setFormTitle] = useState('');
@@ -164,6 +106,7 @@ export default function NotesPage() {
   const [formEntity, setFormEntity] = useState('');
   const [formTags, setFormTags] = useState('');
   const [formIsPinned, setFormIsPinned] = useState(false);
+  const [formSendNotif, setFormSendNotif] = useState(false);
 
   // Category Configuration with translations
   const categories: {
@@ -210,7 +153,7 @@ export default function NotesPage() {
     });
   }, [notes, searchQuery, selectedCategory, selectedPriority, selectedStatus]);
 
-  // Statistics
+  // Statistics Calculation
   const stats = useMemo(() => {
     return {
       total: notes.length,
@@ -221,20 +164,36 @@ export default function NotesPage() {
   }, [notes]);
 
   // Actions
-  const handleTogglePin = (id: string) => {
+  const handleTogglePin = async (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    const target = notes.find((n) => n.id === id);
+    if (!target) return;
+
+    const nextPin = !target.isPinned;
     setNotes((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, isPinned: !n.isPinned } : n))
+      prev.map((n) => (n.id === id ? { ...n, isPinned: nextPin } : n))
     );
+
+    try {
+      await togglePinNoteApi(id);
+    } catch {}
   };
 
-  const handleToggleStatus = (id: string) => {
+  const handleToggleStatus = async (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    const target = notes.find((n) => n.id === id);
+    if (!target) return;
+
+    const nextStatus: NoteItem['status'] =
+      target.status === 'نشط' ? 'مكتمل' : 'نشط';
+
     setNotes((prev) =>
-      prev.map((n) =>
-        n.id === id
-          ? { ...n, status: n.status === 'نشط' ? 'مكتمل' : 'نشط' }
-          : n
-      )
+      prev.map((n) => (n.id === id ? { ...n, status: nextStatus } : n))
     );
+
+    try {
+      await updateNoteApi(id, { status: nextStatus });
+    } catch {}
   };
 
   const handleCopyContent = (note: NoteItem) => {
@@ -252,6 +211,7 @@ export default function NotesPage() {
     setFormEntity('');
     setFormTags('');
     setFormIsPinned(false);
+    setFormSendNotif(false);
     setIsAddEditOpen(true);
   };
 
@@ -264,10 +224,11 @@ export default function NotesPage() {
     setFormEntity(note.relatedEntity || '');
     setFormTags(note.tags.join(', '));
     setFormIsPinned(note.isPinned);
+    setFormSendNotif(false);
     setIsAddEditOpen(true);
   };
 
-  const handleSaveNote = (e: React.FormEvent) => {
+  const handleSaveNote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formTitle.trim()) return;
 
@@ -276,26 +237,34 @@ export default function NotesPage() {
       .map((tItem) => tItem.trim())
       .filter(Boolean);
 
+    let savedId = editingNote?.id || Date.now().toString();
+
     if (editingNote) {
-      setNotes((prev) =>
-        prev.map((n) =>
-          n.id === editingNote.id
-            ? {
-                ...n,
-                title: formTitle,
-                content: formContent,
-                category: formCategory,
-                priority: formPriority,
-                relatedEntity: formEntity || undefined,
-                tags: parsedTags.length ? parsedTags : n.tags,
-                isPinned: formIsPinned,
-              }
-            : n
-        )
-      );
+      const payload: Partial<NoteItem> = {
+        title: formTitle,
+        content: formContent,
+        category: formCategory,
+        priority: formPriority,
+        relatedEntity: formEntity || undefined,
+        tags: parsedTags.length ? parsedTags : editingNote.tags,
+        isPinned: formIsPinned,
+      };
+
+      try {
+        const updated = await updateNoteApi(editingNote.id, payload);
+        savedId = updated?.id ? String(updated.id) : savedId;
+        setNotes((prev) =>
+          prev.map((n) => (n.id === editingNote.id ? { ...n, ...updated } : n))
+        );
+      } catch {
+        setNotes((prev) =>
+          prev.map((n) =>
+            n.id === editingNote.id ? { ...n, ...payload } : n
+          )
+        );
+      }
     } else {
-      const newNote: NoteItem = {
-        id: Date.now().toString(),
+      const newNotePayload: Partial<NoteItem> = {
         title: formTitle,
         content: formContent,
         category: formCategory,
@@ -307,19 +276,70 @@ export default function NotesPage() {
         date: isRTL ? 'الآن' : 'Just now',
         tags: parsedTags.length ? parsedTags : [isRTL ? 'ملاحظة تشغيلية' : 'Operations Note'],
       };
-      setNotes((prev) => [newNote, ...prev]);
+
+      try {
+        const created = await createNoteApi(newNotePayload);
+        if (created?.id) savedId = String(created.id);
+        setNotes((prev) => [created, ...prev]);
+      } catch {
+        setNotes((prev) => [
+          {
+            title: formTitle,
+            content: formContent,
+            category: formCategory,
+            priority: formPriority,
+            status: 'نشط',
+            isPinned: formIsPinned,
+            relatedEntity: formEntity || undefined,
+            author: isRTL ? 'مشرف العمليات' : 'Operations Supervisor',
+            date: isRTL ? 'الآن' : 'Just now',
+            tags: parsedTags.length ? parsedTags : [isRTL ? 'ملاحظة تشغيلية' : 'Operations Note'],
+            id: savedId,
+          },
+          ...prev,
+        ]);
+      }
+    }
+
+    // Trigger Notification if reminder alert enabled or urgent priority
+    if (formSendNotif || formPriority === 'عاجل') {
+      try {
+        const notifTitleEn = formPriority === 'عاجل'
+          ? `[Urgent Note] ${formTitle.trim()}`
+          : `[Note Reminder] ${formTitle.trim()}`;
+        const notifTitleAr = formPriority === 'عاجل'
+          ? `[ملاحظة عاجلة] ${formTitle.trim()}`
+          : `[تذكير ملاحظة] ${formTitle.trim()}`;
+
+        await createNotificationApi({
+          titleEn: notifTitleEn,
+          titleAr: notifTitleAr,
+          descEn: formContent.trim().slice(0, 120) || 'Operational note logged in system',
+          descAr: formContent.trim().slice(0, 120) || 'تم تسجيل ملاحظة تشغيلية في النظام',
+          type: 'note',
+          referenceId: savedId,
+          referenceLink: '/notes',
+        });
+        window.dispatchEvent(new CustomEvent('umrah_notification_refresh'));
+      } catch (notifErr) {
+        console.warn('Note notification dispatch fallback:', notifErr);
+      }
     }
 
     setIsAddEditOpen(false);
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (deleteNoteId) {
-      setNotes((prev) => prev.filter((n) => n.id !== deleteNoteId));
+      const id = deleteNoteId;
+      setNotes((prev) => prev.filter((n) => n.id !== id));
       setDeleteNoteId(null);
-      if (viewingNote?.id === deleteNoteId) {
+      if (viewingNote?.id === id) {
         setViewingNote(null);
       }
+      try {
+        await deleteNoteApi(id);
+      } catch {}
     }
   };
 
@@ -1032,21 +1052,49 @@ export default function NotesPage() {
                 />
               </div>
 
-              {/* Pinned Checkbox */}
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="pinNoteCheck"
-                  checked={formIsPinned}
-                  onChange={(e) => setFormIsPinned(e.target.checked)}
-                  className="w-4 h-4 text-[#00dc82] rounded border-slate-300 focus:ring-0 cursor-pointer"
-                />
-                <label
-                  htmlFor="pinNoteCheck"
-                  className="text-xs font-semibold text-slate-700 cursor-pointer"
-                >
-                  {t('notes.pin_always', 'تثبيت هذه الملاحظة في أعلى الصفحة دائماً')}
-                </label>
+              {/* Pinned & Notification Checkboxes */}
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="pinNoteCheck"
+                    checked={formIsPinned}
+                    onChange={(e) => setFormIsPinned(e.target.checked)}
+                    className="w-4 h-4 text-[#00dc82] rounded border-slate-300 focus:ring-0 cursor-pointer"
+                  />
+                  <label
+                    htmlFor="pinNoteCheck"
+                    className="text-xs font-semibold text-slate-700 cursor-pointer"
+                  >
+                    {t('notes.pin_always', 'تثبيت هذه الملاحظة في أعلى الصفحة دائماً')}
+                  </label>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="sendNotifCheck"
+                    checked={formSendNotif || formPriority === 'عاجل'}
+                    onChange={(e) => setFormSendNotif(e.target.checked)}
+                    className="w-4 h-4 text-amber-500 rounded border-slate-300 focus:ring-0 cursor-pointer"
+                  />
+                  <label
+                    htmlFor="sendNotifCheck"
+                    className="text-xs font-semibold text-slate-700 cursor-pointer flex items-center gap-1.5"
+                  >
+                    <BellRing className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span>
+                      {isRTL
+                        ? 'إرسال تنبيه فوري في مركز الإشعارات (Notification Center)'
+                        : 'Send instant alert to Notification Center'}
+                    </span>
+                    {formPriority === 'عاجل' && (
+                      <span className="text-[10px] text-red-500 font-bold">
+                        ({isRTL ? 'تلقائي لأن الأولوية عاجلة' : 'Auto for Urgent'})
+                      </span>
+                    )}
+                  </label>
+                </div>
               </div>
 
               {/* Form Buttons */}

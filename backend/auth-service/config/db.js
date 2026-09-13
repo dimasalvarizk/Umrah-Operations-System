@@ -1,0 +1,160 @@
+const mysql = require('mysql2/promise');
+const dotenv = require('dotenv');
+
+dotenv.config();
+
+// Create connection pool
+const pool = mysql.createPool({
+  host: process.env.DB_HOST || '127.0.0.1',
+  port: parseInt(process.env.DB_PORT, 10) || 3306,
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || 'root_password',
+  database: process.env.DB_NAME || 'umrah_db',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  timezone: '+00:00',
+});
+
+// Auto-initialize tables on startup
+async function initDb() {
+  try {
+    // First, check or create the database if not exists
+    const adminConnection = await mysql.createConnection({
+      host: process.env.DB_HOST || '127.0.0.1',
+      port: parseInt(process.env.DB_PORT, 10) || 3306,
+      user: process.env.DB_USER || 'root',
+      password: process.env.DB_PASSWORD || 'root_password',
+    });
+
+    const dbName = process.env.DB_NAME || 'umrah_db';
+    await adminConnection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`);
+    await adminConnection.end();
+
+    // Now ensure users table exists in pool
+    const createUsersTableQuery = `
+      CREATE TABLE IF NOT EXISTS \`users\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`name\` VARCHAR(150) NOT NULL,
+        \`email\` VARCHAR(150) NOT NULL UNIQUE,
+        \`password\` VARCHAR(255) NOT NULL,
+        \`role\` ENUM('admin', 'operator', 'agent', 'supervisor') DEFAULT 'admin',
+        \`phone\` VARCHAR(50) DEFAULT NULL,
+        \`avatar\` MEDIUMTEXT DEFAULT NULL,
+        \`employee_id\` VARCHAR(50) DEFAULT NULL,
+        \`branch\` VARCHAR(100) DEFAULT NULL,
+        \`department\` VARCHAR(100) DEFAULT NULL,
+        \`job_title\` VARCHAR(100) DEFAULT NULL,
+        \`status\` ENUM('active', 'inactive', 'suspended') DEFAULT 'active',
+        \`last_login\` DATETIME DEFAULT NULL,
+        \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        \`updated_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX \`idx_users_email\` (\`email\`),
+        INDEX \`idx_users_status\` (\`status\`)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `;
+
+    await pool.query(createUsersTableQuery);
+
+    // Auto-migrate newly added columns if table previously created
+    const [cols] = await pool.query(`SHOW COLUMNS FROM \`users\``);
+    const colNames = cols.map((c) => c.Field);
+    if (!colNames.includes('employee_id')) {
+      await pool.query(`ALTER TABLE \`users\` ADD COLUMN \`employee_id\` VARCHAR(50) DEFAULT NULL AFTER \`avatar\``);
+    }
+    if (!colNames.includes('branch')) {
+      await pool.query(`ALTER TABLE \`users\` ADD COLUMN \`branch\` VARCHAR(100) DEFAULT NULL AFTER \`employee_id\``);
+    }
+    if (!colNames.includes('department')) {
+      await pool.query(`ALTER TABLE \`users\` ADD COLUMN \`department\` VARCHAR(100) DEFAULT NULL AFTER \`branch\``);
+    }
+    if (!colNames.includes('job_title')) {
+      await pool.query(`ALTER TABLE \`users\` ADD COLUMN \`job_title\` VARCHAR(100) DEFAULT NULL AFTER \`department\``);
+    }
+    // Check if avatar needs mediumtext modification
+    await pool.query(`ALTER TABLE \`users\` MODIFY COLUMN \`avatar\` MEDIUMTEXT DEFAULT NULL`);
+
+    // Create login_logs table for real-time audit logs
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS \`login_logs\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`user_id\` INT DEFAULT NULL,
+        \`email\` VARCHAR(150) NOT NULL,
+        \`ip\` VARCHAR(50) DEFAULT '127.0.0.1',
+        \`agent\` VARCHAR(255) DEFAULT 'Browser',
+        \`status\` ENUM('Success', 'Failed') DEFAULT 'Success',
+        \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX \`idx_login_email\` (\`email\`),
+        INDEX \`idx_login_created\` (\`created_at\`)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // Create user_sessions table for active sessions
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS \`user_sessions\` (
+        \`id\` VARCHAR(100) PRIMARY KEY,
+        \`user_id\` INT NOT NULL,
+        \`device\` VARCHAR(150) NOT NULL,
+        \`ip\` VARCHAR(50) NOT NULL,
+        \`location\` VARCHAR(150) DEFAULT 'Saudi Arabia',
+        \`type\` ENUM('desktop', 'mobile') DEFAULT 'desktop',
+        \`is_current\` TINYINT(1) DEFAULT 0,
+        \`last_active\` VARCHAR(100) DEFAULT 'Active now',
+        \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX \`idx_sess_user\` (\`user_id\`)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // Create password_resets table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS \`password_resets\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`email\` VARCHAR(150) NOT NULL,
+        \`otp_code\` VARCHAR(10) NOT NULL,
+        \`token\` VARCHAR(255) NOT NULL,
+        \`expires_at\` DATETIME NOT NULL,
+        \`used\` TINYINT(1) DEFAULT 0,
+        \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX \`idx_pwd_email\` (\`email\`),
+        INDEX \`idx_pwd_token\` (\`token\`)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // Auto-seed default Super Admin accounts if not exist
+    try {
+      const bcrypt = require('bcryptjs');
+      const defaultPassword = process.env.ADMIN_DEFAULT_PASSWORD || 'Admin123!';
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(defaultPassword, salt);
+
+      const [dimasCheck] = await pool.query("SELECT id FROM `users` WHERE `email` = 'alvarizkidimas@gmail.com' LIMIT 1");
+      if (dimasCheck.length === 0) {
+        await pool.query(
+          `INSERT INTO \`users\` (\`name\`, \`email\`, \`password\`, \`role\`, \`phone\`, \`employee_id\`, \`branch\`, \`department\`, \`job_title\`, \`status\`)
+           VALUES (?, ?, ?, 'admin', ?, 'EMP-0001', 'Jeddah Main Office', 'Operations Management', 'Super Admin & Lead Director', 'active')`,
+          ['Dimas Alvarizki', 'alvarizkidimas@gmail.com', hashedPassword, '+62 812 3456 7890']
+        );
+      }
+
+      const [aliCheck] = await pool.query("SELECT id FROM `users` WHERE `email` = 'ali@odst.id' LIMIT 1");
+      if (aliCheck.length === 0) {
+        await pool.query(
+          `INSERT INTO \`users\` (\`name\`, \`email\`, \`password\`, \`role\`, \`phone\`, \`employee_id\`, \`branch\`, \`department\`, \`job_title\`, \`status\`)
+           VALUES (?, ?, ?, 'admin', ?, 'EMP-0002', 'Makkah Branch', 'Operations Management', 'Super Admin & Operations Director', 'active')`,
+          ['Ali', 'ali@odst.id', hashedPassword, '+966 50 123 4567']
+        );
+      }
+    } catch (seedErr) {
+      console.warn('Super Admin seeding note:', seedErr.message);
+    }
+
+    console.log('✅ Database connected and `users`, `login_logs`, `user_sessions`, `password_resets` tables verified successfully.');
+  } catch (error) {
+    console.error('❌ Database initialization error:', error.message);
+  }
+}
+
+module.exports = {
+  pool,
+  initDb,
+};

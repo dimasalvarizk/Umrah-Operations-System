@@ -1,112 +1,174 @@
-import { useState, useEffect } from 'react';
-import { X, AlertTriangle, Check, ChevronDown } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { X, AlertTriangle, Check, ChevronDown, Plus, ListFilter, PenLine } from 'lucide-react';
 import type { VehicleItem } from './CompanyFleetView';
 import { useLanguage } from '../../context/LanguageContext';
-
-// Default images for vehicles
-import v1Vip from '../../assets/fleet_vehicles/vehicle_1_vip.png';
-import v2Regular from '../../assets/fleet_vehicles/vehicle_2_regular.png';
-import v4Sedan from '../../assets/fleet_vehicles/vehicle_4_sedan.png';
-import v5Coaster from '../../assets/fleet_vehicles/vehicle_5_coaster.png';
 
 interface AddVehicleModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (vehicle: VehicleItem) => void;
   initialData?: VehicleItem | null;
+  companyPhotos?: string[];
+  companyPricingRows?: any[];
+  existingVehicles?: VehicleItem[];
+  onSuccess: (vehicle: VehicleItem) => void;
 }
 
 export default function AddVehicleModal({
   isOpen,
   onClose,
-  onSuccess,
   initialData,
+  companyPhotos = [],
+  companyPricingRows = [],
+  existingVehicles = [],
+  onSuccess,
 }: AddVehicleModalProps) {
   const { t, isRTL, direction } = useLanguage();
 
-  const [name, setName] = useState(isRTL ? 'حافلة VIP' : 'VIP Luxury Bus');
-  const [type, setType] = useState<VehicleItem['type']>('حافلة VIP');
-  const [plateNumber, setPlateNumber] = useState('VB-');
-  const [capacity, setCapacity] = useState(isRTL ? '30 راكب' : '30 Passengers');
-  const [pricePerTrip, setPricePerTrip] = useState('600');
-  const [status, setStatus] = useState<VehicleItem['status']>('متاح');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [name, setName] = useState(initialData?.name || (isRTL ? 'حافلة VIP' : 'VIP Luxury Bus'));
+  const [isCustomType, setIsCustomType] = useState(false);
+  const [capacity, setCapacity] = useState(initialData?.capacity || (isRTL ? '30 راكب' : '30 Passengers'));
+  const [plateNumber, setPlateNumber] = useState(initialData?.plateNumber || '');
+  const [status, setStatus] = useState(initialData?.status || 'متاح');
+  const [pricePerTrip, setPricePerTrip] = useState(initialData?.pricePerTrip?.toString() || '350');
+  const [selectedPhoto, setSelectedPhoto] = useState<string>(initialData?.image || companyPhotos[0] || '');
+  const [customPhotos, setCustomPhotos] = useState<string[]>([]);
+
+  // Predefined Standard Vehicle Types
+  const standardTypes = isRTL
+    ? ['حافلة VIP', 'حافلة عادية', 'كوستر', 'سيدان']
+    : ['VIP Luxury Bus', 'Standard Bus', 'Coaster Mini Bus', 'Sedan Car'];
+
+  // Collect custom types from pricing rows and existing fleet
+  const customOptionsFromCompany = Array.from(
+    new Set([
+      ...(companyPricingRows || []).map((r) => r?.type),
+      ...(existingVehicles || []).flatMap((v) => [v?.name, v?.type]),
+    ].filter(Boolean))
+  ).filter(
+    (item) =>
+      !standardTypes.includes(item) &&
+      !['حافلة VIP', 'حافلة عادية', 'كوستر', 'سيدان', 'VIP Luxury Bus', 'Standard Bus', 'Coaster Mini Bus', 'Sedan Car'].includes(item)
+  );
+
+  useEffect(() => {
+    if (initialData) {
+      setName(initialData.name);
+      setCapacity(initialData.capacity);
+      setPlateNumber(initialData.plateNumber);
+      setStatus(initialData.status);
+      setPricePerTrip(initialData.pricePerTrip?.toString() || '350');
+      setSelectedPhoto(initialData.image || companyPhotos[0] || '');
+      setCustomPhotos([]);
+      const isKnown = [...standardTypes, ...customOptionsFromCompany].includes(initialData.name);
+      setIsCustomType(!isKnown && !!initialData.name);
+    } else {
+      const defaultName = isRTL ? 'حافلة VIP' : 'VIP Luxury Bus';
+      setName(defaultName);
+      setCapacity(isRTL ? '30 راكب' : '30 Passengers');
+      setPlateNumber('');
+      setStatus('متاح');
+      setPricePerTrip('600');
+      setSelectedPhoto(companyPhotos[0] || '');
+      setCustomPhotos([]);
+      setIsCustomType(false);
+    }
+  }, [initialData, companyPhotos, isRTL, isOpen]);
 
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
 
-  useEffect(() => {
-    if (initialData) {
-      setName(initialData.name);
-      setType(initialData.type);
-      setPlateNumber(initialData.plateNumber);
-      setCapacity(initialData.capacity);
-      setPricePerTrip(String(initialData.pricePerTrip));
-      setStatus(initialData.status);
-    } else {
-      setName(isRTL ? 'حافلة VIP' : 'VIP Luxury Bus');
-      setType('حافلة VIP');
-      setPlateNumber('VB-');
-      setCapacity(isRTL ? '30 راكب' : '30 Passengers');
-      setPricePerTrip('600');
-      setStatus('متاح');
-    }
-    setWarningMessage(null);
-  }, [initialData, isOpen, isRTL]);
-
   if (!isOpen) return null;
 
-  const handleTypeChange = (selectedType: VehicleItem['type']) => {
-    setType(selectedType);
-    if (selectedType === 'حافلة VIP') {
-      setName(isRTL ? 'حافلة VIP' : 'VIP Luxury Bus');
-      if (!initialData) setPlateNumber('VB-');
+  const handleSelectVehicleType = (typeName: string) => {
+    if (typeName === '__CUSTOM__') {
+      setIsCustomType(true);
+      setName('');
+      return;
+    }
+
+    setIsCustomType(false);
+    setName(typeName);
+
+    // Auto-fill standard capacities & prices
+    if (typeName === 'حافلة VIP' || typeName === 'VIP Luxury Bus') {
       setCapacity(isRTL ? '30 راكب' : '30 Passengers');
       setPricePerTrip('600');
-    } else if (selectedType === 'حافلة عادية') {
-      setName(isRTL ? 'حافلة عادية' : 'Standard Bus');
-      if (!initialData) setPlateNumber('SB-');
-      setCapacity(isRTL ? '45 راكب' : '45 Passengers');
+    } else if (typeName === 'حافلة عادية' || typeName === 'Standard Bus') {
+      setCapacity(isRTL ? '49 راكب' : '49 Passengers');
+      setPricePerTrip('450');
+    } else if (typeName === 'كوستر' || typeName === 'Coaster Mini Bus') {
+      setCapacity(isRTL ? '22 راكب' : '22 Passengers');
       setPricePerTrip('350');
-    } else if (selectedType === 'سيدان') {
-      setName(isRTL ? 'سيدان' : 'Sedan Car');
-      if (!initialData) setPlateNumber('SD-');
+    } else if (typeName === 'سيدان' || typeName === 'Sedan Car') {
       setCapacity(isRTL ? '4 ركاب' : '4 Passengers');
       setPricePerTrip('150');
-    } else if (selectedType === 'كوستر') {
-      setName(isRTL ? 'كوستر' : 'Coaster Mini Bus');
-      if (!initialData) setPlateNumber('CS-');
-      setCapacity(isRTL ? '25 راكب' : '25 Passengers');
-      setPricePerTrip('250');
+    } else {
+      // Check if found in companyPricingRows or existingVehicles to auto fill its configured capacity/price
+      const matchedRow = companyPricingRows?.find((r) => r.type === typeName);
+      if (matchedRow) {
+        if (matchedRow.capacity) setCapacity(matchedRow.capacity);
+        if (matchedRow.price) setPricePerTrip(matchedRow.price.toString());
+      } else {
+        const matchedVehicle = existingVehicles?.find((v) => v.name === typeName || v.type === typeName);
+        if (matchedVehicle) {
+          if (matchedVehicle.capacity) setCapacity(matchedVehicle.capacity);
+          if (matchedVehicle.pricePerTrip) setPricePerTrip(matchedVehicle.pricePerTrip.toString());
+        }
+      }
     }
+  };
+
+  const handleUploadPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const file = files[0];
+    if (!file.type.startsWith('image/')) {
+      setWarningMessage(isRTL ? 'يرجى اختيار ملف صورة صالح (PNG, JPG)' : 'Please select a valid image file (PNG, JPG)');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setWarningMessage(isRTL ? 'حجم الصورة يتجاوز الحد الأقصى (5 ميجابايت)' : 'Image file size exceeds 5MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      if (ev.target?.result) {
+        const dataUrl = ev.target.result as string;
+        setCustomPhotos((prev) => [dataUrl, ...prev.filter((p) => p !== dataUrl)]);
+        setSelectedPhoto(dataUrl);
+      }
+    };
+    reader.readAsDataURL(file);
+    if (e.target) e.target.value = '';
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!name.trim()) {
+      setWarningMessage(isRTL ? 'يرجى إدخال أو تحديد نوع المركبة' : 'Please enter or select vehicle type');
+      return;
+    }
     if (!plateNumber.trim()) {
-      setWarningMessage(isRTL ? 'يرجى إدخال رقم اللوحة' : 'Please enter the plate number');
+      setWarningMessage(isRTL ? 'يرجى إدخال رقم اللوحة للمركبة' : 'Please enter vehicle plate number');
       return;
     }
     setIsConfirmOpen(true);
   };
 
   const handleConfirmSave = () => {
-    let img = initialData?.image || v1Vip;
-    if (!initialData) {
-      if (type === 'حافلة عادية') img = v2Regular;
-      else if (type === 'سيدان') img = v4Sedan;
-      else if (type === 'كوستر') img = v5Coaster;
-    }
-
     const savedVehicle: VehicleItem = {
       id: initialData?.id || Date.now().toString(),
-      name,
-      type,
-      status,
-      plateNumber,
-      capacity,
+      name: name.trim(),
+      type: name.trim(),
+      capacity: capacity.trim(),
+      plateNumber: plateNumber.trim(),
+      status: status as VehicleItem['status'],
       pricePerTrip: parseFloat(pricePerTrip) || 350,
-      image: img,
+      image: selectedPhoto || initialData?.image || '',
     };
 
     onSuccess(savedVehicle);
@@ -119,10 +181,19 @@ export default function AddVehicleModal({
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+  // Combine company photos and newly uploaded photos without duplicates
+  const allPhotoOptions = Array.from(
+    new Set([
+      ...customPhotos,
+      ...(companyPhotos || []),
+      ...(initialData?.image ? [initialData.image] : []),
+    ].filter(Boolean))
+  );
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/30 backdrop-blur-xs animate-fadeIn">
       <div
-        className="bg-white rounded-2xl max-w-lg w-full shadow-2xl relative border border-slate-100 flex flex-col justify-between max-h-[92vh] overflow-hidden"
+        className="bg-white rounded-2xl max-w-lg w-full shadow-2xl relative border border-slate-100 flex flex-col justify-between max-h-[92vh] overflow-hidden animate-scaleUp"
         dir={direction}
       >
         {/* Header */}
@@ -142,28 +213,92 @@ export default function AddVehicleModal({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-4 overflow-y-auto flex-1">
-          {/* Vehicle Type */}
+          {/* Vehicle Type (Dropdown or Custom Input) */}
           <div className="space-y-1.5">
-            <label className="block text-xs sm:text-sm font-semibold text-slate-700">
-              {t('transport.vehicle_type', 'نوع وتصنيف المركبة')} <span className="text-rose-500">*</span>
-            </label>
-            <div className="relative">
-              <select
-                value={type}
-                onChange={(e) => handleTypeChange(e.target.value as VehicleItem['type'])}
-                className="w-full appearance-none border border-slate-200 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-800 bg-white focus:outline-hidden focus:border-[#00c48c] transition cursor-pointer"
-              >
-                <option value="حافلة VIP">{t('transport.vip_bus', 'حافلة VIP')}</option>
-                <option value="حافلة عادية">{t('transport.regular_bus', 'حافلة عادية')}</option>
-                <option value="كوستر">{t('transport.coaster', 'كوستر')}</option>
-                <option value="سيدان">{t('transport.sedan', 'سيدان')}</option>
-              </select>
-              <ChevronDown className={`w-4 h-4 text-slate-400 absolute ${isRTL ? 'left-3.5' : 'right-3.5'} top-1/2 -translate-y-1/2 pointer-events-none`} />
+            <div className="flex items-center justify-between">
+              <label className="block text-xs sm:text-sm font-semibold text-slate-700">
+                {t('transport.vehicle_type', 'نوع وتصنيف المركبة')} <span className="text-rose-500">*</span>
+              </label>
+              {isCustomType ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCustomType(false);
+                    setName(standardTypes[0]);
+                    handleSelectVehicleType(standardTypes[0]);
+                  }}
+                  className="text-xs text-[#00c48c] hover:underline flex items-center gap-1 cursor-pointer font-medium"
+                >
+                  <ListFilter className="w-3.5 h-3.5" />
+                  <span>{isRTL ? 'اختر من القائمة' : 'Select from List'}</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCustomType(true);
+                    setName('');
+                  }}
+                  className="text-xs text-slate-500 hover:text-[#00c48c] hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <PenLine className="w-3.5 h-3.5" />
+                  <span>{isRTL ? 'كتابة نوع مخصص...' : 'Type custom type...'}</span>
+                </button>
+              )}
             </div>
+
+            {isCustomType ? (
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={isRTL ? 'اكتب نوع المركبة (مثال: جي إم سي يوكن / تويوتا هايس)' : 'Enter vehicle type (e.g. GMC Yukon, HiAce)'}
+                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-hidden focus:border-[#00c48c] transition shadow-2xs"
+                />
+              </div>
+            ) : (
+              <div className="relative">
+                <select
+                  value={name}
+                  onChange={(e) => handleSelectVehicleType(e.target.value)}
+                  className="w-full appearance-none border border-slate-200 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-800 bg-white focus:outline-hidden focus:border-[#00c48c] transition cursor-pointer"
+                >
+                  {/* Standard Categories */}
+                  <optgroup label={isRTL ? 'الفئات الرئيسية' : 'Standard Categories'}>
+                    <option value={isRTL ? 'حافلة VIP' : 'VIP Luxury Bus'}>{t('transport.vip_bus', 'حافلة VIP')}</option>
+                    <option value={isRTL ? 'حافلة عادية' : 'Standard Bus'}>{t('transport.regular_bus', 'حافلة عادية')}</option>
+                    <option value={isRTL ? 'كوستر' : 'Coaster Mini Bus'}>{t('transport.coaster', 'كوستر')}</option>
+                    <option value={isRTL ? 'سيدان' : 'Sedan Car'}>{t('transport.sedan', 'سيدان')}</option>
+                  </optgroup>
+
+                  {/* Custom Vehicle Types from Company's Pricing/Fleet */}
+                  {customOptionsFromCompany.length > 0 && (
+                    <optgroup label={isRTL ? 'أنواع إضافية مسجلة للشركة' : 'Registered Company Vehicle Types'}>
+                      {customOptionsFromCompany.map((opt, i) => (
+                        <option key={i} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+
+                  {/* Option to enter custom */}
+                  <optgroup label={isRTL ? 'إدخال مخصص' : 'Custom Input'}>
+                    <option value="__CUSTOM__">
+                      {isRTL ? '+ نوع مخصص (كتابة يدوية)...' : '+ Custom / Type Custom...'}
+                    </option>
+                  </optgroup>
+                </select>
+                <ChevronDown className={`w-4 h-4 text-slate-400 absolute ${isRTL ? 'left-3.5' : 'right-3.5'} top-1/2 -translate-y-1/2 pointer-events-none`} />
+              </div>
+            )}
           </div>
 
-          {/* Plate Number & Capacity */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Plate Number */}
             <div className="space-y-1.5">
               <label className="block text-xs sm:text-sm font-semibold text-slate-700">
                 {t('transport.plate_number', 'رقم اللوحة')} <span className="text-rose-500">*</span>
@@ -174,11 +309,12 @@ export default function AddVehicleModal({
                 dir="ltr"
                 value={plateNumber}
                 onChange={(e) => setPlateNumber(e.target.value)}
-                placeholder="VB-3001"
-                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-mono text-left text-slate-800 focus:outline-hidden focus:border-[#00c48c] transition"
+                placeholder={isRTL ? 'أ ب ج - ١٢٣٤' : 'ABC - 1234'}
+                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-mono text-slate-800 text-left focus:outline-hidden focus:border-[#00c48c] transition"
               />
             </div>
 
+            {/* Passenger Capacity */}
             <div className="space-y-1.5">
               <label className="block text-xs sm:text-sm font-semibold text-slate-700">
                 {t('transport.capacity_label', 'السعة الاستيعابية للركاب')}
@@ -187,29 +323,31 @@ export default function AddVehicleModal({
                 type="text"
                 value={capacity}
                 onChange={(e) => setCapacity(e.target.value)}
-                placeholder={isRTL ? '30 راكب' : '30 Passengers'}
+                placeholder={isRTL ? '٣٠ راكب' : '30 Passengers'}
                 className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-hidden focus:border-[#00c48c] transition"
               />
             </div>
           </div>
 
-          {/* Price per trip & Status */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Price Per Trip */}
             <div className="space-y-1.5">
               <label className="block text-xs sm:text-sm font-semibold text-slate-700">
                 {t('transport.price_per_trip_label', 'السعر لكل رحلة (ر.س)')}
               </label>
-              <input
-                type="number"
-                min="50"
-                step="10"
-                value={pricePerTrip}
-                onChange={(e) => setPricePerTrip(e.target.value)}
-                placeholder="600"
-                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-hidden focus:border-[#00c48c] transition"
-              />
+              <div className="relative">
+                <input
+                  type="number"
+                  dir="ltr"
+                  value={pricePerTrip}
+                  onChange={(e) => setPricePerTrip(e.target.value)}
+                  placeholder="350"
+                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-mono text-slate-800 text-left focus:outline-hidden focus:border-[#00c48c] transition"
+                />
+              </div>
             </div>
 
+            {/* Vehicle Status */}
             <div className="space-y-1.5">
               <label className="block text-xs sm:text-sm font-semibold text-slate-700">
                 {t('transport.vehicle_status', 'حالة المركبة')}
@@ -229,6 +367,66 @@ export default function AddVehicleModal({
             </div>
           </div>
 
+          {/* Photo Selection / Upload */}
+          <div className="space-y-2 pt-1">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs sm:text-sm font-semibold text-slate-700">
+                {isRTL ? 'صورة المركبة' : 'Select or Upload Vehicle Photo'}
+              </label>
+              {selectedPhoto && (
+                <span className="text-[11px] font-medium text-emerald-600">
+                  {isRTL ? '✓ تم تحديد صورة' : '✓ Photo Selected'}
+                </span>
+              )}
+            </div>
+
+            {/* Hidden native file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/jpg"
+              onChange={handleUploadPhoto}
+              className="hidden"
+            />
+
+            <div className="grid grid-cols-4 gap-2.5">
+              {/* Upload New Custom Photo Button */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="h-16 rounded-xl border-2 border-dashed border-emerald-400 hover:border-emerald-500 bg-emerald-50/40 hover:bg-emerald-50/80 transition flex flex-col items-center justify-center gap-1 text-emerald-700 cursor-pointer group shadow-2xs"
+              >
+                <Plus className="w-5 h-5 text-emerald-600 group-hover:scale-115 transition-transform stroke-[2.5]" />
+                <span className="text-[10px] font-bold">
+                  {isRTL ? 'رفع صورة' : 'Upload'}
+                </span>
+              </button>
+
+              {/* Existing & Uploaded Photos */}
+              {allPhotoOptions.map((photoUrl, idx) => {
+                const isSelected = selectedPhoto === photoUrl;
+                return (
+                  <div
+                    key={idx}
+                    onClick={() => setSelectedPhoto(photoUrl)}
+                    className={`relative rounded-xl overflow-hidden h-16 border-2 cursor-pointer transition group ${
+                      isSelected
+                        ? 'border-[#00c48c] ring-2 ring-[#00c48c]/30 scale-102 shadow-xs'
+                        : 'border-slate-200 hover:border-slate-300 opacity-70 hover:opacity-100'
+                    }`}
+                  >
+                    <img src={photoUrl} alt="Vehicle" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+                    {isSelected && (
+                      <div className="absolute top-1 right-1 w-4 h-4 bg-[#00c48c] rounded-full flex items-center justify-center shadow-xs">
+                        <Check className="w-2.5 h-2.5 text-white stroke-[3]" />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Footer Action Buttons */}
           <div className="pt-4 flex items-center justify-between border-t border-slate-200/80">
             <button
@@ -244,7 +442,7 @@ export default function AddVehicleModal({
               className="bg-[#00c48c] hover:bg-[#00b07d] text-white px-8 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shadow-xs cursor-pointer active:scale-95"
             >
               {initialData
-                ? (isRTL ? 'حفظ التعديلات' : 'Save Changes')
+                ? t('common.save', 'حفظ التعديلات')
                 : t('transport.add_vehicle', 'إضافة مركبة')}
             </button>
           </div>
@@ -253,9 +451,9 @@ export default function AddVehicleModal({
 
       {/* Confirmation Dialog */}
       {isConfirmOpen && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fadeIn">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-xs animate-fadeIn">
           <div
-            className="bg-white rounded-3xl p-6 sm:p-8 max-w-[370px] sm:max-w-[400px] w-full shadow-2xl text-center space-y-5 border border-slate-100"
+            className="bg-white rounded-3xl p-6 sm:p-8 max-w-[370px] sm:max-w-[400px] w-full shadow-2xl text-center space-y-5 border border-slate-100 animate-scaleUp"
             dir={direction}
           >
             <div className="w-20 h-20 rounded-full bg-[#fef3c7] mx-auto flex items-center justify-center">
@@ -296,7 +494,7 @@ export default function AddVehicleModal({
 
       {/* Success Dialog */}
       {isSuccessOpen && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fadeIn">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-xs animate-fadeIn">
           <div
             className="bg-white rounded-3xl p-6 sm:p-8 max-w-[370px] sm:max-w-[400px] w-full shadow-2xl text-center space-y-5 border border-slate-100 animate-scaleUp"
             dir={direction}
@@ -331,7 +529,7 @@ export default function AddVehicleModal({
 
       {/* Warning Dialog */}
       {warningMessage && (
-        <div className="fixed inset-0 z-[85] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fadeIn">
+        <div className="fixed inset-0 z-[85] flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-xs animate-fadeIn">
           <div
             className="bg-white rounded-3xl p-6 sm:p-8 max-w-[370px] sm:max-w-[400px] w-full shadow-2xl text-center space-y-5 border border-slate-100 animate-scaleUp"
             dir={direction}
@@ -361,7 +559,7 @@ export default function AddVehicleModal({
           </div>
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   );
 }
-

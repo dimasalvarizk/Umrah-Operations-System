@@ -1,14 +1,10 @@
-import { useState, useRef } from 'react';
-import { X, AlertTriangle, Check, ChevronDown } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { X, AlertTriangle, Check, ChevronDown, Trash2, SquarePen, Plus, Star, ListFilter, PenLine } from 'lucide-react';
 import type { TransportCompany } from './TransportDetailsModal';
 import { useLanguage } from '../../context/LanguageContext';
 
-// Fleet sample thumbnails cropped directly from user mockup
-import fleetThumb1 from '../../assets/fleet_vehicles/fleet_thumb_1.png';
-import fleetThumb2 from '../../assets/fleet_vehicles/fleet_thumb_2.png';
-import fleetThumb3 from '../../assets/fleet_vehicles/fleet_thumb_3.png';
-
-interface VehiclePriceRow {
+export interface VehiclePriceRow {
   id: string;
   type: string;
   capacity: string;
@@ -29,80 +25,254 @@ export default function AddTransportModal({
 }: AddTransportModalProps) {
   const { t, isRTL, direction } = useLanguage();
 
-  // Form Fields matching user mockup 1:1 with realistic pre-filled values
+  // Form Fields - Clean initial state without dummy data
   const [name, setName] = useState('');
   const [region, setRegion] = useState(isRTL ? 'مكة المكرمة' : 'Makkah');
-  const [phone, setPhone] = useState('+966 50 4567 123');
-  const [email, setEmail] = useState('info@alharmain.com');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
+  const [rating, setRating] = useState<number>(5.0);
+  const [hoverRating, setHoverRating] = useState<number | null>(null);
 
-  // Default pricing rows
-  const [pricingRows, setPricingRows] = useState<VehiclePriceRow[]>([
-    { id: '1', type: isRTL ? 'حافلة عادية' : 'Standard Bus', capacity: isRTL ? '45 راكب' : '45 Passengers', price: 350, status: isRTL ? 'متاح' : 'Available' },
-    { id: '2', type: isRTL ? 'حافلة VIP' : 'VIP Luxury Bus', capacity: isRTL ? '30 راكب' : '30 Passengers', price: 600, status: isRTL ? 'متاح' : 'Available' },
-    { id: '3', type: isRTL ? 'كوستر (حافلة صغيرة)' : 'Coaster Mini Bus', capacity: isRTL ? '25 راكب' : '25 Passengers', price: 250, status: isRTL ? 'متاح' : 'Available' },
-    { id: '4', type: isRTL ? 'سيدان' : 'Sedan Car', capacity: isRTL ? '4 ركاب' : '4 Passengers', price: 150, status: isRTL ? 'متاح' : 'Available' },
-  ]);
+  // Clean initial pricing rows
+  const [pricingRows, setPricingRows] = useState<VehiclePriceRow[]>([]);
 
+  // Add Vehicle Form State
   const [isAddRowOpen, setIsAddRowOpen] = useState(false);
   const [newRowType, setNewRowType] = useState('');
+  const [newRowIsCustomType, setNewRowIsCustomType] = useState(false);
   const [newRowCapacity, setNewRowCapacity] = useState('');
-  const [newRowPrice, setNewRowPrice] = useState('400');
+  const [newRowPrice, setNewRowPrice] = useState('300');
+  const [newRowStatus, setNewRowStatus] = useState(isRTL ? 'متاح' : 'Available');
 
+  // Edit Vehicle Row State
+  const [editingRowId, setEditingRowId] = useState<string | null>(null);
+  const [editRowType, setEditRowType] = useState('');
+  const [editRowIsCustomType, setEditRowIsCustomType] = useState(false);
+  const [editRowCapacity, setEditRowCapacity] = useState('');
+  const [editRowPrice, setEditRowPrice] = useState('');
+  const [editRowStatus, setEditRowStatus] = useState('');
+
+  // Fleet Photos & Drag/Drop State - Starts empty as requested
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadedImages, setUploadedImages] = useState<string[]>([
-    fleetThumb1,
-    fleetThumb2,
-    fleetThumb3,
-  ]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
 
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
 
+  // Reset form whenever modal opens or language changes
+  useEffect(() => {
+    if (isOpen) {
+      setName('');
+      setRegion(isRTL ? 'مكة المكرمة' : 'Makkah');
+      setPhone('');
+      setEmail('');
+      setAddress('');
+      setRating(5.0);
+      setHoverRating(null);
+      setPricingRows([]);
+      setUploadedImages([]);
+      setIsAddRowOpen(false);
+      setNewRowType(isRTL ? 'حافلة VIP' : 'VIP Luxury Bus');
+      setNewRowIsCustomType(false);
+      setNewRowCapacity(isRTL ? '30 راكب' : '30 Passengers');
+      setNewRowPrice('600');
+      setNewRowStatus(isRTL ? 'متاح' : 'Available');
+      setEditingRowId(null);
+      setEditRowType('');
+      setEditRowIsCustomType(false);
+      setEditRowCapacity('');
+      setEditRowPrice('');
+      setEditRowStatus('');
+      setWarningMessage(null);
+      setIsSuccessOpen(false);
+    }
+  }, [isOpen, isRTL]);
+
   if (!isOpen) return null;
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const urls = Array.from(e.target.files).map((f) => URL.createObjectURL(f));
-      setUploadedImages((prev) => [...prev, ...urls]);
+  // Process selected or dropped image files
+  const processFiles = (files: FileList | File[]) => {
+    Array.from(files).forEach((file) => {
+      if (!file.type.startsWith('image/')) {
+        setWarningMessage(isRTL ? 'يرجى تحميل ملفات صور بصيغة PNG أو JPG فقط' : 'Please upload PNG or JPG images only');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setWarningMessage(isRTL ? 'حجم الصورة يتجاوز الحد الأقصى (5 ميجابايت)' : 'Image file size exceeds 5MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          setUploadedImages((prev) => [...prev, e.target!.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      processFiles(e.dataTransfer.files);
     }
   };
 
-  const handleAddVehicleRow = () => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      processFiles(e.target.files);
+    }
+    if (e.target) e.target.value = '';
+  };
+
+  const handleRemovePhoto = (indexToRemove: number) => {
+    setUploadedImages((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  };
+
+  // Add Vehicle Handlers
+  const handleOpenAddRow = () => {
     setIsAddRowOpen(true);
+    setEditingRowId(null);
+    setNewRowIsCustomType(false);
+    const defaultType = isRTL ? 'حافلة VIP' : 'VIP Luxury Bus';
+    setNewRowType(defaultType);
+    setNewRowCapacity(isRTL ? '30 راكب' : '30 Passengers');
+    setNewRowPrice('600');
+    setNewRowStatus(isRTL ? 'متاح' : 'Available');
+  };
+
+  const handleSelectVehicleType = (typeVal: string) => {
+    if (typeVal === '__CUSTOM__') {
+      setNewRowIsCustomType(true);
+      setNewRowType('');
+      return;
+    }
+    setNewRowIsCustomType(false);
+    setNewRowType(typeVal);
+    if (typeVal === 'حافلة VIP' || typeVal === 'VIP Luxury Bus') {
+      setNewRowCapacity(isRTL ? '30 راكب' : '30 Passengers');
+      setNewRowPrice('600');
+    } else if (typeVal === 'حافلة عادية' || typeVal === 'Standard Bus') {
+      setNewRowCapacity(isRTL ? '49 راكب' : '49 Passengers');
+      setNewRowPrice('450');
+    } else if (typeVal === 'كوستر' || typeVal === 'Coaster Mini Bus') {
+      setNewRowCapacity(isRTL ? '22 راكب' : '22 Passengers');
+      setNewRowPrice('350');
+    } else if (typeVal === 'سيدان' || typeVal === 'Sedan Car') {
+      setNewRowCapacity(isRTL ? '4 ركاب' : '4 Passengers');
+      setNewRowPrice('150');
+    }
   };
 
   const handleSaveNewRow = () => {
-    if (!newRowType.trim()) return;
+    if (!newRowType.trim()) {
+      setWarningMessage(isRTL ? 'يرجى تحديد أو كتابة نوع المركبة' : 'Please select or type vehicle type');
+      return;
+    }
     const newRow: VehiclePriceRow = {
       id: Date.now().toString(),
       type: newRowType.trim(),
       capacity: newRowCapacity.trim() || (isRTL ? '30 راكب' : '30 Passengers'),
-      price: parseInt(newRowPrice) || 300,
-      status: isRTL ? 'متاح' : 'Available',
+      price: parseInt(newRowPrice, 10) || 300,
+      status: newRowStatus || (isRTL ? 'متاح' : 'Available'),
     };
     setPricingRows((prev) => [...prev, newRow]);
     setIsAddRowOpen(false);
-    setNewRowType('');
-    setNewRowCapacity('');
   };
 
+  // Edit Vehicle Handlers
+  const handleStartEditRow = (row: VehiclePriceRow) => {
+    setEditingRowId(row.id);
+    setEditRowType(row.type);
+    setEditRowCapacity(row.capacity);
+    setEditRowPrice(row.price.toString());
+    setEditRowStatus(row.status);
+    const standardTypes = isRTL
+      ? ['حافلة VIP', 'حافلة عادية', 'كوستر', 'سيدان']
+      : ['VIP Luxury Bus', 'Standard Bus', 'Coaster Mini Bus', 'Sedan Car'];
+    setEditRowIsCustomType(!standardTypes.includes(row.type));
+    setIsAddRowOpen(false);
+  };
+
+  const handleSaveEditRow = (rowId: string) => {
+    if (!editRowType.trim()) {
+      setWarningMessage(isRTL ? 'يرجى كتابة أو تحديد نوع المركبة' : 'Please enter or select vehicle type');
+      return;
+    }
+    setPricingRows((prev) =>
+      prev.map((row) =>
+        row.id === rowId
+          ? {
+              ...row,
+              type: editRowType.trim(),
+              capacity: editRowCapacity.trim() || row.capacity,
+              price: parseInt(editRowPrice, 10) || row.price,
+              status: editRowStatus || row.status,
+            }
+          : row
+      )
+    );
+    setEditingRowId(null);
+  };
+
+  const handleCancelEditRow = () => {
+    setEditingRowId(null);
+  };
+
+  // Delete Vehicle Handler
+  const handleDeleteRow = (rowId: string) => {
+    setPricingRows((prev) => prev.filter((row) => row.id !== rowId));
+    if (editingRowId === rowId) {
+      setEditingRowId(null);
+    }
+  };
+
+  // Form Submit Handler
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const finalName = name.trim() || (isRTL ? 'نقل الحرمين السريع' : 'Haramain Express Transport');
-    const finalPhone = phone.trim() || '+966 50 4567 123';
+    if (!name.trim()) {
+      setWarningMessage(isRTL ? 'يرجى إدخال اسم شركة النقل' : 'Please enter the company name');
+      return;
+    }
+    const finalName = name.trim();
+    const finalPhone = phone.trim();
+    const finalEmail = email.trim();
+    const finalAddress = address.trim();
+
+    const totalFleet = pricingRows.length > 0 ? pricingRows.length * 5 : 0;
 
     const newCompany: TransportCompany = {
       id: Date.now().toString(),
       name: finalName,
+      nameEn: finalName,
       region: region || (isRTL ? 'مكة المكرمة' : 'Makkah'),
       status: 'متاح',
-      fleetSize: pricingRows.length * 5,
-      fleetLabel: isRTL ? `${pricingRows.length * 5} مركبة` : `${pricingRows.length * 5} Vehicles`,
+      fleetSize: totalFleet,
+      fleetLabel: isRTL ? `${totalFleet} مركبة` : `${totalFleet} Vehicles`,
       phone: finalPhone,
-      rating: 5.0,
+      email: finalEmail,
+      address: finalAddress,
+      rating: Number(rating) || 5.0,
       vehicleCategory: isRTL ? 'حافلات وفانات نقل معتمرين وحجاج' : 'Pilgrim Buses & Transport Vans',
-      image: uploadedImages[0] || fleetThumb1,
+      image: uploadedImages[0] || '',
+      photos: uploadedImages,
+      pricingRows: pricingRows,
     };
 
     onSuccess(newCompany);
@@ -114,29 +284,39 @@ export default function AddTransportModal({
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+  const getStatusColor = (status: string) => {
+    if (status === 'متاح' || status === 'Available') {
+      return 'text-[#16a34a] bg-emerald-50 border border-emerald-200';
+    }
+    if (status === 'تحت الصيانة' || status === 'Maintenance' || status === 'Under Maintenance') {
+      return 'text-[#b45309] bg-amber-50 border border-amber-200';
+    }
+    return 'text-[#e11d48] bg-rose-50 border border-rose-200';
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/30 backdrop-blur-xs animate-fadeIn">
       <div
-        className="bg-white rounded-2xl max-w-[620px] w-full shadow-2xl relative border border-slate-100 flex flex-col justify-between max-h-[96vh] overflow-hidden"
+        className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl relative border border-slate-100 flex flex-col justify-between max-h-[92vh] overflow-hidden animate-scaleUp"
         dir={direction}
       >
         {/* Header */}
-        <div className="px-6 py-3.5 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
-          <h2 className="text-base sm:text-lg font-bold text-[#0f172a] tracking-tight">
-            {t('transport.add_company_btn', 'إضافة شركة جديدة')}
+        <div className="px-6 sm:px-8 py-4 border-b border-slate-200/80 flex items-center justify-between bg-white shrink-0">
+          <h2 className="text-lg sm:text-xl font-bold text-[#0f172a] tracking-tight">
+            {t('transport.add_company_title', 'إضافة شركة نقل جديدة')}
           </h2>
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-full bg-slate-100/80 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer"
+            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-600 flex items-center justify-center transition cursor-pointer"
           >
-            <X className="w-3.5 h-3.5 stroke-[2.5]" />
+            <X className="w-4 h-4 stroke-[2.5]" />
           </button>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4 overflow-y-auto flex-1">
+        <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6 overflow-y-auto flex-1">
           {/* ١. معلومات الشركة */}
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             <h3 className="text-xs sm:text-sm font-bold text-[#0f172a] tracking-tight">
               {t('transport.step_company_info', '١. معلومات الشركة')}
             </h3>
@@ -153,7 +333,7 @@ export default function AddTransportModal({
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder={isRTL ? 'مثال: نقل الحرمين السريع' : 'e.g. Haramain Express Transport'}
+                  placeholder={isRTL ? 'أدخل اسم الشركة' : 'Enter company name'}
                   className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs sm:text-sm text-slate-800 placeholder-slate-300 focus:outline-hidden focus:border-[#16a34a] focus:ring-1 focus:ring-[#16a34a] transition shadow-2xs"
                 />
               </div>
@@ -189,7 +369,7 @@ export default function AddTransportModal({
                   dir="ltr"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+966 50 4567 123"
+                  placeholder="+966 5x xxx xxxx"
                   className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs sm:text-sm text-slate-800 placeholder-slate-300 focus:outline-hidden focus:border-[#16a34a] focus:ring-1 focus:ring-[#16a34a] transition shadow-2xs font-mono"
                 />
               </div>
@@ -204,61 +384,110 @@ export default function AddTransportModal({
                   dir="ltr"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="info@example.com"
+                  placeholder="company@domain.com"
                   className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs sm:text-sm text-slate-800 placeholder-slate-300 focus:outline-hidden focus:border-[#16a34a] focus:ring-1 focus:ring-[#16a34a] transition shadow-2xs font-mono"
                 />
               </div>
-            </div>
+              {/* Address */}
+              <div className="space-y-1">
+                <label className="block text-[11px] sm:text-xs font-semibold text-slate-700">
+                  {t('common.address', 'العنوان / الموقع')}
+                </label>
+                <input
+                  type="text"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder={isRTL ? 'أدخل عنوان الشركة' : 'Enter company address'}
+                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs sm:text-sm text-slate-800 placeholder-slate-300 focus:outline-hidden focus:border-[#16a34a] focus:ring-1 focus:ring-[#16a34a] transition shadow-2xs"
+                />
+              </div>
 
-            {/* Address */}
-            <div className="space-y-1">
-              <label className="block text-[11px] sm:text-xs font-semibold text-slate-700">
-                {t('common.address', 'العنوان / الموقع')}
-              </label>
-              <input
-                type="text"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder={isRTL ? 'مثال: حي المعابدة، مكة المكرمة' : 'e.g. Al-Maabda District, Makkah'}
-                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs sm:text-sm text-slate-800 placeholder-slate-300 focus:outline-hidden focus:border-[#16a34a] focus:ring-1 focus:ring-[#16a34a] transition shadow-2xs"
-              />
+              {/* Company Rating (Stars) */}
+              <div className="space-y-1">
+                <label className="block text-[11px] sm:text-xs font-semibold text-slate-700">
+                  {t('transport.company_rating', 'تقييم الشركة (النجوم)')}
+                </label>
+                <div className="flex items-center bg-white border border-slate-200 rounded-lg px-3 py-1.5 h-[34px]">
+                  <div className="flex items-center gap-1.5" dir="ltr">
+                    {[1, 2, 3, 4, 5].map((starVal) => {
+                      const displayScore = hoverRating !== null ? hoverRating : rating;
+                      const isFilled = displayScore >= starVal;
+                      return (
+                        <button
+                          key={starVal}
+                          type="button"
+                          onClick={() => setRating(starVal)}
+                          onMouseEnter={() => setHoverRating(starVal)}
+                          onMouseLeave={() => setHoverRating(null)}
+                          className="p-0.5 hover:scale-120 transition-transform cursor-pointer focus:outline-hidden group"
+                          title={`${starVal}.0 / 5.0`}
+                        >
+                          <Star
+                            className={`w-4 h-4 transition-colors ${
+                              isFilled
+                                ? 'text-amber-500 stroke-amber-500 fill-none stroke-[2.3]'
+                                : 'text-slate-300 stroke-slate-300 fill-none stroke-[1.8] group-hover:stroke-amber-300'
+                            }`}
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
           {/* ٢. صور الأسطول */}
           <div className="space-y-2.5">
-            <h3 className="text-xs sm:text-sm font-bold text-[#0f172a] tracking-tight">
-              {t('transport.step_fleet_images', '٢. صور الأسطول')}
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs sm:text-sm font-bold text-[#0f172a] tracking-tight">
+                {t('transport.step_fleet_images', '٢. صور الأسطول')}
+              </h3>
+              {uploadedImages.length > 0 && (
+                <span className="text-[11px] font-medium text-slate-400">
+                  {uploadedImages.length} {isRTL ? 'صور محملة' : 'photos uploaded'}
+                </span>
+              )}
+            </div>
 
             {/* Dashed Dropzone */}
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="border border-dashed border-[#10b981] hover:border-[#059669] bg-white rounded-xl py-3.5 px-4 text-center cursor-pointer transition flex flex-col items-center justify-center gap-1 group"
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`border-2 border-dashed rounded-xl py-4 px-4 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-1.5 group ${
+                isDragging
+                  ? 'border-[#16a34a] bg-emerald-50/70 scale-[1.01]'
+                  : 'border-[#10b981] hover:border-[#059669] bg-white hover:bg-slate-50/50'
+              }`}
             >
               <input
                 type="file"
                 ref={fileInputRef}
                 onChange={handleFileChange}
                 multiple
-                accept="image/png, image/jpeg"
+                accept="image/png, image/jpeg, image/jpg"
                 className="hidden"
               />
-              <svg
-                className="w-6 h-6 text-[#16a34a] group-hover:scale-105 transition-transform"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-                <polyline points="14 2 14 8 20 8" />
-                <line x1="16" y1="13" x2="8" y2="13" />
-                <line x1="16" y1="17" x2="8" y2="17" />
-                <line x1="10" y1="9" x2="8" y2="9" />
-              </svg>
+              <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-[#16a34a] group-hover:scale-110 transition-transform">
+                <svg
+                  className="w-5 h-5 text-[#16a34a]"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
+                  <line x1="10" y1="9" x2="8" y2="9" />
+                </svg>
+              </div>
               <p className="text-xs font-bold text-[#16a34a]">
                 {t('transport.dropzone_title', 'اسحب الصور هنا أو انقر للتحميل')}
               </p>
@@ -267,100 +496,385 @@ export default function AddTransportModal({
               </p>
             </div>
 
-            {/* Uploaded Thumbnail previews */}
-            <div className="flex items-center justify-start gap-2 pt-1">
-              {uploadedImages.map((src, idx) => (
-                <img
-                  key={idx}
-                  src={src}
-                  alt={`Fleet thumb ${idx + 1}`}
-                  className="w-12 h-9 object-cover rounded-md border border-slate-200/90 shadow-2xs"
-                />
-              ))}
-            </div>
+            {/* Uploaded Thumbnail previews with Delete action */}
+            {uploadedImages.length > 0 && (
+              <div className="flex flex-wrap items-center justify-start gap-2.5 pt-1">
+                {uploadedImages.map((src, idx) => (
+                  <div
+                    key={idx}
+                    className="relative group/thumb rounded-lg overflow-hidden border border-slate-200 shadow-2xs bg-slate-100"
+                  >
+                    <img
+                      src={src}
+                      alt={`Fleet thumb ${idx + 1}`}
+                      className="w-14 h-10 object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemovePhoto(idx);
+                      }}
+                      className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/70 hover:bg-rose-600 text-white flex items-center justify-center transition opacity-80 hover:opacity-100 cursor-pointer shadow-xs"
+                      title={isRTL ? 'حذف الصورة' : 'Remove photo'}
+                    >
+                      <X className="w-2.5 h-2.5 stroke-[2.5]" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* ٣. أسعار الرحلات لكل رحلة */}
-          <div className="space-y-2">
-            <h3 className="text-xs sm:text-sm font-bold text-[#0f172a] tracking-tight">
-              {t('transport.step_pricing', '٣. أسعار الرحلات لكل رحلة')}
-            </h3>
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs sm:text-sm font-bold text-[#0f172a] tracking-tight">
+                {t('transport.step_pricing', '٣. أسعار الرحلات لكل رحلة')}
+              </h3>
+              <span className="text-[11px] font-medium text-slate-400">
+                {pricingRows.length} {isRTL ? 'مركبات مضافة' : 'vehicles added'}
+              </span>
+            </div>
 
             <div className="border border-slate-200/80 rounded-xl overflow-hidden bg-white shadow-2xs">
               <table className="w-full text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-200/80 bg-slate-50/70 text-slate-700 font-semibold">
-                    <th className="py-2 px-3.5 font-bold text-start">{t('transport.pricing_table_type', 'نوع المركبة')}</th>
-                    <th className="py-2 px-3 text-center font-bold">{t('transport.pricing_table_cap', 'السعة')}</th>
-                    <th className="py-2 px-3 text-center font-bold">{t('transport.pricing_table_price', 'السعر لكل رحلة (ر.س)')}</th>
-                    <th className="py-2 px-3.5 text-center font-bold">{t('transport.pricing_table_status', 'الحالة')}</th>
+                  <tr className="border-b border-slate-200/80 bg-slate-50/80 text-slate-700 font-semibold">
+                    <th className="py-2.5 px-3 font-bold text-start">{t('transport.pricing_table_type', 'نوع المركبة')}</th>
+                    <th className="py-2.5 px-3 text-center font-bold">{t('transport.pricing_table_cap', 'السعة')}</th>
+                    <th className="py-2.5 px-3 text-center font-bold">{t('transport.pricing_table_price', 'السعر لكل رحلة (ر.س)')}</th>
+                    <th className="py-2.5 px-3 text-center font-bold">{t('transport.pricing_table_status', 'الحالة')}</th>
+                    <th className="py-2.5 px-3 text-center font-bold w-16">{isRTL ? 'إجراءات' : 'Actions'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-800">
-                  {pricingRows.map((row) => (
-                    <tr key={row.id} className="hover:bg-slate-50/40 transition">
-                      <td className="py-2 px-3.5 font-bold text-slate-900">{row.type}</td>
-                      <td className="py-2 px-3 text-center text-slate-600 font-medium">
-                        {row.capacity}
-                      </td>
-                      <td className="py-2 px-3 text-center font-bold text-[#16a34a]">
-                        {row.price} {t('common.currency', 'ر.س')}
-                      </td>
-                      <td className="py-2 px-3.5 text-center font-medium text-[#16a34a]">
-                        {row.status}
+                  {pricingRows.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-4 text-center text-slate-400 text-xs">
+                        {isRTL ? 'لا توجد أسعار مركبات مضافة بعد.' : 'No vehicle pricing rates added yet.'}
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    pricingRows.map((row) =>
+                      editingRowId === row.id ? (
+                        <tr key={row.id} className="bg-emerald-50/40">
+                          <td className="p-2">
+                            {editRowIsCustomType ? (
+                              <div className="flex items-center gap-1.5">
+                                <input
+                                  type="text"
+                                  autoFocus
+                                  value={editRowType}
+                                  onChange={(e) => setEditRowType(e.target.value)}
+                                  placeholder={isRTL ? 'نوع المركبة المخصص' : 'Custom vehicle type'}
+                                  className="w-full bg-white border border-emerald-400 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 font-bold focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditRowIsCustomType(false);
+                                    setEditRowType(isRTL ? 'حافلة VIP' : 'VIP Luxury Bus');
+                                  }}
+                                  className="p-1.5 text-slate-400 hover:text-emerald-600 bg-white border border-slate-200 rounded-lg hover:bg-emerald-50 transition cursor-pointer shrink-0"
+                                  title={isRTL ? 'اختيار من القائمة' : 'Select from list'}
+                                >
+                                  <ListFilter className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1.5">
+                                <div className="relative flex-1">
+                                  <select
+                                    value={editRowType}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      if (val === '__CUSTOM__') {
+                                        setEditRowIsCustomType(true);
+                                        setEditRowType('');
+                                        return;
+                                      }
+                                      setEditRowType(val);
+                                      if (val === 'حافلة VIP' || val === 'VIP Luxury Bus') {
+                                        setEditRowCapacity(isRTL ? '30 راكب' : '30 Passengers');
+                                        setEditRowPrice('600');
+                                      } else if (val === 'حافلة عادية' || val === 'Standard Bus') {
+                                        setEditRowCapacity(isRTL ? '49 راكب' : '49 Passengers');
+                                        setEditRowPrice('450');
+                                      } else if (val === 'كوستر' || val === 'Coaster Mini Bus') {
+                                        setEditRowCapacity(isRTL ? '22 راكب' : '22 Passengers');
+                                        setEditRowPrice('350');
+                                      } else if (val === 'سيدان' || val === 'Sedan Car') {
+                                        setEditRowCapacity(isRTL ? '4 ركاب' : '4 Passengers');
+                                        setEditRowPrice('150');
+                                      }
+                                    }}
+                                    className="w-full appearance-none bg-white border border-emerald-400 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 font-bold focus:outline-hidden focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+                                  >
+                                    <option value={isRTL ? 'حافلة VIP' : 'VIP Luxury Bus'}>{t('transport.vip_bus', 'حافلة VIP')}</option>
+                                    <option value={isRTL ? 'حافلة عادية' : 'Standard Bus'}>{t('transport.regular_bus', 'حافلة عادية')}</option>
+                                    <option value={isRTL ? 'كوستر' : 'Coaster Mini Bus'}>{t('transport.coaster', 'كوستر')}</option>
+                                    <option value={isRTL ? 'سيدان' : 'Sedan Car'}>{t('transport.sedan', 'سيدان')}</option>
+                                    <option value="__CUSTOM__">{isRTL ? '+ نوع مخصص (كتابة)...' : '+ Custom / Type Custom...'}</option>
+                                  </select>
+                                  <ChevronDown className={`w-3.5 h-3.5 text-slate-400 absolute ${isRTL ? 'left-2' : 'right-2'} top-1/2 -translate-y-1/2 pointer-events-none`} />
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditRowIsCustomType(true);
+                                    setEditRowType('');
+                                  }}
+                                  className="p-1.5 text-slate-400 hover:text-emerald-600 bg-white border border-slate-200 rounded-lg hover:bg-emerald-50 transition cursor-pointer shrink-0"
+                                  title={isRTL ? 'كتابة نوع مخصص' : 'Type custom type'}
+                                >
+                                  <PenLine className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                          <td className="p-2 text-center">
+                            <input
+                              type="text"
+                              value={editRowCapacity}
+                              onChange={(e) => setEditRowCapacity(e.target.value)}
+                              className="w-full bg-white border border-emerald-400 rounded-lg px-2 py-1.5 text-xs text-center text-slate-700 focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
+                              placeholder={isRTL ? 'مثال: 45 راكب' : 'e.g. 45 Pax'}
+                            />
+                          </td>
+                          <td className="p-2 text-center">
+                            <input
+                              type="number"
+                              value={editRowPrice}
+                              onChange={(e) => setEditRowPrice(e.target.value)}
+                              className="w-24 mx-auto bg-white border border-emerald-400 rounded-lg px-2 py-1.5 text-xs text-center font-bold text-[#16a34a] focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
+                              placeholder="350"
+                            />
+                          </td>
+                          <td className="p-2 text-center">
+                            <div className="relative">
+                              <select
+                                value={editRowStatus}
+                                onChange={(e) => setEditRowStatus(e.target.value)}
+                                className="w-full appearance-none bg-white border border-emerald-400 rounded-lg px-2 py-1.5 text-xs text-slate-800 focus:outline-hidden focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+                              >
+                                <option value={isRTL ? 'متاح' : 'Available'}>{isRTL ? 'متاح' : 'Available'}</option>
+                                <option value={isRTL ? 'تحت الصيانة' : 'Under Maintenance'}>{isRTL ? 'تحت الصيانة' : 'Under Maintenance'}</option>
+                                <option value={isRTL ? 'محجوز' : 'Booked'}>{isRTL ? 'محجوز' : 'Booked'}</option>
+                              </select>
+                              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 absolute ${isRTL ? 'left-1.5' : 'right-1.5'} top-1/2 -translate-y-1/2 pointer-events-none`} />
+                            </div>
+                          </td>
+                          <td className="p-2 text-center">
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleSaveEditRow(row.id)}
+                                className="w-7 h-7 rounded-lg bg-[#16a34a] text-white flex items-center justify-center hover:bg-[#15803d] transition cursor-pointer shadow-2xs active:scale-95"
+                                title={isRTL ? 'حفظ' : 'Save'}
+                              >
+                                <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleCancelEditRow}
+                                className="w-7 h-7 rounded-lg bg-slate-200 text-slate-600 flex items-center justify-center hover:bg-slate-300 transition cursor-pointer active:scale-95"
+                                title={isRTL ? 'إلغاء' : 'Cancel'}
+                              >
+                                <X className="w-3.5 h-3.5 stroke-[2.5]" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        <tr key={row.id} className="hover:bg-slate-50/60 transition group/row">
+                          <td className="py-2.5 px-3 font-bold text-slate-900">{row.type}</td>
+                          <td className="py-2.5 px-3 text-center text-slate-600 font-medium">{row.capacity}</td>
+                          <td className="py-2.5 px-3 text-center font-bold text-[#16a34a]">
+                            {row.price} {t('common.currency', 'SAR')}
+                          </td>
+                          <td className="py-2.5 px-3 text-center">
+                            <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${getStatusColor(row.status)}`}>
+                              {row.status}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 text-center">
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleStartEditRow(row)}
+                                className="p-1 text-slate-400 hover:text-[#16a34a] rounded-md hover:bg-emerald-50 transition cursor-pointer"
+                                title={isRTL ? 'تعديل' : 'Edit'}
+                              >
+                                <SquarePen className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteRow(row.id)}
+                                className="p-1 text-slate-400 hover:text-rose-600 rounded-md hover:bg-rose-50 transition cursor-pointer"
+                                title={isRTL ? 'حذف' : 'Delete'}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    )
+                  )}
                 </tbody>
               </table>
             </div>
 
+            {/* Add Vehicle Inline Form */}
             {isAddRowOpen ? (
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 flex flex-wrap items-center gap-2 animate-fadeIn text-xs">
-                <input
-                  type="text"
-                  placeholder={isRTL ? 'نوع المركبة' : 'Vehicle Type'}
-                  value={newRowType}
-                  onChange={(e) => setNewRowType(e.target.value)}
-                  className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-800 flex-1 min-w-[110px]"
-                />
-                <input
-                  type="text"
-                  placeholder={isRTL ? 'السعة (مثال: 30 راكب)' : 'Capacity (e.g. 30 Pax)'}
-                  value={newRowCapacity}
-                  onChange={(e) => setNewRowCapacity(e.target.value)}
-                  className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-800 w-32"
-                />
-                <input
-                  type="number"
-                  placeholder={isRTL ? 'السعر ر.س' : 'Price SAR'}
-                  value={newRowPrice}
-                  onChange={(e) => setNewRowPrice(e.target.value)}
-                  className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-800 w-24"
-                />
-                <button
-                  type="button"
-                  onClick={handleSaveNewRow}
-                  className="bg-[#16a34a] hover:bg-[#15803d] text-white font-bold px-3 py-1 rounded-lg text-xs cursor-pointer"
-                >
-                  {t('common.add', 'إضافة')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsAddRowOpen(false)}
-                  className="border border-slate-200 bg-white text-slate-600 px-3 py-1 rounded-lg text-xs cursor-pointer"
-                >
-                  {t('common.cancel', 'إلغاء')}
-                </button>
+              <div className="bg-emerald-50/40 border border-emerald-200 rounded-2xl p-4 space-y-3 animate-fadeIn text-xs shadow-xs">
+                <div className="flex items-center justify-between pb-2 border-b border-emerald-100">
+                  <div className="font-bold text-slate-800 text-xs sm:text-sm flex items-center gap-1.5">
+                    <div className="w-5 h-5 rounded-full bg-emerald-100 text-[#16a34a] flex items-center justify-center">
+                      <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                    </div>
+                    <span>{isRTL ? 'إضافة تسعيرة مركبة جديدة' : 'Add New Vehicle Pricing'}</span>
+                  </div>
+
+                  {newRowIsCustomType ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewRowIsCustomType(false);
+                        const defaultType = isRTL ? 'حافلة VIP' : 'VIP Luxury Bus';
+                        setNewRowType(defaultType);
+                        setNewRowCapacity(isRTL ? '30 راكب' : '30 Passengers');
+                        setNewRowPrice('600');
+                      }}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#16a34a] hover:text-[#15803d] bg-white border border-emerald-200 px-2.5 py-1 rounded-lg hover:bg-emerald-50 transition cursor-pointer shadow-2xs"
+                    >
+                      <ListFilter className="w-3 h-3" />
+                      <span>{isRTL ? 'اختر من القائمة' : 'Select from List'}</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewRowIsCustomType(true);
+                        setNewRowType('');
+                      }}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 hover:text-[#16a34a] bg-white border border-slate-200 px-2.5 py-1 rounded-lg hover:border-emerald-200 hover:bg-slate-50 transition cursor-pointer shadow-2xs"
+                    >
+                      <PenLine className="w-3 h-3" />
+                      <span>{isRTL ? 'كتابة نوع مخصص' : 'Type Custom'}</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                  {/* Vehicle Type & Category */}
+                  <div className="sm:col-span-4 space-y-1">
+                    <label className="block text-[11px] font-semibold text-slate-700">
+                      {isRTL ? 'نوع وتصنيف المركبة' : 'Vehicle Type & Category'}
+                    </label>
+                    {newRowIsCustomType ? (
+                      <input
+                        type="text"
+                        autoFocus
+                        placeholder={isRTL ? 'مثال: جي إم سي يوكن / تويوتا هايس' : 'e.g. GMC Yukon / HiAce'}
+                        value={newRowType}
+                        onChange={(e) => setNewRowType(e.target.value)}
+                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 h-[34px] text-xs sm:text-sm text-slate-800 placeholder-slate-300 focus:outline-hidden focus:border-[#16a34a] focus:ring-1 focus:ring-[#16a34a] transition shadow-2xs"
+                      />
+                    ) : (
+                      <div className="relative">
+                        <select
+                          value={newRowType}
+                          onChange={(e) => handleSelectVehicleType(e.target.value)}
+                          className="w-full appearance-none bg-white border border-slate-200 rounded-lg px-3 py-1.5 h-[34px] text-xs sm:text-sm text-slate-800 focus:outline-hidden focus:border-[#16a34a] focus:ring-1 focus:ring-[#16a34a] cursor-pointer transition shadow-2xs"
+                        >
+                          <option value={isRTL ? 'حافلة VIP' : 'VIP Luxury Bus'}>{t('transport.vip_bus', 'حافلة VIP')}</option>
+                          <option value={isRTL ? 'حافلة عادية' : 'Standard Bus'}>{t('transport.regular_bus', 'حافلة عادية')}</option>
+                          <option value={isRTL ? 'كوستر' : 'Coaster Mini Bus'}>{t('transport.coaster', 'كوستر')}</option>
+                          <option value={isRTL ? 'سيدان' : 'Sedan Car'}>{t('transport.sedan', 'سيدان')}</option>
+                          <option value="__CUSTOM__">{isRTL ? '+ نوع مخصص (كتابة يدوية)...' : '+ Custom / Type Custom...'}</option>
+                        </select>
+                        <ChevronDown className={`w-3.5 h-3.5 text-slate-400 absolute ${isRTL ? 'left-2.5' : 'right-2.5'} top-1/2 -translate-y-1/2 pointer-events-none`} />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Capacity */}
+                  <div className="sm:col-span-3 space-y-1">
+                    <label className="block text-[11px] font-semibold text-slate-700">
+                      {isRTL ? 'السعة' : 'Capacity'}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder={isRTL ? 'مثال: 30 راكب' : 'e.g. 30 Passengers'}
+                      value={newRowCapacity}
+                      onChange={(e) => setNewRowCapacity(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 h-[34px] text-xs sm:text-sm text-slate-800 placeholder-slate-300 focus:outline-hidden focus:border-[#16a34a] focus:ring-1 focus:ring-[#16a34a] transition shadow-2xs"
+                    />
+                  </div>
+
+                  {/* Price */}
+                  <div className="sm:col-span-2 space-y-1">
+                    <label className="block text-[11px] font-semibold text-slate-700">
+                      {isRTL ? 'السعر (ر.س)' : 'Price (SAR)'}
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="350"
+                      value={newRowPrice}
+                      onChange={(e) => setNewRowPrice(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 h-[34px] text-xs sm:text-sm font-bold text-[#16a34a] focus:outline-hidden focus:border-[#16a34a] focus:ring-1 focus:ring-[#16a34a] transition shadow-2xs"
+                    />
+                  </div>
+
+                  {/* Status */}
+                  <div className="sm:col-span-3 space-y-1">
+                    <label className="block text-[11px] font-semibold text-slate-700">
+                      {isRTL ? 'الحالة' : 'Status'}
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={newRowStatus}
+                        onChange={(e) => setNewRowStatus(e.target.value)}
+                        className="w-full appearance-none bg-white border border-slate-200 rounded-lg px-3 py-1.5 h-[34px] text-xs sm:text-sm text-slate-800 focus:outline-hidden focus:border-[#16a34a] focus:ring-1 focus:ring-[#16a34a] cursor-pointer transition shadow-2xs"
+                      >
+                        <option value={isRTL ? 'متاح' : 'Available'}>{isRTL ? 'متاح' : 'Available'}</option>
+                        <option value={isRTL ? 'تحت الصيانة' : 'Under Maintenance'}>{isRTL ? 'تحت الصيانة' : 'Under Maintenance'}</option>
+                        <option value={isRTL ? 'محجوز' : 'Booked'}>{isRTL ? 'محجوز' : 'Booked'}</option>
+                      </select>
+                      <ChevronDown className={`w-3.5 h-3.5 text-slate-400 absolute ${isRTL ? 'left-2.5' : 'right-2.5'} top-1/2 -translate-y-1/2 pointer-events-none`} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-emerald-100/60">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddRowOpen(false)}
+                    className="border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 px-4 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition shadow-2xs active:scale-95"
+                  >
+                    {t('common.cancel', 'إلغاء')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveNewRow}
+                    className="bg-[#16a34a] hover:bg-[#15803d] text-white font-bold px-5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer transition shadow-xs active:scale-95"
+                  >
+                    <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <span>{t('common.add', 'إضافة')}</span>
+                  </button>
+                </div>
               </div>
             ) : (
-              <div className="flex justify-end pt-1">
+              <div className="flex justify-end pt-0.5">
                 <button
                   type="button"
-                  onClick={handleAddVehicleRow}
-                  className="inline-flex items-center gap-1 text-xs font-bold text-[#16a34a] hover:text-[#15803d] transition cursor-pointer"
+                  onClick={handleOpenAddRow}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#16a34a] hover:text-[#15803d] bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200/80 px-3.5 py-1.5 rounded-lg transition cursor-pointer shadow-2xs active:scale-95"
                 >
-                  <span>{t('transport.add_row_btn', '+ اضافة مركبة')}</span>
+                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>{t('transport.add_row_btn', 'Add Vehicle')}</span>
                 </button>
               </div>
             )}
@@ -374,7 +888,7 @@ export default function AddTransportModal({
             onClick={onClose}
             className="border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium px-5 py-1.5 rounded-lg text-xs sm:text-sm transition shadow-2xs cursor-pointer"
           >
-            {t('common.cancel', 'إلغاء')}
+            {t('common.cancel', 'Cancel')}
           </button>
 
           <button
@@ -389,7 +903,7 @@ export default function AddTransportModal({
 
       {/* Success Dialog */}
       {isSuccessOpen && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fadeIn">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-xs animate-fadeIn">
           <div
             className="bg-white rounded-3xl p-6 sm:p-8 max-w-[370px] sm:max-w-[400px] w-full shadow-2xl text-center space-y-5 border border-slate-100 animate-scaleUp"
             dir={direction}
@@ -422,7 +936,7 @@ export default function AddTransportModal({
 
       {/* Warning Dialog */}
       {warningMessage && (
-        <div className="fixed inset-0 z-[85] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fadeIn">
+        <div className="fixed inset-0 z-[85] flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-xs animate-fadeIn">
           <div
             className="bg-white rounded-3xl p-6 sm:p-8 max-w-[370px] sm:max-w-[400px] w-full shadow-2xl text-center space-y-5 border border-slate-100 animate-scaleUp"
             dir={direction}
@@ -452,7 +966,7 @@ export default function AddTransportModal({
           </div>
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   );
 }
-

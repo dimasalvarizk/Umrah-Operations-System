@@ -1,0 +1,16 @@
+CREATE TABLE IF NOT EXISTS notes (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  content TEXT NOT NULL,
+  category VARCHAR(100) DEFAULT 'عام',
+  priority VARCHAR(50) DEFAULT 'عادي',
+  status VARCHAR(50) DEFAULT 'نشط',
+  is_pinned BOOLEAN DEFAULT FALSE,
+  related_entity VARCHAR(255),
+  author VARCHAR(150) NOT NULL,
+  date_string VARCHAR(100),
+  tags_data JSON,
+  checklist_data JSON,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -1,21 +1,40 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Star, Bus, Phone, ShieldCheck, CheckCircle2, Check } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
 export interface TransportCompany {
   id: string;
+  code?: string;
   name: string;
-  status: 'متاح' | 'متوسط' | 'محجوز';
+  nameEn?: string;
+  status: 'متاح' | 'متوسط' | 'محجوز' | string;
   rating: number;
   fleetSize: number;
   fleetLabel: string;
+  fleetLabelEn?: string;
   phone: string;
+  email?: string;
+  address?: string;
   region: string;
+  regionEn?: string;
   image: string;
+  photos?: string[];
+  pricingRows?: {
+    id: string;
+    type: string;
+    capacity: string;
+    price: number;
+    status: string;
+  }[];
   licenseNumber?: string;
   vehicleTypes?: { name: string; count: number }[];
-  address?: string;
   vehicleCategory?: string;
+  vehicleCategoryEn?: string;
+  description?: string;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface TransportDetailsModalProps {
@@ -60,8 +79,8 @@ export default function TransportDetailsModal({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/30 backdrop-blur-xs animate-fadeIn">
       <div
         className="bg-white rounded-3xl max-w-xl w-full shadow-2xl relative border border-slate-100 flex flex-col justify-between max-h-[92vh] overflow-hidden animate-scaleUp"
         dir={direction}
@@ -241,7 +260,7 @@ export default function TransportDetailsModal({
 
       {/* Success Modal */}
       {isRequestSuccessOpen && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fadeIn">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-xs animate-fadeIn">
           <div
             className="bg-white rounded-3xl p-6 sm:p-8 max-w-[370px] sm:max-w-[400px] w-full shadow-2xl text-center space-y-5 border border-slate-100 animate-scaleUp"
             dir={direction}
@@ -276,7 +295,8 @@ export default function TransportDetailsModal({
           </div>
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   );
 }
 

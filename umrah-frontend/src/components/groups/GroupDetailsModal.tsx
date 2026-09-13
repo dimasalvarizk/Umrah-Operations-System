@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Info, Calendar, Plane, ShieldCheck, SquarePen, Eye, Paperclip, FileCheck } from 'lucide-react';
+import { X, Info, Calendar, Plane, ShieldCheck, SquarePen, Eye, Paperclip, Image as ImageIcon, FileText } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import FilePreviewModal, { type FilePreviewData } from '../common/FilePreviewModal';
 
@@ -12,6 +12,7 @@ export interface GroupDetailsModalData {
   mainAgent: string;
   subAgent: string;
   nationality: string;
+  packageType?: string;
   pilgrimsCount: number;
   status?: string;
 
@@ -22,14 +23,22 @@ export interface GroupDetailsModalData {
   madinahHotel?: string;
   madinahCheckIn?: string;
   madinahCheckOut?: string;
+  makkahHotel2?: string;
+  makkah2CheckIn?: string;
+  makkah2CheckOut?: string;
+  hospitalityNotes?: string;
 
   // Flights & Transport
+  departureAirline?: string;
   departureFlightNo?: string;
   departureDate?: string;
   departureAirport?: string;
+  departureDestination?: string;
+  arrivalAirline?: string;
   arrivalFlightNo?: string;
   arrivalDate?: string;
   arrivalAirport?: string;
+  arrivalOrigin?: string;
   transportCompany?: string;
   operationNumber?: string;
   driverName?: string;
@@ -41,11 +50,22 @@ export interface GroupDetailsModalData {
   rawdahMenPermitStatus?: string;
   rawdahWomenPermitStatus?: string;
   arrivalGrouping?: string;
+  arrivalGroupingStatus?: string;
   interCityGrouping?: string;
+  intercityGroupingStatus?: string;
   departureGrouping?: string;
+  departureGroupingStatus?: string;
+  makkahZiyarat?: string;
+  madinahZiyarat?: string;
+  enrichmentProgram?: string;
+  missingRequirements?: string;
+  additionalNotes?: string;
 
-  // Uploaded Files
+  // Uploaded Files & Blobs
   uploadedFiles?: Record<string, { name: string; size?: number; url?: string; type?: string; uploadedAt?: string; categoryTitle?: string }>;
+  hotelsData?: any;
+  flightTransportData?: any;
+  permitsNotesData?: any;
 }
 
 interface GroupDetailsModalProps {
@@ -88,42 +108,75 @@ export default function GroupDetailsModal({
     },
   };
 
+  const hotels = typeof (group as any)?.hotelsData === 'string' 
+    ? (() => { try { return JSON.parse((group as any)?.hotelsData || '{}'); } catch { return {}; } })()
+    : ((group as any)?.hotelsData || {});
+  const flights = typeof (group as any)?.flightTransportData === 'string' 
+    ? (() => { try { return JSON.parse((group as any)?.flightTransportData || '{}'); } catch { return {}; } })()
+    : ((group as any)?.flightTransportData || {});
+  const permits = typeof (group as any)?.permitsNotesData === 'string' 
+    ? (() => { try { return JSON.parse((group as any)?.permitsNotesData || '{}'); } catch { return {}; } })()
+    : ((group as any)?.permitsNotesData || {});
+
   const data: GroupDetailsModalData = {
-    code: group?.code || 'GRP-2401',
-    name: group?.name || (isRTL ? 'مجموعة الأنوار 1' : 'Al-Anwar 1 Delegation'),
-    groupCodeNumber: group?.groupCodeNumber || '480900XXXXXX',
-    agreementNumber: group?.agreementNumber || 'AGR-1125900',
-    mainAgent: group?.mainAgent || (isRTL ? 'شركة تسهيل' : 'Tasheel Tours'),
-    subAgent: group?.subAgent || (isRTL ? 'وكالة مكة للطيران' : 'Makkah Aviation Agency'),
-    nationality: group?.nationality || (isRTL ? 'باكستان' : 'Pakistan'),
-    pilgrimsCount: group?.pilgrimsCount || 145,
+    id: group?.id,
+    code: group?.code || '-',
+    name: group?.name || '-',
+    groupCodeNumber: group?.groupCodeNumber || group?.code || '-',
+    agreementNumber: group?.agreementNumber || '-',
+    mainAgent: group?.mainAgent || '-',
+    subAgent: group?.subAgent || '-',
+    nationality: group?.nationality || '-',
+    packageType: group?.packageType || (group as any)?.package_type || '',
+    pilgrimsCount: group?.pilgrimsCount || 0,
+    status: group?.status || '-',
 
-    makkahHotel: group?.makkahHotel || (isRTL ? 'فندق مكة 1' : 'Makkah Hotel 1'),
-    makkahCheckIn: group?.makkahCheckIn || '2024-08-15',
-    makkahCheckOut: group?.makkahCheckOut || '2024-08-20',
-    madinahHotel: group?.madinahHotel || (isRTL ? 'فندق المدينة المنورة' : 'Madinah Hotel'),
-    madinahCheckIn: group?.madinahCheckIn || '2024-08-20',
-    madinahCheckOut: group?.madinahCheckOut || '2024-08-25',
+    makkahHotel: group?.makkahHotel || hotels.makkahHotel || hotels.makkahHotel1 || '-',
+    makkahCheckIn: group?.makkahCheckIn || hotels.makkahCheckIn || hotels.makkah1CheckIn || '-',
+    makkahCheckOut: group?.makkahCheckOut || hotels.makkahCheckOut || hotels.makkah1CheckOut || '-',
+    madinahHotel: group?.madinahHotel || hotels.madinahHotel || '-',
+    madinahCheckIn: group?.madinahCheckIn || hotels.madinahCheckIn || '-',
+    madinahCheckOut: group?.madinahCheckOut || hotels.madinahCheckOut || '-',
+    makkahHotel2: group?.makkahHotel2 || hotels.makkahHotel2 || '',
+    makkah2CheckIn: group?.makkah2CheckIn || hotels.makkah2CheckIn || '',
+    makkah2CheckOut: group?.makkah2CheckOut || hotels.makkah2CheckOut || '',
+    hospitalityNotes: group?.hospitalityNotes || hotels.hospitalityNotes || '',
 
-    departureFlightNo: group?.departureFlightNo || 'SV-0379',
-    departureDate: group?.departureDate || '2024-08-25',
-    departureAirport: group?.departureAirport || (isRTL ? 'مطار الأمير محمد بن عبدالعزيز - المدينة' : 'Prince Mohammad Bin Abdulaziz Airport - Madinah'),
-    arrivalFlightNo: group?.arrivalFlightNo || 'SV-0378',
-    arrivalDate: group?.arrivalDate || '2024-08-15',
-    arrivalAirport: group?.arrivalAirport || (isRTL ? 'مطار الملك عبدالعزيز - جدة' : 'King Abdulaziz Airport - Jeddah'),
-    transportCompany: group?.transportCompany || (isRTL ? 'شركة حافل للنقل' : 'Hafil Transport Company'),
-    operationNumber: group?.operationNumber || 'OPS-7489',
-    driverName: group?.driverName || (isRTL ? 'سامي السلمي' : 'Sami Al-Sulami'),
-    driverPhone: group?.driverPhone || '+966 51 234 5678',
-    busPlateNo: group?.busPlateNo || '9312 HFL',
+    departureAirline: group?.departureAirline || flights.departureAirline || '',
+    departureFlightNo: group?.departureFlightNo || flights.departureFlightNo || '-',
+    departureDate: group?.departureDate || flights.departureDate || '-',
+    departureAirport: group?.departureAirport || flights.departureAirport || '-',
+    departureDestination: group?.departureDestination || flights.departureDestination || '',
+    arrivalAirline: group?.arrivalAirline || flights.arrivalAirline || '',
+    arrivalFlightNo: group?.arrivalFlightNo || flights.arrivalFlightNo || '-',
+    arrivalDate: group?.arrivalDate || flights.arrivalDate || '-',
+    arrivalAirport: group?.arrivalAirport || flights.arrivalAirport || '-',
+    arrivalOrigin: group?.arrivalOrigin || flights.arrivalOrigin || '',
+    transportCompany: group?.transportCompany || flights.transportCompany || '-',
+    operationNumber: group?.operationNumber || flights.operationNumber || '-',
+    driverName: group?.driverName || flights.driverName || '-',
+    driverPhone: group?.driverPhone || flights.driverPhone || '-',
+    busPlateNo: group?.busPlateNo || flights.busPlateNo || '-',
 
-    umrahPermitStatus: group?.umrahPermitStatus || (isRTL ? 'مقبول' : 'Approved'),
-    rawdahMenPermitStatus: group?.rawdahMenPermitStatus || (isRTL ? 'قيد المراجعة' : 'In Review'),
-    rawdahWomenPermitStatus: group?.rawdahWomenPermitStatus || (isRTL ? 'لم يُقدم' : 'Not Submitted'),
-    arrivalGrouping: group?.arrivalGrouping || (isRTL ? 'مكتمل' : 'Completed'),
-    interCityGrouping: group?.interCityGrouping || (isRTL ? 'مغلق' : 'Closed'),
-    departureGrouping: group?.departureGrouping || (isRTL ? 'لا يوجد' : 'None'),
-    uploadedFiles: group?.uploadedFiles && Object.keys(group.uploadedFiles).length > 0 ? group.uploadedFiles : defaultFiles,
+    umrahPermitStatus: group?.umrahPermitStatus || permits.umrahPermitStatus || (isRTL ? 'مقبول' : 'Approved'),
+    rawdahMenPermitStatus: group?.rawdahMenPermitStatus || permits.rawdahMenPermitStatus || (isRTL ? 'قيد المراجعة' : 'In Review'),
+    rawdahWomenPermitStatus: group?.rawdahWomenPermitStatus || permits.rawdahWomenPermitStatus || (isRTL ? 'لم يُقدم' : 'Not Submitted'),
+    arrivalGrouping: group?.arrivalGrouping || permits.arrivalGrouping || (isRTL ? 'مكتمل' : 'Completed'),
+    interCityGrouping: group?.interCityGrouping || permits.interCityGrouping || (isRTL ? 'معلق' : 'In Progress'),
+    departureGrouping: group?.departureGrouping || permits.departureGrouping || (isRTL ? 'لا يوجد' : 'None'),
+    makkahZiyarat: group?.makkahZiyarat || permits.makkahZiyarat || '',
+    madinahZiyarat: group?.madinahZiyarat || permits.madinahZiyarat || '',
+    enrichmentProgram: group?.enrichmentProgram || permits.enrichmentProgram || '',
+    missingRequirements: group?.missingRequirements || permits.missingRequirements || '',
+    additionalNotes: group?.additionalNotes || permits.additionalNotes || '',
+    uploadedFiles: (group?.uploadedFiles && Object.keys(group.uploadedFiles).length > 0) 
+      ? group.uploadedFiles 
+      : (permits.uploadedFiles && Object.keys(permits.uploadedFiles).length > 0) 
+        ? permits.uploadedFiles 
+        : defaultFiles,
+    hotelsData: hotels,
+    flightTransportData: flights,
+    permitsNotesData: permits,
   };
 
   const handleOpenDocPreview = (fileItem: { name: string; size?: number; url?: string; type?: string; uploadedAt?: string; categoryTitle?: string }) => {
@@ -344,31 +397,74 @@ export default function GroupDetailsModal({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <div className="bg-[#f8fafc] border border-slate-200/70 rounded-xl px-4 py-2.5 flex items-center justify-between">
+              {/* Umrah Permit */}
+              <div className="bg-[#f8fafc] border border-slate-200/70 rounded-xl px-4 py-2.5 flex items-center justify-between gap-2">
                 <span className="text-xs text-slate-400 font-normal">{t('groups.umrah_permit', 'تصريح عمرة')}</span>
-                <div className="bg-[#e6f9f0] border border-[#10b981]/20 px-2.5 py-0.5 rounded-md flex items-center gap-1.5 text-xs font-bold text-[#10b981]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]" />
-                  <span>{data.umrahPermitStatus}</span>
+                <div className="flex items-center gap-2">
+                  <div className="bg-[#e6f9f0] border border-[#10b981]/20 px-2.5 py-0.5 rounded-md flex items-center gap-1.5 text-xs font-bold text-[#10b981]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]" />
+                    <span>{data.umrahPermitStatus}</span>
+                  </div>
+                  {data.uploadedFiles?.['umrahPermit'] && (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenDocPreview(data.uploadedFiles!['umrahPermit'])}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded text-[11px] font-medium transition cursor-pointer shadow-2xs"
+                      title={data.uploadedFiles['umrahPermit'].name}
+                    >
+                      <Eye className="w-3 h-3 text-emerald-600" />
+                      <span className="truncate max-w-[85px]">{data.uploadedFiles['umrahPermit'].name}</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
-              <div className="bg-[#f8fafc] border border-slate-200/70 rounded-xl px-4 py-2.5 flex items-center justify-between">
+              {/* Rawdah Men */}
+              <div className="bg-[#f8fafc] border border-slate-200/70 rounded-xl px-4 py-2.5 flex items-center justify-between gap-2">
                 <span className="text-xs text-slate-400 font-normal">{t('groups.rawdah_men', 'تصاريح الروضة - رجال')}</span>
-                <div className="bg-[#fef3c7] border border-[#f59e0b]/20 px-2.5 py-0.5 rounded-md flex items-center gap-1.5 text-xs font-bold text-[#d97706]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#f59e0b]" />
-                  <span>{data.rawdahMenPermitStatus}</span>
+                <div className="flex items-center gap-2">
+                  <div className="bg-[#fef3c7] border border-[#f59e0b]/20 px-2.5 py-0.5 rounded-md flex items-center gap-1.5 text-xs font-bold text-[#d97706]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#f59e0b]" />
+                    <span>{data.rawdahMenPermitStatus}</span>
+                  </div>
+                  {data.uploadedFiles?.['rawdahMen'] && (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenDocPreview(data.uploadedFiles!['rawdahMen'])}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded text-[11px] font-medium transition cursor-pointer shadow-2xs"
+                      title={data.uploadedFiles['rawdahMen'].name}
+                    >
+                      <Eye className="w-3 h-3 text-emerald-600" />
+                      <span className="truncate max-w-[85px]">{data.uploadedFiles['rawdahMen'].name}</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
-              <div className="bg-[#f8fafc] border border-slate-200/70 rounded-xl px-4 py-2.5 flex items-center justify-between">
+              {/* Rawdah Women */}
+              <div className="bg-[#f8fafc] border border-slate-200/70 rounded-xl px-4 py-2.5 flex items-center justify-between gap-2">
                 <span className="text-xs text-slate-400 font-normal">{t('groups.rawdah_women', 'تصاريح الروضة - نساء')}</span>
-                <div className="bg-slate-100 border border-slate-200/80 px-2.5 py-0.5 rounded-md flex items-center gap-1.5 text-xs font-bold text-slate-600">
-                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                  <span>{data.rawdahWomenPermitStatus}</span>
+                <div className="flex items-center gap-2">
+                  <div className="bg-slate-100 border border-slate-200/80 px-2.5 py-0.5 rounded-md flex items-center gap-1.5 text-xs font-bold text-slate-600">
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                    <span>{data.rawdahWomenPermitStatus}</span>
+                  </div>
+                  {data.uploadedFiles?.['rawdahWomen'] && (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenDocPreview(data.uploadedFiles!['rawdahWomen'])}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded text-[11px] font-medium transition cursor-pointer shadow-2xs"
+                      title={data.uploadedFiles['rawdahWomen'].name}
+                    >
+                      <Eye className="w-3 h-3 text-emerald-600" />
+                      <span className="truncate max-w-[85px]">{data.uploadedFiles['rawdahWomen'].name}</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
-              <div className="bg-[#f8fafc] border border-slate-200/70 rounded-xl px-4 py-2.5 flex items-center justify-between">
+              {/* Arrival Grouping */}
+              <div className="bg-[#f8fafc] border border-slate-200/70 rounded-xl px-4 py-2.5 flex items-center justify-between gap-2">
                 <span className="text-xs text-slate-400 font-normal">{isRTL ? 'تفويج الوصول' : 'Arrival Grouping'}</span>
                 <div className="flex items-center gap-2">
                   <span className="text-xs sm:text-sm font-bold text-slate-800">{data.arrivalGrouping}</span>
@@ -376,25 +472,158 @@ export default function GroupDetailsModal({
                     <button
                       type="button"
                       onClick={() => handleOpenDocPreview(data.uploadedFiles!['arrivalGrouping'])}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded text-[11px] font-medium transition cursor-pointer"
-                      title={isRTL ? 'معاينة الملف المرفق' : 'View attached file'}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded text-[11px] font-medium transition cursor-pointer shadow-2xs"
+                      title={data.uploadedFiles['arrivalGrouping'].name}
                     >
-                      <Eye className="w-3 h-3" />
-                      <span className="truncate max-w-[80px]">{data.uploadedFiles['arrivalGrouping'].name}</span>
+                      <Eye className="w-3 h-3 text-emerald-600" />
+                      <span className="truncate max-w-[85px]">{data.uploadedFiles['arrivalGrouping'].name}</span>
                     </button>
                   )}
                 </div>
               </div>
 
-              <div className="bg-[#f8fafc] border border-slate-200/70 rounded-xl px-4 py-2.5 flex items-center justify-between">
+              {/* Inter-City Grouping */}
+              <div className="bg-[#f8fafc] border border-slate-200/70 rounded-xl px-4 py-2.5 flex items-center justify-between gap-2">
                 <span className="text-xs text-slate-400 font-normal">{isRTL ? 'تفويج بين المدن' : 'Inter-City Grouping'}</span>
-                <span className="text-xs sm:text-sm font-bold text-slate-800">{data.interCityGrouping}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs sm:text-sm font-bold text-slate-800">{data.interCityGrouping}</span>
+                  {data.uploadedFiles?.['interCityGrouping'] && (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenDocPreview(data.uploadedFiles!['interCityGrouping'])}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded text-[11px] font-medium transition cursor-pointer shadow-2xs"
+                      title={data.uploadedFiles['interCityGrouping'].name}
+                    >
+                      <Eye className="w-3 h-3 text-emerald-600" />
+                      <span className="truncate max-w-[85px]">{data.uploadedFiles['interCityGrouping'].name}</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
-              <div className="bg-[#f8fafc] border border-slate-200/70 rounded-xl px-4 py-2.5 flex items-center justify-between">
+              {/* Departure Grouping */}
+              <div className="bg-[#f8fafc] border border-slate-200/70 rounded-xl px-4 py-2.5 flex items-center justify-between gap-2">
                 <span className="text-xs text-slate-400 font-normal">{isRTL ? 'تفويج المغادرة' : 'Departure Grouping'}</span>
-                <span className="text-xs sm:text-sm font-bold text-slate-800">{data.departureGrouping}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs sm:text-sm font-bold text-slate-800">{data.departureGrouping}</span>
+                  {data.uploadedFiles?.['departureGrouping'] && (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenDocPreview(data.uploadedFiles!['departureGrouping'])}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded text-[11px] font-medium transition cursor-pointer shadow-2xs"
+                      title={data.uploadedFiles['departureGrouping'].name}
+                    >
+                      <Eye className="w-3 h-3 text-emerald-600" />
+                      <span className="truncate max-w-[85px]">{data.uploadedFiles['departureGrouping'].name}</span>
+                    </button>
+                  )}
+                </div>
               </div>
+
+              {/* Makkah Ziyarat */}
+              {(data.makkahZiyarat || data.uploadedFiles?.['makkahZiyarat']) && (
+                <div className="bg-[#f8fafc] border border-slate-200/70 rounded-xl px-4 py-2.5 flex items-center justify-between gap-2">
+                  <span className="text-xs text-slate-400 font-normal">{isRTL ? 'مزارات مكة المكرمة' : 'Makkah Ziyarat Places'}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs sm:text-sm font-bold text-slate-800 truncate max-w-[120px]">{data.makkahZiyarat || '-'}</span>
+                    {data.uploadedFiles?.['makkahZiyarat'] && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenDocPreview(data.uploadedFiles!['makkahZiyarat'])}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded text-[11px] font-medium transition cursor-pointer shadow-2xs"
+                        title={data.uploadedFiles['makkahZiyarat'].name}
+                      >
+                        <Eye className="w-3 h-3 text-emerald-600" />
+                        <span className="truncate max-w-[85px]">{data.uploadedFiles['makkahZiyarat'].name}</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Madinah Ziyarat */}
+              {(data.madinahZiyarat || data.uploadedFiles?.['madinahZiyarat']) && (
+                <div className="bg-[#f8fafc] border border-slate-200/70 rounded-xl px-4 py-2.5 flex items-center justify-between gap-2">
+                  <span className="text-xs text-slate-400 font-normal">{isRTL ? 'مزارات المدينة المنورة' : 'Madinah Ziyarat Places'}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs sm:text-sm font-bold text-slate-800 truncate max-w-[120px]">{data.madinahZiyarat || '-'}</span>
+                    {data.uploadedFiles?.['madinahZiyarat'] && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenDocPreview(data.uploadedFiles!['madinahZiyarat'])}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded text-[11px] font-medium transition cursor-pointer shadow-2xs"
+                        title={data.uploadedFiles['madinahZiyarat'].name}
+                      >
+                        <Eye className="w-3 h-3 text-emerald-600" />
+                        <span className="truncate max-w-[85px]">{data.uploadedFiles['madinahZiyarat'].name}</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Enrichment Program */}
+              {(data.enrichmentProgram || data.uploadedFiles?.['enrichmentProgram']) && (
+                <div className="bg-[#f8fafc] border border-slate-200/70 rounded-xl px-4 py-2.5 flex items-center justify-between gap-2">
+                  <span className="text-xs text-slate-400 font-normal">{isRTL ? 'البرنامج الإثرائي' : 'Enrichment Program'}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs sm:text-sm font-bold text-slate-800 truncate max-w-[120px]">{data.enrichmentProgram || '-'}</span>
+                    {data.uploadedFiles?.['enrichmentProgram'] && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenDocPreview(data.uploadedFiles!['enrichmentProgram'])}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded text-[11px] font-medium transition cursor-pointer shadow-2xs"
+                        title={data.uploadedFiles['enrichmentProgram'].name}
+                      >
+                        <Eye className="w-3 h-3 text-emerald-600" />
+                        <span className="truncate max-w-[85px]">{data.uploadedFiles['enrichmentProgram'].name}</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Missing Requirements */}
+              {(data.missingRequirements || data.uploadedFiles?.['missingRequirements']) && (
+                <div className="bg-[#f8fafc] border border-slate-200/70 rounded-xl px-4 py-2.5 flex items-center justify-between gap-2">
+                  <span className="text-xs text-slate-400 font-normal">{isRTL ? 'النواقص والطلبات' : 'Missing Requirements'}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs sm:text-sm font-bold text-slate-800 truncate max-w-[120px]">{data.missingRequirements || '-'}</span>
+                    {data.uploadedFiles?.['missingRequirements'] && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenDocPreview(data.uploadedFiles!['missingRequirements'])}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded text-[11px] font-medium transition cursor-pointer shadow-2xs"
+                        title={data.uploadedFiles['missingRequirements'].name}
+                      >
+                        <Eye className="w-3 h-3 text-emerald-600" />
+                        <span className="truncate max-w-[85px]">{data.uploadedFiles['missingRequirements'].name}</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Additional Notes */}
+              {(data.additionalNotes || data.uploadedFiles?.['additionalNotes']) && (
+                <div className="bg-[#f8fafc] border border-slate-200/70 rounded-xl px-4 py-2.5 flex items-center justify-between gap-2 sm:col-span-2">
+                  <span className="text-xs text-slate-400 font-normal">{isRTL ? 'ملاحظات إضافية' : 'Additional Notes'}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs sm:text-sm font-bold text-slate-800 truncate max-w-[200px]">{data.additionalNotes || '-'}</span>
+                    {data.uploadedFiles?.['additionalNotes'] && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenDocPreview(data.uploadedFiles!['additionalNotes'])}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded text-[11px] font-medium transition cursor-pointer shadow-2xs"
+                        title={data.uploadedFiles['additionalNotes'].name}
+                      >
+                        <Eye className="w-3 h-3 text-emerald-600" />
+                        <span className="truncate max-w-[85px]">{data.uploadedFiles['additionalNotes'].name}</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -411,46 +640,92 @@ export default function GroupDetailsModal({
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {Object.entries(data.uploadedFiles).map(([key, file]) => (
-                  <div
-                    key={key}
-                    onClick={() => handleOpenDocPreview(file)}
-                    className="bg-[#f8fafc] hover:bg-emerald-50/50 border border-slate-200/80 hover:border-emerald-300 rounded-xl p-3 flex items-center justify-between transition cursor-pointer group shadow-2xs"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition shrink-0">
-                        {file.name.endsWith('.png') || file.name.endsWith('.jpg') || file.name.endsWith('.jpeg') ? (
-                          <Eye className="w-4 h-4 stroke-[2]" />
-                        ) : (
-                          <FileCheck className="w-4 h-4 stroke-[2]" />
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-slate-800 truncate group-hover:text-emerald-800 transition" title={file.name}>
-                          {file.name}
-                        </p>
-                        <p className="text-[10px] text-slate-400">
-                          {file.categoryTitle || key} • {file.uploadedAt || '15/08/2024'}
-                        </p>
-                      </div>
-                    </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {Object.entries(data.uploadedFiles).map(([key, file]) => {
+                  const ext = file.name.split('.').pop()?.toLowerCase() || '';
+                  const isImg = ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext) || file.type?.startsWith('image/');
+                  const isPdf = ext === 'pdf' || file.type === 'application/pdf';
 
-                    <div className="flex items-center gap-1 shrink-0">
+                  const formatSize = (bytes?: number) => {
+                    if (!bytes) return '';
+                    if (bytes < 1024) return `${bytes} B`;
+                    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+                    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+                  };
+
+                  return (
+                    <div
+                      key={key}
+                      onClick={() => handleOpenDocPreview(file)}
+                      className="bg-[#f8fafc] hover:bg-emerald-50/40 border border-slate-200/90 hover:border-emerald-300 rounded-xl p-3 flex items-center justify-between gap-3 transition cursor-pointer group shadow-2xs"
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        {/* Thumbnail / Icon Badge */}
+                        <div className="w-11 h-11 rounded-lg bg-white border border-slate-200/90 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs group-hover:border-emerald-300 transition">
+                          {isImg && file.url && !file.url.startsWith('blob:') ? (
+                            <img
+                              src={file.url}
+                              alt={file.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display = 'none';
+                                (e.target as HTMLElement).parentElement?.classList.add('bg-emerald-50');
+                              }}
+                            />
+                          ) : isPdf ? (
+                            <div className="w-full h-full bg-rose-50 text-rose-600 flex flex-col items-center justify-center">
+                              <FileText className="w-5 h-5 stroke-[2]" />
+                              <span className="text-[8px] font-bold uppercase font-mono">PDF</span>
+                            </div>
+                          ) : (
+                            <div className="w-full h-full bg-emerald-50 text-emerald-600 flex flex-col items-center justify-center">
+                              <ImageIcon className="w-5 h-5 stroke-[2]" />
+                              <span className="text-[8px] font-bold uppercase font-mono">{ext || 'IMG'}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* File Details */}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs sm:text-sm font-bold text-slate-800 truncate group-hover:text-emerald-800 transition" title={file.name}>
+                            {file.name}
+                          </p>
+                          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-0.5 truncate">
+                            <span className="font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded text-[10px] border border-emerald-200/60 shrink-0">
+                              {file.categoryTitle || key}
+                            </span>
+                            {file.size && (
+                              <>
+                                <span>•</span>
+                                <span className="font-mono text-slate-400">{formatSize(file.size)}</span>
+                              </>
+                            )}
+                            {file.uploadedAt && (
+                              <>
+                                <span>•</span>
+                                <span className="text-slate-400">{file.uploadedAt}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Action Button */}
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleOpenDocPreview(file);
                         }}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-700 hover:bg-white transition"
-                        title={isRTL ? 'معاينة' : 'Preview'}
+                        className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50/50 flex items-center gap-1 text-xs font-semibold transition shrink-0 shadow-2xs"
+                        title={isRTL ? 'معاينة الملف' : 'Preview Document'}
                       >
-                        <Eye className="w-3.5 h-3.5" />
+                        <Eye className="w-3.5 h-3.5 stroke-[2.2] text-emerald-600" />
+                        <span className="hidden sm:inline">{isRTL ? 'معاينة' : 'Preview'}</span>
                       </button>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

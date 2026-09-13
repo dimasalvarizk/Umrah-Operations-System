@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useLanguage } from '../../../context/LanguageContext';
+import { getSystemListsApi, type BaseListItem } from '../../../services/settingsApi';
 
 interface Step1BasicInfoProps {
   groupName: string;
@@ -26,7 +27,7 @@ export default function Step1BasicInfo({
   setGroupName,
   groupCode,
   setGroupCode,
-  agreementNumber = 'AGR-1125900',
+  agreementNumber = '',
   setAgreementNumber,
   subAgent,
   setSubAgent,
@@ -36,100 +37,44 @@ export default function Step1BasicInfo({
   setPilgrimsCount,
   nationality,
   setNationality,
-  packageType = 'باقة كبار الشخصيات التنفيذية (١٤ يوم)',
+  packageType = '',
   setPackageType,
 }: Step1BasicInfoProps) {
   const { t, isRTL } = useLanguage();
 
-  // Dynamic Agents list from system master lists
-  const availableAgents = useMemo(() => {
-    try {
-      const saved = localStorage.getItem('system_list_agents');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.filter((a: { status: string }) => a.status === 'Active');
-        }
-      }
-    } catch {
-      // fallback
-    }
-    return [
-      { nameEn: 'Hasoob Technology Trading - 2067', nameAr: 'حاسوب لتجارة التقنية - 2067' },
-      { nameEn: 'ODST Travel and Tourism - 2114', nameAr: 'أودست للسياحة والسفر - 2114' },
-      { nameEn: 'Makkah Aviation Agency', nameAr: 'وكالة مكة للطيران' },
-      { nameEn: 'Noor Al-Iman Intl', nameAr: 'نور الإيمان الدولية' },
-      { nameEn: 'Indonesia Travel', nameAr: 'إندونيسيا ترافيل' },
-      { nameEn: 'Safa Travel India', nameAr: 'الصفا ترافيل الهند' },
-      { nameEn: 'Ankara Tours Agency', nameAr: 'وكالة أنقرة للسياحة' },
-    ];
-  }, []);
+  const [agentsList, setAgentsList] = useState<BaseListItem[]>([]);
+  const [countriesList, setCountriesList] = useState<BaseListItem[]>([]);
+  const [packagesList, setPackagesList] = useState<BaseListItem[]>([]);
 
-  // Dynamic Sub-Agents list from system master lists & partners
-  const availableSubAgents = useMemo(() => {
-    const defaultSubAgents = [
-      { id: 'sub-1', nameEn: 'Tasheel Tourism', nameAr: 'تسهيل للسياحة' },
-      { id: 'sub-2', nameEn: 'Al-Huda Trips', nameAr: 'رحلات الهدى' },
-      { id: 'sub-3', nameEn: 'Noor Al-Safa Sub-Agent', nameAr: 'تور الصفا الفرعي' },
-      { id: 'sub-4', nameEn: 'Tasheel Turkey', nameAr: 'تسهيل تركيا' },
-      { id: 'sub-5', nameEn: 'Tasheel Jakarta', nameAr: 'تسهيل جاكرتا' },
-      { id: 'sub-6', nameEn: 'Al-Quds Jordan', nameAr: 'القدس الأردنية' },
-      { id: 'sub-7', nameEn: 'Tasheel Karachi', nameAr: 'تسهيل كراتشي' },
-      { id: 'sub-8', nameEn: 'Sub-Agent in Egypt', nameAr: 'الوكيل الفرعي بمصر' },
-      ...availableAgents,
-    ];
-    const seen = new Set<string>();
-    return defaultSubAgents.filter((item) => {
-      const key = item.nameEn.toLowerCase();
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  }, [availableAgents]);
-
-  // Dynamic Countries list from system master lists
-  const availableNationalities = useMemo(() => {
-    try {
-      const saved = localStorage.getItem('system_list_countries');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.filter((c: { status: string }) => c.status === 'Active');
+  useEffect(() => {
+    let isMounted = true;
+    async function loadMasterLists() {
+      try {
+        const [agents, countries, packages] = await Promise.all([
+          getSystemListsApi('agents').catch(() => []),
+          getSystemListsApi('countries').catch(() => []),
+          getSystemListsApi('packages').catch(() => []),
+        ]);
+        if (isMounted) {
+          setAgentsList(agents.filter((a) => a.status === 'Active'));
+          setCountriesList(countries.filter((c) => c.status === 'Active'));
+          setPackagesList(packages.filter((p) => p.status === 'Active'));
         }
+      } catch (err) {
+        console.error('Failed to load system master lists for Step 1:', err);
       }
-    } catch {
-      // fallback
     }
-    return [
-      { nameEn: 'Indonesia', nameAr: 'إندونيسيا' },
-      { nameEn: 'Pakistan', nameAr: 'باكستان' },
-      { nameEn: 'Egypt', nameAr: 'مصر' },
-      { nameEn: 'Turkey', nameAr: 'تركيا' },
-      { nameEn: 'India', nameAr: 'الهند' },
-      { nameEn: 'Jordan', nameAr: 'الأردن' },
-      { nameEn: 'Morocco', nameAr: 'المغرب' },
-    ];
-  }, []);
+    loadMasterLists();
 
-  // Dynamic Packages list from system master lists
-  const availablePackages = useMemo(() => {
-    try {
-      const saved = localStorage.getItem('system_list_packages');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.filter((p: { status: string }) => p.status === 'Active');
-        }
-      }
-    } catch {
-      // fallback
-    }
-    return [
-      { id: '1', nameEn: 'VIP Executive 14 Days', nameAr: 'باقة كبار الشخصيات التنفيذية (١٤ يوم)', secondary: '5-Star Front Row Hotels' },
-      { id: '2', nameEn: 'Premium Gold 12 Days', nameAr: 'الباقة الذهبية المميزة (١٢ يوم)', secondary: '5-Star Walking Distance' },
-      { id: '3', nameEn: 'Classic Economy 10 Days', nameAr: 'الباقة الاقتصادية الكلاسيكية (١٠ أيام)', secondary: '4-Star Central Hotels' },
-      { id: '4', nameEn: 'Ramadan Last 10 Days Special', nameAr: 'برنامج العشر الأواخر من رمضان', secondary: 'Makkah Clock Towers' },
-    ];
+    const handleSystemListUpdate = () => {
+      loadMasterLists();
+    };
+    window.addEventListener('umrah_system_lists_updated', handleSystemListUpdate);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('umrah_system_lists_updated', handleSystemListUpdate);
+    };
   }, []);
 
   return (
@@ -214,11 +159,11 @@ export default function Step1BasicInfo({
               }`}
             >
               <option value="">{isRTL ? 'اختر فئة الباقة والبرنامج...' : 'Select package tier...'}</option>
-              {availablePackages.map((pkg: any, idx: number) => {
+              {packagesList.map((pkg: BaseListItem) => {
                 const label = isRTL ? pkg.nameAr : pkg.nameEn;
                 const sub = pkg.secondary ? ` - ${pkg.secondary}` : '';
                 return (
-                  <option key={pkg.id || idx} value={label}>
+                  <option key={pkg.id} value={label}>
                     {label}{sub}
                   </option>
                 );
@@ -231,7 +176,7 @@ export default function Step1BasicInfo({
         </div>
       </div>
 
-      {/* Row 2 */}
+      {/* Row 3 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
         {/* Sub Agent */}
         <div className="space-y-1.5">
@@ -248,10 +193,10 @@ export default function Step1BasicInfo({
               }`}
             >
               <option value="">{isRTL ? 'اختر الوكيل الفرعي...' : 'Select sub-agent...'}</option>
-              {availableSubAgents.map((agent, idx) => {
+              {agentsList.map((agent) => {
                 const label = isRTL ? agent.nameAr : agent.nameEn;
                 return (
-                  <option key={agent.id || idx} value={label}>
+                  <option key={agent.id} value={label}>
                     {label}
                   </option>
                 );
@@ -278,10 +223,10 @@ export default function Step1BasicInfo({
               }`}
             >
               <option value="">{t('groups.agent_placeholder', 'اختر الوكيل...')}</option>
-              {availableAgents.map((agent, idx) => {
+              {agentsList.map((agent) => {
                 const label = isRTL ? agent.nameAr : agent.nameEn;
                 return (
-                  <option key={agent.id || idx} value={label}>
+                  <option key={agent.id} value={label}>
                     {label}
                   </option>
                 );
@@ -294,7 +239,7 @@ export default function Step1BasicInfo({
         </div>
       </div>
 
-      {/* Row 3 */}
+      {/* Row 4 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
         {/* Pilgrims Count with +/- Stepper */}
         <div className="space-y-1.5">
@@ -306,7 +251,7 @@ export default function Step1BasicInfo({
             {/* Minus Button */}
             <button
               type="button"
-              onClick={() => setPilgrimsCount((prev) => Math.max(1, prev - 1))}
+              onClick={() => setPilgrimsCount((prev) => Math.max(1, (prev || 1) - 1))}
               className="w-11 py-2.5 bg-[#f8fafc] flex items-center justify-center text-slate-600 hover:bg-slate-100 text-sm font-bold transition cursor-pointer active:bg-slate-200/80"
             >
               -
@@ -315,15 +260,17 @@ export default function Step1BasicInfo({
             {/* Number Display */}
             <input
               type="number"
-              value={pilgrimsCount}
-              onChange={(e) => setPilgrimsCount(Number(e.target.value))}
+              min={1}
+              value={pilgrimsCount || ''}
+              placeholder="0"
+              onChange={(e) => setPilgrimsCount(Math.max(0, parseInt(e.target.value) || 0))}
               className="flex-1 text-center font-bold text-slate-800 text-sm py-2.5 bg-white focus:outline-none"
             />
 
             {/* Plus Button */}
             <button
               type="button"
-              onClick={() => setPilgrimsCount((prev) => prev + 1)}
+              onClick={() => setPilgrimsCount((prev) => (prev || 0) + 1)}
               className="w-11 py-2.5 bg-[#f8fafc] flex items-center justify-center text-slate-600 hover:bg-slate-100 text-sm font-bold transition cursor-pointer active:bg-slate-200/80"
             >
               +
@@ -346,10 +293,10 @@ export default function Step1BasicInfo({
               }`}
             >
               <option value="">{isRTL ? 'اختر الجنسية' : 'Select Nationality'}</option>
-              {availableNationalities.map((item, idx) => {
+              {countriesList.map((item) => {
                 const label = isRTL ? item.nameAr : item.nameEn;
                 return (
-                  <option key={item.id || idx} value={label}>
+                  <option key={item.id} value={label}>
                     {label}
                   </option>
                 );

@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { AlertTriangle } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import type { AgreementItem } from './AddAgreementModal';
@@ -19,8 +20,8 @@ export default function DeleteAgreementModal({
 
   if (!isOpen || !agreement) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fadeIn">
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-xs animate-fadeIn">
       <div
         className="bg-white rounded-3xl p-6 sm:p-8 max-w-[370px] sm:max-w-[400px] w-full shadow-2xl text-center space-y-5 border border-slate-100 animate-scaleUp"
         dir={direction}
@@ -64,6 +65,7 @@ export default function DeleteAgreementModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

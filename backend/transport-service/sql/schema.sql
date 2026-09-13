@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS transports (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  code VARCHAR(50) NOT NULL UNIQUE,
+  name VARCHAR(255) NOT NULL,
+  name_en VARCHAR(255),
+  status VARCHAR(50) DEFAULT 'متاح',
+  rating DECIMAL(2,1) DEFAULT 5.0,
+  fleet_size INT DEFAULT 1,
+  fleet_label VARCHAR(100),
+  fleet_label_en VARCHAR(100),
+  phone VARCHAR(100),
+  region VARCHAR(100) DEFAULT 'مكة المكرمة',
+  region_en VARCHAR(100) DEFAULT 'Makkah',
+  vehicle_category VARCHAR(255),
+  vehicle_category_en VARCHAR(255),
+  image TEXT,
+  description TEXT,
+  notes TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

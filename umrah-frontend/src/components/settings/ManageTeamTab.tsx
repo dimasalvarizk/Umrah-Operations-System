@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Search,
   Check,
@@ -7,6 +7,14 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import {
+  getTeamMembersApi,
+  createTeamMemberApi,
+  updateTeamMemberApi,
+  deleteTeamMemberApi,
+  type TeamMemberApi,
+} from '../../services/teamApi';
+import { getSystemListsApi, type BaseListItem } from '../../services/settingsApi';
 
 export interface TeamMember {
   id: string;
@@ -22,80 +30,89 @@ export interface TeamMember {
   lastActive: string;
 }
 
+const DEFAULT_MEMBERS: TeamMember[] = [
+  {
+    id: '1',
+    name: 'Dimas Alvarizki',
+    email: 'alvarizkidimas@gmail.com',
+    phone: '+62 812 3456 7890',
+    employeeId: 'EMP-0001',
+    role: 'Super Admin',
+    branch: 'Jeddah Main Office',
+    department: 'Operations Management',
+    jobTitle: 'Super Admin & Lead Director',
+    status: 'Active',
+    lastActive: 'Active now',
+  },
+  {
+    id: '2',
+    name: 'Ali',
+    email: 'ali@odst.id',
+    phone: '+966 50 123 4567',
+    employeeId: 'EMP-0002',
+    role: 'Super Admin',
+    branch: 'Makkah Branch',
+    department: 'Operations Management',
+    jobTitle: 'Super Admin & Operations Director',
+    status: 'Active',
+    lastActive: 'Active now',
+  },
+];
+
 export default function ManageTeamTab() {
   const { isRTL } = useLanguage();
 
-  const [members, setMembers] = useState<TeamMember[]>([
-    {
-      id: '1',
-      name: isRTL ? 'أحمد محمد الشريف' : 'Ahmed Mohammed Al-Sharif',
-      email: 'ahmed.sharif@odstgroup.com',
-      phone: '+966 50 123 4567',
-      employeeId: 'EMP-1042',
-      role: 'Super Admin',
-      branch: isRTL ? 'مكة المكرمة' : 'Makkah Branch',
-      department: isRTL ? 'إدارة العمليات' : 'Operations Management',
-      jobTitle: isRTL ? 'مدير النظام والعمليات' : 'Lead Operations Director',
-      status: 'Active',
-      lastActive: isRTL ? 'نشط الآن' : 'Active now',
-    },
-    {
-      id: '2',
-      name: isRTL ? 'سارة فهد القحطاني' : 'Sarah Fahad Al-Qahtani',
-      email: 'sarah.q@odstgroup.com',
-      phone: '+966 55 987 6543',
-      employeeId: 'EMP-1088',
-      role: 'Staff',
-      branch: isRTL ? 'مكة المكرمة' : 'Makkah Branch',
-      department: isRTL ? 'إسكان وفنادق' : 'Housing & Hotels',
-      jobTitle: isRTL ? 'أخصائي تسكين وفنادق' : 'Housing Specialist',
-      status: 'Active',
-      lastActive: isRTL ? 'منذ ١٥ دقيقة' : '15 mins ago',
-    },
-    {
-      id: '3',
-      name: isRTL ? 'عبدالله سالم الحربي' : 'Abdullah Salem Al-Harbi',
-      email: 'abdullah.h@odstgroup.com',
-      phone: '+966 54 222 3344',
-      employeeId: 'EMP-1095',
-      role: 'Staff',
-      branch: isRTL ? 'المدينة المنورة' : 'Madinah Branch',
-      department: isRTL ? 'النقل واللوجستيات' : 'Transport & Logistics',
-      jobTitle: isRTL ? 'منسق أسطول وحافلات' : 'Fleet Coordinator',
-      status: 'Active',
-      lastActive: isRTL ? 'منذ ساعة' : '1 hour ago',
-    },
-    {
-      id: '4',
-      name: isRTL ? 'يوسف إبراهيم باوزير' : 'Youssef Ibrahim Bawazir',
-      email: 'youssef.b@odstgroup.com',
-      phone: '+966 56 444 8899',
-      employeeId: 'EMP-1102',
-      role: 'Viewer',
-      branch: isRTL ? 'جدة' : 'Jeddah Main Office',
-      department: isRTL ? 'التدقيق والتقارير' : 'Audit & Reporting',
-      jobTitle: isRTL ? 'مدقق تقارير وعمليات' : 'Operations Auditor',
-      status: 'Active',
-      lastActive: isRTL ? 'منذ ساعتين' : '2 hours ago',
-    },
-    {
-      id: '5',
-      name: isRTL ? 'مها خالد السعيد' : 'Maha Khaled Al-Saeed',
-      email: 'maha.s@odstgroup.com',
-      phone: '+966 53 777 1122',
-      employeeId: 'EMP-1115',
-      role: 'Staff',
-      branch: isRTL ? 'مكة المكرمة' : 'Makkah Branch',
-      department: isRTL ? 'خدمة العملاء' : 'Customer Service',
-      jobTitle: isRTL ? 'أخصائي خدمة معتمرين' : 'Pilgrim Care Agent',
-      status: 'Inactive',
-      lastActive: isRTL ? 'منذ ٣ أيام' : '3 days ago',
-    },
-  ]);
+  const [members, setMembers] = useState<TeamMember[]>(() => {
+    try {
+      const saved = localStorage.getItem('system_team_members');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0 && !parsed.some((m: any) => m.email === 'ahmed.sharif@odstgroup.com')) {
+          return parsed;
+        }
+      }
+    } catch {}
+    return DEFAULT_MEMBERS;
+  });
 
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
   const [feedback, setFeedback] = useState<string | null>(null);
+
+  // Fetch team members from backend API on mount
+  const fetchMembers = async () => {
+    try {
+      const data = await getTeamMembersApi();
+      if (Array.isArray(data) && data.length > 0) {
+        setMembers(
+          data.map((m: TeamMemberApi) => ({
+            id: String(m.id),
+            name: m.name,
+            email: m.email,
+            phone: m.phone || '',
+            employeeId: m.employeeId || `EMP-${m.id}`,
+            role: (m.role as TeamMember['role']) || 'Staff',
+            branch: m.branch || (isRTL ? 'مكة المكرمة' : 'Makkah Branch'),
+            department: m.department || (isRTL ? 'إدارة العمليات' : 'Operations'),
+            jobTitle: m.jobTitle || (isRTL ? 'موظف عمليات' : 'Operations Staff'),
+            status: m.status || 'Active',
+            lastActive: m.lastActive || 'Active',
+          }))
+        );
+      }
+    } catch {
+      // Backend fallback silently keeps local storage
+    }
+  };
+
+  useEffect(() => {
+    fetchMembers();
+  }, []);
+
+  // Save to localStorage as fallback
+  useEffect(() => {
+    localStorage.setItem('system_team_members', JSON.stringify(members));
+  }, [members]);
 
   // Modals state
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -116,20 +133,33 @@ export default function ManageTeamTab() {
   const [jobTitleInput, setJobTitleInput] = useState(isRTL ? 'موظف عمليات' : 'Operations Staff');
   const [statusInput, setStatusInput] = useState<'Active' | 'Inactive'>('Active');
 
-  const availableBranches = useMemo(() => {
+  const [availableBranches, setAvailableBranches] = useState<BaseListItem[]>([
+    { id: '1', nameEn: 'Makkah Main Operations Hub', nameAr: 'فرع مكة المكرمة الرئيسي', status: 'Active' },
+    { id: '2', nameEn: 'Madinah Central Branch', nameAr: 'فرع المدينة المنورة المركزي', status: 'Active' },
+    { id: '3', nameEn: 'Jeddah Airport Logistics Office', nameAr: 'مكتب خدمات مطار جدة (JED)', status: 'Active' },
+    { id: '4', nameEn: 'Riyadh Headquarters', nameAr: 'المقر الرئيسي - الرياض', status: 'Active' },
+  ]);
+
+  const fetchBranches = async () => {
     try {
-      const saved = localStorage.getItem('system_list_branches');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      const live = await getSystemListsApi('branches');
+      if (Array.isArray(live) && live.length > 0) {
+        setAvailableBranches(live.filter((b) => b.status === 'Active'));
       }
-    } catch {}
-    return [
-      { id: '1', nameEn: 'Makkah Main Operations Hub', nameAr: 'فرع مكة المكرمة الرئيسي' },
-      { id: '2', nameEn: 'Madinah Central Branch', nameAr: 'فرع المدينة المنورة المركزي' },
-      { id: '3', nameEn: 'Jeddah Airport Logistics Office', nameAr: 'مكتب خدمات مطار جدة (JED)' },
-      { id: '4', nameEn: 'Riyadh Headquarters', nameAr: 'المقر الرئيسي - الرياض' },
-    ];
+    } catch {
+      // Fallback
+    }
+  };
+
+  useEffect(() => {
+    fetchBranches();
+    const handleUpdated = () => {
+      fetchBranches();
+    };
+    window.addEventListener('umrah_system_lists_updated', handleUpdated);
+    return () => {
+      window.removeEventListener('umrah_system_lists_updated', handleUpdated);
+    };
   }, []);
 
   const filteredMembers = useMemo(() => {
@@ -172,9 +202,8 @@ export default function ManageTeamTab() {
     setIsEditOpen(true);
   };
 
-  const handleConfirmAdd = () => {
-    const newM: TeamMember = {
-      id: Date.now().toString(),
+  const handleConfirmAdd = async () => {
+    const payload = {
       name: nameInput.trim(),
       email: emailInput.trim(),
       phone: phoneInput.trim() || '+966 50 000 0000',
@@ -186,26 +215,61 @@ export default function ManageTeamTab() {
       status: statusInput,
       lastActive: isRTL ? 'تمت إضافته للتو' : 'Just added',
     };
-    setMembers((prev) => [newM, ...prev]);
+
+    try {
+      const created = await createTeamMemberApi(payload);
+      setMembers((prev) => [
+        {
+          id: String(created.id),
+          name: created.name,
+          email: created.email,
+          phone: created.phone || '',
+          employeeId: created.employeeId || empIdInput.trim(),
+          role: (created.role as TeamMember['role']) || 'Staff',
+          branch: created.branch || branchInput,
+          department: created.department || deptInput,
+          jobTitle: created.jobTitle || jobTitleInput,
+          status: created.status || 'Active',
+          lastActive: isRTL ? 'تمت إضافته للتو' : 'Just added',
+        },
+        ...prev,
+      ]);
+    } catch {
+      const newM: TeamMember = {
+        id: Date.now().toString(),
+        ...payload,
+      };
+      setMembers((prev) => [newM, ...prev]);
+    }
+
     setAddStep(3);
   };
 
-  const handleSaveEdit = (e: React.FormEvent) => {
+  const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedMember) {
+      const payload = {
+        name: nameInput.trim(),
+        email: emailInput.trim(),
+        phone: phoneInput.trim(),
+        employeeId: empIdInput.trim(),
+        role: roleInput,
+        branch: branchInput,
+        department: deptInput,
+        jobTitle: jobTitleInput,
+        status: statusInput,
+      };
+
+      try {
+        await updateTeamMemberApi(selectedMember.id, payload);
+      } catch {}
+
       setMembers((prev) =>
         prev.map((m) =>
           m.id === selectedMember.id
             ? {
                 ...m,
-                name: nameInput.trim(),
-                email: emailInput.trim(),
-                phone: phoneInput.trim(),
-                role: roleInput,
-                branch: branchInput,
-                department: deptInput,
-                jobTitle: jobTitleInput,
-                status: statusInput,
+                ...payload,
               }
             : m
         )
@@ -217,8 +281,12 @@ export default function ManageTeamTab() {
     }
   };
 
-  const handleDeleteMember = () => {
+  const handleDeleteMember = async () => {
     if (memberToDelete) {
+      try {
+        await deleteTeamMemberApi(memberToDelete.id);
+      } catch {}
+
       setMembers((prev) => prev.filter((m) => m.id !== memberToDelete.id));
       setMemberToDelete(null);
       setFeedback(isRTL ? 'تم حذف العضو من الفريق' : 'Team member removed from team.');

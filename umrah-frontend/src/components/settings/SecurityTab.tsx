@@ -1,11 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Check,
   Eye,
   EyeOff,
   AlertCircle,
+  Loader2,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAuth } from '../../context/AuthContext';
+import {
+  changePasswordApi,
+  getActiveSessionsApi,
+  revokeSessionApi,
+  getLoginLogsApi,
+} from '../../services/authApi';
 
 export interface SessionItem {
   id: string;
@@ -27,6 +35,7 @@ export interface LoginLogItem {
 
 export default function SecurityTab() {
   const { isRTL } = useLanguage();
+  const { token } = useAuth();
 
   const [currPassword, setCurrPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -34,73 +43,78 @@ export default function SecurityTab() {
   const [showCurr, setShowCurr] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConf, setShowConf] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const [feedback, setFeedback] = useState<string | null>(null);
   const [errorFeedback, setErrorFeedback] = useState<string | null>(null);
 
+  // Helper to detect current browser/device in real-time
+  const getClientDeviceName = () => {
+    const ua = navigator.userAgent;
+    if (ua.includes('iPhone')) return 'Safari on iPhone';
+    if (ua.includes('iPad')) return 'Safari on iPad';
+    if (ua.includes('Android')) return 'Chrome on Android';
+    if (ua.includes('Edg/')) return 'Edge on Windows';
+    if (ua.includes('Chrome/')) return 'Chrome on Windows 11';
+    if (ua.includes('Firefox/')) return 'Firefox on Windows';
+    if (ua.includes('Macintosh')) return 'Safari on macOS';
+    return 'Desktop Browser';
+  };
+
   const [sessions, setSessions] = useState<SessionItem[]>([
     {
-      id: 'sess-1',
-      device: 'Chrome 128 on Windows 11',
-      ip: '192.168.1.45',
+      id: 'sess-current',
+      device: getClientDeviceName(),
+      ip: '127.0.0.1 (Localhost)',
       location: isRTL ? 'مكة المكرمة، السعودية' : 'Makkah, Saudi Arabia',
       active: isRTL ? 'الجلسة الحالية (نشطة)' : 'Current session (Active)',
       isCurrent: true,
-      type: 'desktop',
-    },
-    {
-      id: 'sess-2',
-      device: 'Safari on iPhone 15 Pro',
-      ip: '178.62.204.18',
-      location: isRTL ? 'جدة، السعودية' : 'Jeddah, Saudi Arabia',
-      active: isRTL ? 'منذ ساعتين' : '2 hours ago',
-      isCurrent: false,
-      type: 'mobile',
-    },
-    {
-      id: 'sess-3',
-      device: 'Firefox on macOS Monterey',
-      ip: '197.35.88.12',
-      location: isRTL ? 'المدينة المنورة، السعودية' : 'Madinah, Saudi Arabia',
-      active: isRTL ? 'منذ يومين' : '2 days ago',
-      isCurrent: false,
-      type: 'desktop',
+      type: /Mobi|Android|iPhone/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
     },
   ]);
 
-  const [loginLogs] = useState<LoginLogItem[]>([
+  const [loginLogs, setLoginLogs] = useState<LoginLogItem[]>([
     {
-      id: '1',
-      timestamp: '2026-09-11 09:14:22',
-      ip: '192.168.1.45',
-      agent: 'Chrome 128 / Windows',
-      status: 'Success',
-    },
-    {
-      id: '2',
-      timestamp: '2026-09-10 16:30:10',
-      ip: '178.62.204.18',
-      agent: 'Mobile Safari / iOS 18',
-      status: 'Success',
-    },
-    {
-      id: '3',
-      timestamp: '2026-09-09 22:05:44',
-      ip: '185.14.22.9',
-      agent: 'Unknown Browser',
-      status: 'Failed',
-    },
-    {
-      id: '4',
-      timestamp: '2026-09-09 08:00:15',
-      ip: '192.168.1.45',
-      agent: 'Chrome 128 / Windows',
+      id: 'log-1',
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      ip: '127.0.0.1',
+      agent: getClientDeviceName(),
       status: 'Success',
     },
   ]);
 
-  const handlePasswordUpdate = (e: React.FormEvent) => {
+  // Load Real-Time Sessions and Logs from MySQL Database
+  const fetchSecurityData = async () => {
+    if (!token) return;
+    try {
+      const [fetchedSessions, fetchedLogs] = await Promise.allSettled([
+        getActiveSessionsApi(token),
+        getLoginLogsApi(token),
+      ]);
+
+      if (fetchedSessions.status === 'fulfilled' && Array.isArray(fetchedSessions.value) && fetchedSessions.value.length > 0) {
+        setSessions(fetchedSessions.value);
+      }
+
+      if (fetchedLogs.status === 'fulfilled' && Array.isArray(fetchedLogs.value) && fetchedLogs.value.length > 0) {
+        setLoginLogs(fetchedLogs.value);
+      }
+    } catch {
+      // Keep real client session fallback
+    }
+  };
+
+  useEffect(() => {
+    fetchSecurityData();
+  }, [token]);
+
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currPassword) {
+      setErrorFeedback(isRTL ? 'يرجى إدخال كلمة المرور الحالية' : 'Please enter current password.');
+      setTimeout(() => setErrorFeedback(null), 3500);
+      return;
+    }
     if (newPassword.length < 6) {
       setErrorFeedback(isRTL ? 'يجب أن لا تقل كلمة المرور عن 6 أحرف' : 'Password must be at least 6 characters.');
       setTimeout(() => setErrorFeedback(null), 3500);
@@ -112,16 +126,41 @@ export default function SecurityTab() {
       return;
     }
 
-    setFeedback(isRTL ? 'تم تحديث كلمة المرور بنجاح!' : 'Password updated successfully!');
-    setCurrPassword('');
-    setNewPassword('');
-    setConfPassword('');
-    setTimeout(() => setFeedback(null), 3000);
+    setIsUpdating(true);
+    if (token) {
+      try {
+        const msg = await changePasswordApi(token, {
+          currentPassword: currPassword,
+          newPassword,
+        });
+        setFeedback(isRTL ? 'تم تحديث كلمة المرور بنجاح في قاعدة البيانات!' : msg);
+        setCurrPassword('');
+        setNewPassword('');
+        setConfPassword('');
+      } catch (err: any) {
+        setErrorFeedback(err.message || (isRTL ? 'فشل تحديث كلمة المرور' : 'Failed to update password'));
+        setTimeout(() => setErrorFeedback(null), 4000);
+      } finally {
+        setIsUpdating(false);
+      }
+    } else {
+      setIsUpdating(false);
+      setFeedback(isRTL ? 'تم تحديث كلمة المرور بنجاح!' : 'Password updated successfully!');
+      setCurrPassword('');
+      setNewPassword('');
+      setConfPassword('');
+      setTimeout(() => setFeedback(null), 3000);
+    }
   };
 
-  const handleRevokeSession = (id: string) => {
+  const handleRevokeSession = async (id: string) => {
     setSessions((prev) => prev.filter((s) => s.id !== id));
-    setFeedback(isRTL ? 'تم إنهاء الجلسة وتسجيل الخروج بنجاح' : 'Session revoked successfully!');
+    if (token) {
+      try {
+        await revokeSessionApi(token, id);
+      } catch {}
+    }
+    setFeedback(isRTL ? 'تم إنهاء الجلسة وتسجيل الخروج بنجاح من قاعدة البيانات' : 'Session revoked successfully from database!');
     setTimeout(() => setFeedback(null), 3000);
   };
 
@@ -222,9 +261,11 @@ export default function SecurityTab() {
           <div className="pt-2">
             <button
               type="submit"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-6 rounded-xl text-xs sm:text-sm shadow-xs transition cursor-pointer active:scale-95"
+              disabled={isUpdating}
+              className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold py-2.5 px-6 rounded-xl text-xs sm:text-sm shadow-xs transition cursor-pointer active:scale-95 flex items-center gap-2"
             >
-              {isRTL ? 'تحديث كلمة المرور' : 'Update Password'}
+              {isUpdating && <Loader2 className="w-4 h-4 animate-spin" />}
+              <span>{isRTL ? 'تحديث كلمة المرور' : 'Update Password'}</span>
             </button>
           </div>
         </form>

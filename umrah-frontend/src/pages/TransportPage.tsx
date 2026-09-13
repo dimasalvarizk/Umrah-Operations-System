@@ -8,14 +8,19 @@ import {
   Star,
   ArrowLeft,
   ArrowRight,
+  Building2,
 } from 'lucide-react';
-import fleetMain from '../assets/fleet-main.png';
 import TransportDetailsModal, {
   type TransportCompany,
 } from '../components/transport/TransportDetailsModal';
 import AddTransportModal from '../components/transport/AddTransportModal';
 import CompanyFleetView from '../components/transport/CompanyFleetView';
 import { useLanguage } from '../context/LanguageContext';
+
+import {
+  getTransportsApi,
+  createTransportApi,
+} from '../services/transportApi';
 
 export default function TransportPage() {
   const { t, isRTL, direction } = useLanguage();
@@ -29,128 +34,44 @@ export default function TransportPage() {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isAddCompanyOpen, setIsAddCompanyOpen] = useState(false);
 
-  const [companiesList, setCompaniesList] = useState<TransportCompany[]>([]);
+  const [companiesList, setCompaniesList] = useState<TransportCompany[]>(() => {
+    try {
+      const saved = localStorage.getItem('umrah_transports_list');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const fetchTransports = async () => {
+    try {
+      const { transports } = await getTransportsApi({
+        search: searchQuery,
+        region: regionFilter,
+      });
+      if (Array.isArray(transports)) {
+        setCompaniesList(transports);
+      }
+    } catch {
+      // Offline fallback
+    }
+  };
 
   useEffect(() => {
-    setCompaniesList([
-      {
-        id: '1',
-        name: isRTL ? 'نقل الحرمين السريع' : 'Haramain Express Tr...',
-        status: 'متاح',
-        rating: 5.0,
-        fleetSize: 18,
-        fleetLabel: isRTL ? '18 مركبة' : '18 Vehicles',
-        phone: '+966 50 123 4567',
-        region: isRTL ? 'مكة المكرمة' : 'Makkah',
-        vehicleCategory: isRTL ? 'حافلات نقل حجاج ومعتمرين 50 راكب' : '50-Seater Pilgrim Mass Buses',
-        image:
-          'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80',
-      },
-      {
-        id: '2',
-        name: isRTL ? 'شركة الراجحي للنقل' : 'Al Rajhi Transport',
-        status: 'متاح',
-        rating: 4.5,
-        fleetSize: 24,
-        fleetLabel: isRTL ? '24 مركبة' : '24 Vehicles',
-        phone: '+966 50 234 5678',
-        region: isRTL ? 'مكة المكرمة' : 'Makkah',
-        vehicleCategory: isRTL ? 'فانات سياحية مجهزة وحافلات VIP' : 'Equipped Tourist Vans & VIP Buses',
-        image:
-          'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=800&q=80',
-      },
-      {
-        id: '3',
-        name: isRTL ? 'الليموزين السعودي' : 'Saudi Limousine',
-        status: 'متوسط',
-        rating: 4.0,
-        fleetSize: 15,
-        fleetLabel: isRTL ? '15 مركبة' : '15 Vehicles',
-        phone: '+966 50 345 6789',
-        region: isRTL ? 'مكة المكرمة' : 'Makkah',
-        vehicleCategory: isRTL ? 'سيارات ليموزين VIP وفانات نقل فندقي' : 'VIP Limousines & Hotel Shuttles',
-        image: fleetMain,
-      },
-      {
-        id: '4',
-        name: isRTL ? 'سابتكو (SAPTCO)' : 'SAPTCO',
-        status: 'متاح',
-        rating: 4.5,
-        fleetSize: 42,
-        fleetLabel: isRTL ? '42 مركبة' : '42 Vehicles',
-        phone: '+966 50 456 7890',
-        region: isRTL ? 'مكة المكرمة' : 'Makkah',
-        vehicleCategory: isRTL ? 'أسطول متكامل: حافلات وفانات وليموزين' : 'Integrated Fleet: Buses, Vans & Limos',
-        image:
-          'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?auto=format&fit=crop&w=800&q=80',
-      },
-      {
-        id: '5',
-        name: isRTL ? 'هلا للنقل' : 'Hala Transport',
-        status: 'متاح',
-        rating: 4.0,
-        fleetSize: 20,
-        fleetLabel: isRTL ? '20 مركبة' : '20 Vehicles',
-        phone: '+966 50 567 8901',
-        region: isRTL ? 'جدة' : 'Jeddah',
-        vehicleCategory: isRTL ? 'حافلات سياحية وفانات نقل جماعي' : 'Tourist Coaches & Group Vans',
-        image:
-          'https://images.unsplash.com/photo-1590362891991-f776e747a588?auto=format&fit=crop&w=800&q=80',
-      },
-      {
-        id: '6',
-        name: isRTL ? 'النقل المكي المتميز' : 'Al Makkiyah Transport',
-        status: 'محجوز',
-        rating: 3.5,
-        fleetSize: 8,
-        fleetLabel: isRTL ? '8 مركبات' : '8 Vehicles',
-        phone: '+966 50 678 9012',
-        region: isRTL ? 'مكة المكرمة' : 'Makkah',
-        vehicleCategory: isRTL ? 'فانات عائلية ومركبات تفويج بالمطار' : 'Family Vans & Airport Transfers',
-        image:
-          'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=800&q=80',
-      },
-      {
-        id: '7',
-        name: isRTL ? 'شركة تواصل للنقل' : 'Tawasul Transport',
-        status: 'متاح',
-        rating: 4.0,
-        fleetSize: 12,
-        fleetLabel: isRTL ? '12 مركبة' : '12 Vehicles',
-        phone: '+966 50 789 0123',
-        region: isRTL ? 'مكة المكرمة' : 'Makkah',
-        vehicleCategory: isRTL ? 'فانات نقل معتمرين وحافلات كوستر' : 'Pilgrim Vans & Coaster Buses',
-        image:
-          'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?auto=format&fit=crop&w=800&q=80',
-      },
-      {
-        id: '8',
-        name: isRTL ? 'المدينة السريعة للنقل' : 'Al Madinah Express',
-        status: 'متوسط',
-        rating: 3.5,
-        fleetSize: 10,
-        fleetLabel: isRTL ? '10 مركبات' : '10 Vehicles',
-        phone: '+966 50 890 1234',
-        region: isRTL ? 'المدينة المنورة' : 'Madinah',
-        vehicleCategory: isRTL ? 'سيارات سيدان فندقية وفانات نقل سريع' : 'Hotel Sedans & Rapid Vans',
-        image:
-          'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=800&q=80',
-      },
-      {
-        id: '9',
-        name: isRTL ? 'الشركة الملكية للنقل' : 'Royal Transport Co.',
-        status: 'متاح',
-        rating: 5.0,
-        fleetSize: 30,
-        fleetLabel: isRTL ? '30 مركبة' : '30 Vehicles',
-        phone: '+966 50 901 2345',
-        region: isRTL ? 'المدينة المنورة' : 'Madinah',
-        vehicleCategory: isRTL ? 'حافلات فاخرة لكبار ضيوف الرحمن VIP' : 'Luxury VIP Pilgrim Transporters',
-        image:
-          'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=800&q=80',
-      },
-    ]);
-  }, [isRTL]);
+    fetchTransports();
+  }, [searchQuery, regionFilter]);
+
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetchTransports();
+    };
+    window.addEventListener('umrah_notification_refresh', handleRefresh);
+    return () => window.removeEventListener('umrah_notification_refresh', handleRefresh);
+  }, [searchQuery, regionFilter]);
+
+  useEffect(() => {
+    localStorage.setItem('umrah_transports_list', JSON.stringify(companiesList));
+  }, [companiesList]);
 
   // Filtering
   const filteredCompanies = useMemo(() => {
@@ -169,22 +90,33 @@ export default function TransportPage() {
     });
   }, [companiesList, searchQuery, regionFilter]);
 
+  const pageSize = 9;
+  const totalItems = filteredCompanies.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const validCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedCompanies = useMemo(() => {
+    const start = (validCurrentPage - 1) * pageSize;
+    return filteredCompanies.slice(start, start + pageSize);
+  }, [filteredCompanies, validCurrentPage, pageSize]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, regionFilter]);
+
   const renderStars = (rating: number) => {
     return (
-      <div className="flex items-center gap-0.5" dir="ltr">
+      <div className="flex items-center gap-1" dir="ltr">
         {[1, 2, 3, 4, 5].map((starIndex) => {
           const isFilled = rating >= starIndex;
-          const isHalf = !isFilled && rating >= starIndex - 0.5;
 
           return (
             <div key={starIndex} className="relative">
               <Star
                 className={`w-3.5 h-3.5 ${
                   isFilled
-                    ? 'text-amber-400 fill-amber-400 stroke-amber-400'
-                    : isHalf
-                    ? 'text-amber-400 fill-amber-400/50 stroke-amber-400'
-                    : 'text-amber-400 stroke-amber-400 fill-none stroke-[1.8]'
+                    ? 'text-amber-500 stroke-amber-500 fill-none stroke-[2.2]'
+                    : 'text-slate-300 stroke-slate-300 fill-none stroke-[2]'
                 }`}
               />
             </div>
@@ -338,17 +270,24 @@ export default function TransportPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-                  {filteredCompanies.map((company) => (
+                  {paginatedCompanies.map((company) => (
                     <div
                       key={company.id}
                       className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between group"
                     >
-                      <div className="relative h-44 sm:h-48 w-full overflow-hidden bg-slate-100">
-                        <img
-                          src={company.image}
-                          alt={company.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
+                      <div className="relative h-44 sm:h-48 w-full overflow-hidden bg-slate-100 flex items-center justify-center">
+                        {company.image ? (
+                          <img
+                            src={company.image}
+                            alt={company.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center text-slate-400 gap-1.5 p-4 text-center">
+                            <Building2 className="w-9 h-9 text-slate-300" />
+                            <span className="text-[11px] font-semibold text-slate-400">{isRTL ? 'بدون صورة' : 'No Photo'}</span>
+                          </div>
+                        )}
                       </div>
 
                       <div className="p-4 sm:p-5 space-y-3 flex-1 flex flex-col justify-between">
@@ -401,37 +340,43 @@ export default function TransportPage() {
               )}
 
               {/* Pagination Bar */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 pb-8 text-xs sm:text-sm">
-                <div className="text-slate-600 font-medium">
-                  {isRTL ? (
-                    <>عرض <span className="font-bold text-slate-900">9</span> من <span className="font-bold text-slate-900">24</span> شركات</>
-                  ) : (
-                    <>Showing <span className="font-bold text-slate-900">9</span> of <span className="font-bold text-slate-900">24</span> Companies</>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    disabled={currentPage <= 1}
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className="bg-white border border-slate-200/90 text-slate-600 hover:bg-slate-50 px-4 py-2 rounded-xl font-medium transition shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    {isRTL ? 'السابق' : 'Previous'}
-                  </button>
-
-                  <div className="bg-white border border-slate-200/90 text-slate-800 px-4 py-2 rounded-xl font-bold shadow-2xs">
-                    {isRTL ? `صفحة ${currentPage} من 3` : `Page ${currentPage} of 3`}
+              {totalItems > 0 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 pb-8 text-xs sm:text-sm">
+                  <div className="text-slate-600 font-medium">
+                    {isRTL ? (
+                      <>
+                        عرض <span className="font-bold text-slate-900">{Math.min(totalItems, (validCurrentPage - 1) * pageSize + 1)} - {Math.min(validCurrentPage * pageSize, totalItems)}</span> من أصل <span className="font-bold text-slate-900">{totalItems}</span> شركات
+                      </>
+                    ) : (
+                      <>
+                        Showing <span className="font-bold text-slate-900">{Math.min(totalItems, (validCurrentPage - 1) * pageSize + 1)} - {Math.min(validCurrentPage * pageSize, totalItems)}</span> of <span className="font-bold text-slate-900">{totalItems}</span> Companies
+                      </>
+                    )}
                   </div>
 
-                  <button
-                    disabled={currentPage >= 3}
-                    onClick={() => setCurrentPage((p) => Math.min(3, p + 1))}
-                    className="bg-white border border-slate-200/90 text-slate-600 hover:bg-slate-50 px-4 py-2 rounded-xl font-medium transition shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    {isRTL ? 'التالي' : 'Next'}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      disabled={validCurrentPage <= 1}
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      className="bg-white border border-slate-200/90 text-slate-600 hover:bg-slate-50 px-4 py-2 rounded-xl font-medium transition shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      {isRTL ? 'السابق' : 'Previous'}
+                    </button>
+
+                    <div className="bg-white border border-slate-200/90 text-slate-800 px-4 py-2 rounded-xl font-bold shadow-2xs">
+                      {isRTL ? `صفحة ${validCurrentPage} من ${totalPages}` : `Page ${validCurrentPage} of ${totalPages}`}
+                    </div>
+
+                    <button
+                      disabled={validCurrentPage >= totalPages}
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      className="bg-white border border-slate-200/90 text-slate-600 hover:bg-slate-50 px-4 py-2 rounded-xl font-medium transition shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      {isRTL ? 'التالي' : 'Next'}
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </>
           )}
         </main>
@@ -450,8 +395,15 @@ export default function TransportPage() {
       <AddTransportModal
         isOpen={isAddCompanyOpen}
         onClose={() => setIsAddCompanyOpen(false)}
-        onSuccess={(newCompany) => {
-          setCompaniesList((prev) => [newCompany, ...prev]);
+        onSuccess={async (newCompany) => {
+          try {
+            const created = await createTransportApi(newCompany as any);
+            setCompaniesList((prev) => [created, ...prev.filter((c) => c.id !== created.id)]);
+            window.dispatchEvent(new CustomEvent('umrah_notification_refresh'));
+          } catch (err) {
+            console.error('Failed to create transport company via API:', err);
+            setCompaniesList((prev) => [newCompany, ...prev]);
+          }
         }}
       />
     </div>

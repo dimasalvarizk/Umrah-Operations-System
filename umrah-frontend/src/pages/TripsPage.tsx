@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Sidebar from '../components/layout/Sidebar';
 import Navbar from '../components/layout/Navbar';
 import {
@@ -11,8 +12,18 @@ import AddTripModal from '../components/trips/AddTripModal';
 import TripStatusSelector, { type TripStatusType } from '../components/trips/TripStatusSelector';
 import { useLanguage } from '../context/LanguageContext';
 
+import {
+  getTripsApi,
+  createTripApi,
+  updateTripApi,
+  updateTripStatusApi,
+  deleteTripApi,
+} from '../services/tripsApi';
+
 export default function TripsPage() {
   const { t, isRTL, direction } = useLanguage();
+  const [searchParams] = useSearchParams();
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTrip, setSelectedTrip] = useState<TripItem | null>(null);
@@ -20,103 +31,91 @@ export default function TripsPage() {
   const [isAddTripOpen, setIsAddTripOpen] = useState(false);
   const [editingTrip, setEditingTrip] = useState<TripItem | null>(null);
 
-  const [tripsList, setTripsList] = useState<TripItem[]>([]);
+  const [tripsList, setTripsList] = useState<TripItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('umrah_trips_list');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const fetchTrips = useCallback(async () => {
+    try {
+      const { trips } = await getTripsApi({ search: searchQuery });
+      if (Array.isArray(trips)) {
+        setTripsList(trips);
+      }
+    } catch {
+      // Offline fallback keeps existing list
+    }
+  }, [searchQuery]);
 
   useEffect(() => {
-    setTripsList([
-      {
-        id: '1',
-        code: 'TRP-9401',
-        routeName: isRTL ? 'مطار جدة ➔ فندق مكة 1' : 'Jeddah Airport ➔ Makkah Hotel 1',
-        startDate: isRTL ? '01 ذو الحجة' : '01 Dhul Hijjah',
-        endDate: isRTL ? '15 ذو الحجة' : '15 Dhul Hijjah',
-        pilgrimsCount: 185,
-        guideName: isRTL ? 'يوسف مكي' : 'Youssef Makki',
-        status: 'مكتمل',
-        airline: isRTL ? 'الخطوط السعودية (SV)' : 'Saudia (SV)',
-        flightNumber: 'SV-0378',
-        transportCompany: isRTL ? 'نقل الحرمين السريع' : 'Haramain Express Transport',
-        transportType: isRTL ? 'حافلة VIP سياحية' : 'VIP Tourist Bus',
-        supervisorName: isRTL ? 'فهد المطيري' : 'Fahad Al-Mutairi',
-      },
-      {
-        id: '2',
-        code: 'TRP-9402',
-        routeName: isRTL ? 'مكة (الرصيفة) ↔ المدينة' : 'Makkah (Rusaifah) ↔ Madinah',
-        startDate: isRTL ? '02 ذو الحجة' : '02 Dhul Hijjah',
-        endDate: isRTL ? '12 ذو الحجة' : '12 Dhul Hijjah',
-        pilgrimsCount: 96,
-        guideName: isRTL ? 'عبد الرحمن صابر' : 'Abdulrahman Saber',
-        status: 'قيد التنفيذ',
-        transportCompany: isRTL ? 'سابتكو (SAPTCO)' : 'SAPTCO',
-        transportType: isRTL ? 'قطار الحرمين السريع' : 'Haramain High-Speed Train',
-        supervisorName: isRTL ? 'سعود الشمري' : 'Saud Al-Shammari',
-      },
-      {
-        id: '3',
-        code: 'TRP-9403',
-        routeName: isRTL ? 'فندق المدينة ↔ مطار المدينة' : 'Madinah Hotel ↔ Madinah Airport',
-        startDate: isRTL ? '15 ذو الحجة' : '15 Dhul Hijjah',
-        endDate: '25 ذو الحجة',
-        pilgrimsCount: 150,
-        guideName: isRTL ? 'أحمد العتيبي' : 'Ahmed Al-Otaibi',
-        status: 'معلق',
-        airline: isRTL ? 'طيران ناس (XY)' : 'Flynas (XY)',
-        flightNumber: 'XY-214',
-        transportCompany: isRTL ? 'شركة الراجحي للنقل' : 'Al Rajhi Transport',
-        transportType: isRTL ? 'حافلة نقل جماعي 50 راكب' : '50-Seater Mass Transit Bus',
-        supervisorName: isRTL ? 'عمر القحطاني' : 'Omar Al-Qahtani',
-      },
-      {
-        id: '4',
-        code: 'TRP-9404',
-        routeName: isRTL ? 'مطار جدة ↔ المدينة' : 'Jeddah Airport ↔ Madinah',
-        startDate: isRTL ? '03 ذو الحجة' : '03 Dhul Hijjah',
-        endDate: isRTL ? '17 ذو الحجة' : '17 Dhul Hijjah',
-        pilgrimsCount: 210,
-        guideName: isRTL ? 'فيصل الحربي' : 'Faisal Al-Harbi',
-        status: 'قيد التنفيذ',
-        airline: isRTL ? 'مصر للطيران (MS)' : 'EgyptAir (MS)',
-        flightNumber: 'MS-642',
-        transportCompany: isRTL ? 'هلا للنقل' : 'Hala Transport',
-        transportType: isRTL ? 'حافلة VIP سياحية' : 'VIP Tourist Bus',
-        supervisorName: isRTL ? 'فهد المطيري' : 'Fahad Al-Mutairi',
-      },
-      {
-        id: '5',
-        code: 'TRP-9405',
-        routeName: isRTL ? 'مكة ↔ جبل ثور' : 'Makkah ↔ Mount Thor',
-        startDate: isRTL ? '05 ذو الحجة' : '05 Dhul Hijjah',
-        endDate: isRTL ? '05 ذو الحجة' : '05 Dhul Hijjah',
-        pilgrimsCount: 45,
-        guideName: isRTL ? 'جمال مصطفى' : 'Jamal Mustafa',
-        status: 'مكتمل',
-        transportCompany: isRTL ? 'النقل المكي المتميز' : 'Al Makkiyah Transport',
-        transportType: isRTL ? 'حافلة سياحية مصغرة' : 'Mini Tourist Coaster',
-        supervisorName: isRTL ? 'بندر الغامدي' : 'Bandar Al-Ghamdi',
-      },
-      {
-        id: '6',
-        code: 'TRP-9406',
-        routeName: isRTL ? 'جاكرتا ← جدة' : 'Jakarta ➔ Jeddah',
-        startDate: isRTL ? '08 ذو الحجة' : '08 Dhul Hijjah',
-        endDate: isRTL ? '22 ذو الحجة' : '22 Dhul Hijjah',
-        pilgrimsCount: 175,
-        guideName: isRTL ? 'يوسف مكي' : 'Youssef Makki',
-        status: 'قيد التنفيذ',
-        airline: isRTL ? 'جارودا إندونيسيا (GA)' : 'Garuda Indonesia (GA)',
-        flightNumber: 'GA-980',
-        transportCompany: isRTL ? 'الشركة الملكية للنقل' : 'Royal Transport Co.',
-        transportType: isRTL ? 'طيران دولي + حافلة VIP' : 'International Flight + VIP Bus',
-        supervisorName: isRTL ? 'فهد المطيري' : 'Fahad Al-Mutairi',
-      },
-    ]);
-  }, [isRTL]);
+    fetchTrips();
+  }, [fetchTrips]);
 
-  const handleStatusChange = (tripId: string, newStatus: TripStatusType) => {
+  useEffect(() => {
+    localStorage.setItem('umrah_trips_list', JSON.stringify(tripsList));
+  }, [tripsList]);
+
+  // Deep-linking from Notification Center URL query param
+  useEffect(() => {
+    const tripIdParam =
+      searchParams.get('tripId') ||
+      searchParams.get('id') ||
+      searchParams.get('code');
+
+    if (tripIdParam && tripsList.length > 0) {
+      const matched = tripsList.find(
+        (t) =>
+          String(t.id) === String(tripIdParam) ||
+          (t.code && t.code.toLowerCase() === tripIdParam.toLowerCase()) ||
+          (t.programName && t.programName.toLowerCase().includes(tripIdParam.toLowerCase())) ||
+          (t.routeName && t.routeName.toLowerCase().includes(tripIdParam.toLowerCase()))
+      );
+      if (matched) {
+        setSelectedTrip(matched);
+        setIsDetailsModalOpen(true);
+      }
+    }
+  }, [searchParams, tripsList]);
+
+  // Listen for custom real-time events across windows / components
+  useEffect(() => {
+    const handleOpenRecord = (e: any) => {
+      if (e.detail && (e.detail.type === 'trip' || e.detail.tripId)) {
+        const tId = e.detail.tripId || e.detail.referenceId || e.detail.id;
+        const matched = tripsList.find(
+          (t) => String(t.id) === String(tId) || t.code === tId
+        );
+        if (matched) {
+          setSelectedTrip(matched);
+          setIsDetailsModalOpen(true);
+        }
+      }
+    };
+
+    const handleRefresh = () => {
+      fetchTrips();
+    };
+
+    window.addEventListener('umrah_open_record', handleOpenRecord);
+    window.addEventListener('umrah_notification_refresh', handleRefresh);
+
+    return () => {
+      window.removeEventListener('umrah_open_record', handleOpenRecord);
+      window.removeEventListener('umrah_notification_refresh', handleRefresh);
+    };
+  }, [tripsList, fetchTrips]);
+
+  const handleStatusChange = async (tripId: string, newStatus: TripStatusType) => {
     setTripsList((prev) =>
       prev.map((t) => (t.id === tripId ? { ...t, status: newStatus } : t))
     );
+    try {
+      await updateTripStatusApi(tripId, newStatus);
+    } catch {}
   };
 
   const stats = useMemo(() => {
@@ -146,11 +145,16 @@ export default function TripsPage() {
   const [tripToDelete, setTripToDelete] = useState<string | null>(null);
   const [isDeleteSuccessOpen, setIsDeleteSuccessOpen] = useState(false);
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (tripToDelete) {
-      setTripsList((prev) => prev.filter((t) => t.id !== tripToDelete));
+      const id = tripToDelete;
+      setTripsList((prev) => prev.filter((t) => t.id !== id));
       setTripToDelete(null);
       setIsDeleteSuccessOpen(true);
+      try {
+        await deleteTripApi(id);
+        window.dispatchEvent(new CustomEvent('umrah_notification_refresh'));
+      } catch {}
     }
   };
 
@@ -428,14 +432,28 @@ export default function TripsPage() {
           setEditingTrip(null);
         }}
         initialData={editingTrip}
-        onSuccess={(savedTrip) => {
+        onSuccess={async (savedTrip) => {
           if (editingTrip) {
-            setTripsList((prev) =>
-              prev.map((t) => (t.id === savedTrip.id ? savedTrip : t))
-            );
+            try {
+              const updated = await updateTripApi(editingTrip.id, savedTrip);
+              setTripsList((prev) =>
+                prev.map((t) => (t.id === editingTrip.id ? { ...t, ...updated } : t))
+              );
+            } catch {
+              setTripsList((prev) =>
+                prev.map((t) => (t.id === editingTrip.id ? savedTrip : t))
+              );
+            }
           } else {
-            setTripsList((prev) => [savedTrip, ...prev]);
+            try {
+              const created = await createTripApi(savedTrip);
+              setTripsList((prev) => [created, ...prev]);
+            } catch {
+              setTripsList((prev) => [savedTrip, ...prev]);
+            }
           }
+          setEditingTrip(null);
+          window.dispatchEvent(new CustomEvent('umrah_notification_refresh'));
         }}
       />
 

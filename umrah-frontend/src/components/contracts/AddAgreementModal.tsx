@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Calendar, Star, Check } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { getHotelsList, STANDARD_ROOM_TYPES, type HotelItem } from '../../utils/hotelsData';
+import { getHotelsApi } from '../../services/hotelsApi';
+
+import { getSystemListsApi, type BaseListItem } from '../../services/settingsApi';
+import { getGroupsApi } from '../../services/groupsApi';
 
 export interface AgreementItem {
   id: string;
@@ -19,6 +24,18 @@ export interface AgreementItem {
   status: 'نشطة' | 'في انتظار الموافقة' | 'منتهية';
   agentName?: string;
   groupNo?: string;
+  packageTier?: string;
+  rating?: number;
+  roomType?: string;
+  bedsCount?: string;
+  rooms?: Array<{
+    id: string;
+    type: string;
+    capacity: string;
+    size: string;
+    count: number;
+  }>;
+  detailsData?: any;
   notes?: string;
 }
 
@@ -36,67 +53,142 @@ export default function AddAgreementModal({
   const { direction, t, isRTL } = useLanguage();
 
   const [availableHotels, setAvailableHotels] = useState<HotelItem[]>(() => getHotelsList());
-  const defaultHotel = availableHotels[0];
+  const [isManualHotel, setIsManualHotel] = useState(false);
 
-  // Form fields matching user mockup 1:1 with realistic defaults
-  const [selectedHotelId, setSelectedHotelId] = useState(defaultHotel ? defaultHotel.id : 'hotel-grand-zuwar');
-  const [agentName, setAgentName] = useState('حاسوب لتجارة التقنية - 2067');
-  const [groupNo, setGroupNo] = useState('400005436343');
-  const [agreementNo, setAgreementNo] = useState('10800004324024');
-  const [agreementName, setAgreementName] = useState(defaultHotel ? (isRTL ? `اتفاقية ${defaultHotel.name}` : `${defaultHotel.nameEn || defaultHotel.name} Agreement`) : 'اتفاقية فندق جراند زوار');
-  const [hotelName, setHotelName] = useState(defaultHotel ? (isRTL ? defaultHotel.name : (defaultHotel.nameEn || defaultHotel.name)) : 'فندق جراند زوار');
-  const [rating, setRating] = useState(defaultHotel ? defaultHotel.rating : 5);
+  // Form fields starting clean with no dummy values
+  const [selectedHotelId, setSelectedHotelId] = useState('');
+  const [agentName, setAgentName] = useState('');
+  const [packageTier, setPackageTier] = useState('');
+  const [groupNo, setGroupNo] = useState('');
+  const [agreementNo, setAgreementNo] = useState('');
+  const [agreementName, setAgreementName] = useState('');
+  const [hotelName, setHotelName] = useState('');
+  const [rating, setRating] = useState(5);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [totalPrice, setTotalPrice] = useState('');
 
-  // Refresh available hotels whenever modal opens
+  // Dynamic Agents and Packages and Room Types from API
+  const [availableAgents, setAvailableAgents] = useState<Array<{ nameEn: string; nameAr: string }>>([]);
+  const [availablePackages, setAvailablePackages] = useState<Array<{ nameEn: string; nameAr: string }>>([]);
+  const [availableRoomTypes, setAvailableRoomTypes] = useState<BaseListItem[]>([]);
+
+  const loadLiveMasterLists = () => {
+    // 1. Fetch live agents from settings & groups DB
+    Promise.allSettled([
+      getSystemListsApi('agents'),
+      getGroupsApi({ limit: 100 }),
+      getSystemListsApi('packages'),
+      getSystemListsApi('room_types'),
+    ]).then(([agentsRes, groupsRes, packagesRes, roomTypesRes]) => {
+      const list: Array<{ nameEn: string; nameAr: string }> = [];
+      if (agentsRes.status === 'fulfilled' && Array.isArray(agentsRes.value)) {
+        agentsRes.value.forEach((a: BaseListItem) => {
+          list.push({ nameEn: a.nameEn, nameAr: a.nameAr });
+        });
+      }
+      if (groupsRes.status === 'fulfilled' && Array.isArray(groupsRes.value.groups)) {
+        groupsRes.value.groups.forEach((g) => {
+          if (g.mainAgent && !list.some((x) => x.nameAr === g.mainAgent || x.nameEn === g.mainAgent)) {
+            list.push({ nameEn: g.mainAgent, nameAr: g.mainAgent });
+          }
+          if (g.subAgent && !list.some((x) => x.nameAr === g.subAgent || x.nameEn === g.subAgent)) {
+            list.push({ nameEn: g.subAgent, nameAr: g.subAgent });
+          }
+        });
+      }
+      if (list.length > 0) {
+        setAvailableAgents(list);
+      }
+
+      if (packagesRes.status === 'fulfilled' && Array.isArray(packagesRes.value) && packagesRes.value.length > 0) {
+        setAvailablePackages(packagesRes.value.map((p) => ({ nameEn: p.nameEn, nameAr: p.nameAr })));
+      }
+
+      if (roomTypesRes.status === 'fulfilled' && Array.isArray(roomTypesRes.value) && roomTypesRes.value.length > 0) {
+        setAvailableRoomTypes(roomTypesRes.value.filter((rt) => rt.status === 'Active'));
+      }
+    });
+  };
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      loadLiveMasterLists();
+    };
+    window.addEventListener('umrah_system_lists_updated', handleUpdate);
+    return () => {
+      window.removeEventListener('umrah_system_lists_updated', handleUpdate);
+    };
+  }, []);
+
+  // Refresh available hotels, agents, packages from API & clean reset whenever modal opens
   useEffect(() => {
     if (isOpen) {
-      const fresh = getHotelsList();
-      setAvailableHotels(fresh);
-      if (fresh.length > 0 && !fresh.some((h) => h.id === selectedHotelId)) {
-        const first = fresh[0];
-        setSelectedHotelId(first.id);
-        const hName = isRTL ? first.name : (first.nameEn || first.name);
-        setHotelName(hName);
-        setRating(first.rating);
-        setAgreementName(isRTL ? `اتفاقية ${first.name}` : `${first.nameEn || first.name} Agreement`);
-      }
+      // 1. Fetch real-time from Hotels API / Database
+      getHotelsApi()
+        .then(({ hotels }) => {
+          if (Array.isArray(hotels)) {
+            setAvailableHotels(hotels);
+            if (hotels.length > 0) {
+              const first = hotels[0];
+              setSelectedHotelId(first.id);
+              const hName = isRTL ? first.name : (first.nameEn || first.name);
+              setHotelName(hName);
+              setRating(first.rating || 5);
+              setIsManualHotel(false);
+            } else {
+              setIsManualHotel(true);
+            }
+          }
+        })
+        .catch(() => {
+          const fresh = getHotelsList();
+          setAvailableHotels(fresh);
+          if (fresh.length > 0) {
+            const first = fresh[0];
+            setSelectedHotelId(first.id);
+            const hName = isRTL ? first.name : (first.nameEn || first.name);
+            setHotelName(hName);
+            setRating(first.rating || 5);
+            setIsManualHotel(false);
+          } else {
+            setIsManualHotel(true);
+          }
+        });
+
+      loadLiveMasterLists();
+
+      setAgreementNo('');
+      setGroupNo('');
+      setAgentName('');
+      setPackageTier('');
+      setAgreementName('');
+      setStartDate('');
+      setEndDate('');
+      setTotalPrice('');
+      setNotes('');
+      setRoomsCount('');
+      setIsSuccessOpen(false);
     }
   }, [isOpen, isRTL]);
 
-  // Dynamic Agents list from system master lists
-  const availableAgents = (() => {
-    try {
-      const saved = localStorage.getItem('system_list_agents');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.filter((a: { status: string }) => a.status === 'Active');
-        }
-      }
-    } catch {
-      // fallback
-    }
-    return [
-      { nameEn: 'Hasoob Technology Trading - 2067', nameAr: 'حاسوب لتجارة التقنية - 2067' },
-      { nameEn: 'ODST Travel and Tourism - 2114', nameAr: 'أودست للسياحة والسفر - 2114' },
-      { nameEn: 'Makkah Aviation Agency', nameAr: 'وكالة مكة للطيران' },
-      { nameEn: 'Noor Al-Iman Intl', nameAr: 'نور الإيمان الدولية' },
-      { nameEn: 'Indonesia Travel', nameAr: 'إندونيسيا ترافيل' },
-      { nameEn: 'Safa Travel India', nameAr: 'الصفا ترافيل الهند' },
-      { nameEn: 'Ankara Tours Agency', nameAr: 'وكالة أنقرة للسياحة' },
-    ];
-  })();
-
-  // Room details section with standard room types (Double, King, Single, Triple, Quad, etc.)
-  const [roomsCount, setRoomsCount] = useState('8');
-  const [roomType, setRoomType] = useState(isRTL ? STANDARD_ROOM_TYPES[0].nameAr : STANDARD_ROOM_TYPES[0].nameEn);
-  const [bedsCount, setBedsCount] = useState(String(STANDARD_ROOM_TYPES[0].bedsCount || 2));
+  // Room details section with standard room types
+  const [roomsCount, setRoomsCount] = useState('');
+  const [roomType, setRoomType] = useState(STANDARD_ROOM_TYPES[0] ? (isRTL ? STANDARD_ROOM_TYPES[0].nameAr : STANDARD_ROOM_TYPES[0].nameEn) : '');
+  const [bedsCount, setBedsCount] = useState(STANDARD_ROOM_TYPES[0] ? String(STANDARD_ROOM_TYPES[0].bedsCount || 2) : '1');
 
   const handleRoomTypeChange = (val: string) => {
     setRoomType(val);
+    // 1. Check live available room types first
+    const liveFound = availableRoomTypes.find((r) => (isRTL ? r.nameAr : r.nameEn) === val || r.nameAr === val || r.nameEn === val);
+    if (liveFound && liveFound.secondary) {
+      const matchBeds = liveFound.secondary.match(/(\d+)\s*(Beds|Bed|أسرة|سرير)/i);
+      if (matchBeds) {
+        setBedsCount(matchBeds[1]);
+        return;
+      }
+    }
+    // 2. Check standard room types
     const found = STANDARD_ROOM_TYPES.find(
       (r) => (isRTL ? r.nameAr : r.nameEn) === val || r.nameAr === val || r.nameEn === val
     );
@@ -117,29 +209,56 @@ export default function AddAgreementModal({
 
     const formattedStart = startDate
       ? startDate.split('-').reverse().join('/')
-      : '02/09/2026';
+      : '';
     const formattedEnd = endDate
       ? endDate.split('-').reverse().join('/')
-      : '06/09/2026';
+      : '';
 
     const selectedHotel = availableHotels.find((h) => h.id === selectedHotelId || h.name === hotelName);
+    const resolvedEntityName = hotelName.trim() || (selectedHotel ? (isRTL ? selectedHotel.name : (selectedHotel.nameEn || selectedHotel.name)) : '');
+
+    const calculatedDays =
+      startDate && endDate
+        ? Math.max(
+            1,
+            Math.round(
+              (new Date(endDate).getTime() - new Date(startDate).getTime()) /
+                (1000 * 60 * 60 * 24)
+            )
+          )
+        : 1;
+
+    const generatedAgreementNo = agreementNo.trim() || `AGR-${Math.floor(100000 + Math.random() * 900000)}`;
 
     const newAgreement: AgreementItem = {
       id: Date.now().toString(),
       hotelId: selectedHotel ? selectedHotel.id : selectedHotelId,
-      agreementNo: agreementNo.trim() || `AGR-${Math.floor(1000000 + Math.random() * 9000000)}`,
-      agreementName: agreementName.trim() || (isRTL ? `اتفاقية ${hotelName}` : `${hotelName} Agreement`),
-      entityName: hotelName.trim() || 'فندق جراند زوار',
+      agreementNo: generatedAgreementNo,
+      agreementName: agreementName.trim() || (isRTL ? `اتفاقية ${resolvedEntityName}` : `${resolvedEntityName} Agreement`),
+      entityName: resolvedEntityName,
       type: 'فندق',
       city: selectedHotel ? selectedHotel.location : (isRTL ? 'مكة المكرمة' : 'Makkah'),
-      roomsCount: parseInt(roomsCount) || 8,
-      durationDays: 4,
+      roomsCount: parseInt(roomsCount) || 1,
+      durationDays: calculatedDays,
       startDate: formattedStart,
       endDate: formattedEnd,
-      totalPrice: parseInt(totalPrice) || 19200,
+      totalPrice: parseFloat(totalPrice) || 0,
       status: 'نشطة',
-      agentName: agentName.trim(),
+      agentName: agentName.trim() || (availableAgents[0] ? (isRTL ? availableAgents[0].nameAr : availableAgents[0].nameEn) : ''),
       groupNo: groupNo.trim(),
+      packageTier: packageTier.trim() || (availablePackages[0] ? (isRTL ? availablePackages[0].nameAr : availablePackages[0].nameEn) : 'VIP Executive 14 Days'),
+      rating: rating || (selectedHotel ? selectedHotel.rating : 5),
+      roomType,
+      bedsCount,
+      rooms: [
+        {
+          id: '1',
+          type: roomType,
+          capacity: `${bedsCount} Persons`,
+          size: '28 م²',
+          count: parseInt(roomsCount) || 1,
+        },
+      ],
       notes: notes.trim(),
     };
 
@@ -152,8 +271,8 @@ export default function AddAgreementModal({
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/30 backdrop-blur-xs animate-fadeIn">
       <div
         className="bg-white rounded-2xl max-w-[440px] sm:max-w-[460px] w-full shadow-2xl relative border border-slate-100 flex flex-col justify-between max-h-[96vh] overflow-hidden"
         dir={direction}
@@ -182,21 +301,49 @@ export default function AddAgreementModal({
             <label className="block text-[11px] font-bold text-slate-700">
               {t('contracts.external_agent_name', 'اسم الوكيل الخارجي')}
             </label>
-            <input
-              type="text"
-              list="agents-list-options"
+            <select
               value={agentName}
               onChange={(e) => setAgentName(e.target.value)}
-              placeholder={t('contracts.agent_placeholder', 'مثال: حاسوب لتجارة التقنية - 2067')}
-              className="w-full bg-white border border-slate-200/90 rounded-xl px-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-hidden focus:border-[#1e293b] focus:ring-1 focus:ring-[#1e293b] transition shadow-2xs"
-            />
-            <datalist id="agents-list-options">
-              {availableAgents.map((a, idx) => (
-                <option key={idx} value={a.nameAr}>
-                  {a.nameEn}
-                </option>
-              ))}
-            </datalist>
+              className="w-full bg-white border border-slate-200/90 rounded-xl px-3 py-2 text-xs text-slate-800 font-semibold focus:outline-hidden focus:border-[#1e293b] focus:ring-1 focus:ring-[#1e293b] transition shadow-2xs cursor-pointer"
+            >
+              <option value="">{isRTL ? 'اختر الوكيل أو الشريك...' : 'Select Agent / Partner...'}</option>
+              {availableAgents.map((a, idx) => {
+                const val = isRTL ? a.nameAr : (a.nameEn || a.nameAr);
+                return (
+                  <option key={idx} value={val}>
+                    {val}
+                  </option>
+                );
+              })}
+              {!availableAgents.some((a) => (isRTL ? a.nameAr : (a.nameEn || a.nameAr)) === agentName || a.nameAr === agentName || a.nameEn === agentName) && agentName && (
+                <option value={agentName}>{agentName}</option>
+              )}
+            </select>
+          </div>
+
+          {/* فئة باقة وبرنامج العمرة */}
+          <div className="space-y-0.5">
+            <label className="block text-[11px] font-bold text-slate-700">
+              {isRTL ? 'فئة باقة وبرنامج العمرة' : 'Umrah Package Tier'}
+            </label>
+            <select
+              value={packageTier}
+              onChange={(e) => setPackageTier(e.target.value)}
+              className="w-full bg-white border border-slate-200/90 rounded-xl px-3 py-2 text-xs text-slate-800 font-semibold focus:outline-hidden focus:border-[#1e293b] focus:ring-1 focus:ring-[#1e293b] transition shadow-2xs cursor-pointer"
+            >
+              <option value="">{isRTL ? 'اختر فئة وباقة العمرة...' : 'Select Umrah Package...'}</option>
+              {availablePackages.map((p, idx) => {
+                const val = isRTL ? p.nameAr : (p.nameEn || p.nameAr);
+                return (
+                  <option key={idx} value={val}>
+                    {val}
+                  </option>
+                );
+              })}
+              {!availablePackages.some((p) => (isRTL ? p.nameAr : (p.nameEn || p.nameAr)) === packageTier || p.nameAr === packageTier || p.nameEn === packageTier) && packageTier && (
+                <option value={packageTier}>{packageTier}</option>
+              )}
+            </select>
           </div>
 
           {/* 2. رقم المجموعة */}
@@ -241,37 +388,72 @@ export default function AddAgreementModal({
             />
           </div>
 
-          {/* 5. اختيار الفندق من قائمة الفنادق المضافة & تقييم الفندق */}
+          {/* 5. اختيار الفندق من قائمة الفنادق المضافة (Menu Hotels) & تقييم الفندق */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            {/* اختيار الفندق */}
+            {/* اختيار الفندق / الجهة */}
             <div className="space-y-0.5">
-              <label className="block text-[11px] font-bold text-slate-700 flex items-center justify-between">
-                <span>{t('contracts.hotel_name', 'اسم الفندق')}</span>
-                <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-medium border border-emerald-200">
-                  {isRTL ? 'فنادق النظام' : 'System Hotels'}
-                </span>
-              </label>
-              <select
-                value={selectedHotelId}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setSelectedHotelId(val);
-                  const found = availableHotels.find((h) => h.id === val || h.name === val);
-                  if (found) {
-                    const hName = isRTL ? found.name : (found.nameEn || found.name);
-                    setHotelName(hName);
-                    setRating(found.rating);
-                    setAgreementName(isRTL ? `اتفاقية ${found.name}` : `${found.nameEn || found.name} Agreement`);
-                  }
-                }}
-                className="w-full bg-white border border-slate-200/90 rounded-xl px-3 py-1.5 text-xs text-slate-800 font-semibold focus:outline-hidden focus:border-[#1e293b] focus:ring-1 focus:ring-[#1e293b] transition shadow-2xs cursor-pointer"
-              >
-                {availableHotels.map((h) => (
-                  <option key={h.id} value={h.id}>
-                    {isRTL ? h.name : (h.nameEn || h.name)} ({h.location} - {h.rating}★)
+              <div className="flex items-center justify-between">
+                <label className="block text-[11px] font-bold text-slate-700">
+                  {t('contracts.hotel_name', 'اسم الفندق / الجهة')}
+                </label>
+                {availableHotels.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsManualHotel(!isManualHotel)}
+                    className="text-[10px] text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-1.5 py-0.5 rounded font-medium border border-emerald-200 transition cursor-pointer"
+                  >
+                    {isManualHotel
+                      ? (isRTL ? 'قائمة فنادق النظام' : 'Select from Hotels Menu')
+                      : (isRTL ? '+ كتابة يدوية' : '+ Manual Entry')}
+                  </button>
+                )}
+              </div>
+
+              {!isManualHotel && availableHotels.length > 0 ? (
+                <select
+                  value={selectedHotelId}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '__custom__') {
+                      setIsManualHotel(true);
+                      setSelectedHotelId('');
+                      setHotelName('');
+                    } else {
+                      setSelectedHotelId(val);
+                      const found = availableHotels.find((h) => h.id === val || h.name === val);
+                      if (found) {
+                        const hName = isRTL ? found.name : (found.nameEn || found.name);
+                        setHotelName(hName);
+                        setRating(found.rating || 5);
+                        setAgreementName(isRTL ? `اتفاقية ${found.name}` : `${found.nameEn || found.name} Agreement`);
+                      }
+                    }
+                  }}
+                  className="w-full bg-white border border-slate-200/90 rounded-xl px-3 py-1.5 text-xs text-slate-800 font-semibold focus:outline-hidden focus:border-[#1e293b] focus:ring-1 focus:ring-[#1e293b] transition shadow-2xs cursor-pointer"
+                >
+                  {availableHotels.map((h) => (
+                    <option key={h.id} value={h.id}>
+                      {isRTL ? h.name : (h.nameEn || h.name)} ({h.location || (isRTL ? 'مكة' : 'Makkah')} - {h.rating || 5}★)
+                    </option>
+                  ))}
+                  <option value="__custom__">
+                    {isRTL ? '+ كتابة اسم فندق / جهة أخرى يدوياً...' : '+ Type Custom Hotel / Entity...'}
                   </option>
-                ))}
-              </select>
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={hotelName}
+                  onChange={(e) => {
+                    setHotelName(e.target.value);
+                    if (!agreementName || agreementName.startsWith('اتفاقية') || agreementName.endsWith('Agreement')) {
+                      setAgreementName(e.target.value ? (isRTL ? `اتفاقية ${e.target.value}` : `${e.target.value} Agreement`) : '');
+                    }
+                  }}
+                  placeholder={t('contracts.hotel_name_placeholder', 'أدخل اسم الفندق أو الشركة')}
+                  className="w-full bg-white border border-slate-200/90 rounded-xl px-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-hidden focus:border-[#1e293b] focus:ring-1 focus:ring-[#1e293b] transition shadow-2xs"
+                />
+              )}
             </div>
 
             {/* تقييم الفندق */}
@@ -389,11 +571,26 @@ export default function AddAgreementModal({
                   onChange={(e) => handleRoomTypeChange(e.target.value)}
                   className="w-full bg-white border border-slate-200/90 rounded-xl px-2.5 py-2 text-xs text-slate-800 font-semibold focus:outline-hidden focus:border-[#1e293b] shadow-2xs cursor-pointer truncate"
                 >
-                  {STANDARD_ROOM_TYPES.map((rt) => (
-                    <option key={rt.id} value={isRTL ? rt.nameAr : rt.nameEn}>
-                      {isRTL ? rt.nameAr : rt.nameEn} ({isRTL ? rt.capacityAr : rt.capacityEn})
-                    </option>
-                  ))}
+                  {availableRoomTypes.length > 0
+                    ? availableRoomTypes.map((rt) => {
+                        const label = isRTL ? rt.nameAr : rt.nameEn;
+                        const sub = rt.secondary ? ` (${rt.secondary})` : '';
+                        return (
+                          <option key={rt.id} value={label}>
+                            {label}{sub}
+                          </option>
+                        );
+                      })
+                    : STANDARD_ROOM_TYPES.map((rt) => (
+                        <option key={rt.id} value={isRTL ? rt.nameAr : rt.nameEn}>
+                          {isRTL ? rt.nameAr : rt.nameEn} ({isRTL ? rt.capacityAr : rt.capacityEn})
+                        </option>
+                      ))}
+                  {!availableRoomTypes.some((rt) => (isRTL ? rt.nameAr : rt.nameEn) === roomType || rt.nameAr === roomType || rt.nameEn === roomType) &&
+                    !STANDARD_ROOM_TYPES.some((rt) => (isRTL ? rt.nameAr : rt.nameEn) === roomType || rt.nameAr === roomType || rt.nameEn === roomType) &&
+                    roomType && (
+                      <option value={roomType}>{roomType}</option>
+                    )}
                 </select>
               </div>
 
@@ -451,7 +648,7 @@ export default function AddAgreementModal({
 
       {/* Success Modal */}
       {isSuccessOpen && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fadeIn">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-xs animate-fadeIn">
           <div
             className="bg-white rounded-3xl p-6 sm:p-8 max-w-[370px] sm:max-w-[400px] w-full shadow-2xl text-center space-y-5 border border-slate-100 animate-scaleUp"
             dir={direction}
@@ -481,6 +678,7 @@ export default function AddAgreementModal({
           </div>
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import Sidebar from '../components/layout/Sidebar';
 import Navbar from '../components/layout/Navbar';
 import {
@@ -9,9 +9,12 @@ import {
   SquarePen,
   RotateCw,
   TrendingUp,
+  CheckCircle2,
+  FolderOpen,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
+import { fetchDashboardSummary, type DashboardStats } from '../services/dashboardApi';
 
 // Custom Count-Up Animation Hook for numbers
 function useCountUp(target: number, duration: number = 1000, isStarted: boolean = true) {
@@ -50,97 +53,75 @@ export default function DashboardPage() {
   const { t, isRTL, direction } = useLanguage();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
+
+  const loadData = async (showNotification = false) => {
+    try {
+      const data = await fetchDashboardSummary();
+      setStats(data);
+      if (showNotification) {
+        setSyncFeedback(
+          isRTL
+            ? 'تمت مزامنة البيانات بشكل فوري مع قواعد البيانات بنجاح!'
+            : 'Real-time sync complete: Live data fetched from MySQL database!'
+        );
+        setTimeout(() => setSyncFeedback(null), 3500);
+      }
+    } catch (err) {
+      console.warn('Dashboard real-time fetch fallback', err);
+    }
+  };
 
   useEffect(() => {
-    // Trigger animations right after mount
+    loadData();
     const timer = setTimeout(() => {
       setIsLoaded(true);
     }, 60);
-    return () => clearTimeout(timer);
+
+    // Auto-polling for real-time live data updates
+    const interval = setInterval(() => {
+      loadData();
+    }, 5000);
+
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
   }, []);
 
-  // Animated stat values
-  const animatedActiveGroups = useCountUp(107, 1200, isLoaded);
-  const animatedTotalPilgrims = useCountUp(1247, 1400, isLoaded);
-  const animatedAlerts = useCountUp(12, 1000, isLoaded);
-  const animatedUpcomingTrips = useCountUp(8, 900, isLoaded);
+  const handleSyncData = async () => {
+    setIsSyncing(true);
+    await loadData(true);
+    setIsSyncing(false);
+  };
 
-  const countriesList = useMemo(() => {
-    try {
-      const saved = localStorage.getItem('system_list_countries');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {
-      // fallback
-    }
-    return [
-      { nameEn: 'Indonesia', nameAr: 'إندونيسيا' },
-      { nameEn: 'Pakistan', nameAr: 'باكستان' },
-      { nameEn: 'Egypt', nameAr: 'مصر' },
-      { nameEn: 'Turkey', nameAr: 'تركيا' },
-      { nameEn: 'Morocco', nameAr: 'المغرب' },
-      { nameEn: 'Algeria', nameAr: 'الجزائر' },
-    ];
-  }, []);
+  // Animated stat values hooked strictly to real-time backend stats
+  const activeGroupsVal = stats ? stats.activeGroups : 0;
+  const totalPilgrimsVal = stats ? stats.totalPilgrims : 0;
+  const incompleteAlertsVal = stats ? stats.incompleteAlerts : 0;
+  const upcomingTripsVal = stats ? stats.upcomingTrips : 0;
 
-  const COLOR_PALETTE = ['#10b981', '#1e293b', '#f59e0b', '#0284c7', '#8b5cf6', '#ef4444', '#0d9488'];
-  const SAMPLE_COUNTS = [485, 340, 220, 160, 110, 85, 60];
-  const SAMPLE_WIDTHS = ['78%', '62%', '46%', '35%', '26%', '20%', '16%'];
+  const animatedActiveGroups = useCountUp(activeGroupsVal, 1000, isLoaded);
+  const animatedTotalPilgrims = useCountUp(totalPilgrimsVal, 1200, isLoaded);
+  const animatedAlerts = useCountUp(incompleteAlertsVal, 800, isLoaded);
+  const animatedUpcomingTrips = useCountUp(upcomingTripsVal, 800, isLoaded);
 
-  const nationalities = countriesList.slice(0, 6).map((item, idx) => ({
-    country: isRTL ? (item.nameAr || item.country) : (item.nameEn || item.country),
-    targetCount: SAMPLE_COUNTS[idx] || (90 - idx * 10),
-    width: SAMPLE_WIDTHS[idx] || '20%',
-    color: COLOR_PALETTE[idx % COLOR_PALETTE.length],
-    delayMs: 150 * (idx + 1),
-  }));
-
-  const activities = [
-    {
-      id: 1,
-      badge: t('dashboard.badge_completed', 'مكتمل'),
-      badgeColor: 'bg-emerald-500 text-white',
-      title: isRTL
-        ? 'تم اكتمال تصاريح مجموعة الأنوار 1 بنجاح'
-        : 'Al-Anwar 1 group permits completed successfully',
-      time: isRTL ? 'منذ ٥ دقائق' : '5 minutes ago',
-    },
-    {
-      id: 2,
-      badge: t('dashboard.badge_housing', 'تسكين'),
-      badgeColor: 'bg-[#1e293b] text-white',
-      title: isRTL
-        ? 'تم تسجيل فندق مكة 1 لإقامة الفوج الثالث'
-        : 'Makkah Hotel 1 registered for third group accommodation',
-      time: isRTL ? 'منذ ٢٠ دقيقة' : '20 minutes ago',
-    },
-    {
-      id: 3,
-      badge: t('dashboard.badge_alert', 'تنبيه'),
-      badgeColor: 'bg-amber-500 text-white',
-      title: isRTL
-        ? 'تنبيه: بيان الرحلة SV-124 للمجموعة الرابعة يحتاج لتحديث'
-        : 'Alert: Trip SV-124 statement for fourth group needs update',
-      time: isRTL ? 'منذ ساعة' : '1 hour ago',
-    },
-    {
-      id: 4,
-      badge: t('dashboard.badge_sync', 'مزامنة'),
-      badgeColor: 'bg-[#64748b] text-white',
-      title: isRTL
-        ? 'تمت مزامنة بيانات المسار الإلكتروني مع وزارة الحج'
-        : 'E-route data synced with Ministry of Hajj',
-      time: isRTL ? 'منذ ساعتين' : '2 hours ago',
-    },
-  ];
+  const nationalities = stats?.nationalities || [];
+  const activities = stats?.activities || [];
 
   // Donut chart parameters
   const radius = 48;
   const circumference = 2 * Math.PI * radius; // ~301.59
-  // 67% filled target
-  const strokeOffset = isLoaded ? circumference * (1 - 0.72) : circumference;
+  const completedPercent = stats?.groupStatus?.completedPercent ?? 0;
+  const inPrepPercent = stats?.groupStatus?.inPreparationPercent ?? 0;
+  const pendingPercent = stats?.groupStatus?.pendingPercent ?? 0;
+  const completedCount = stats?.groupStatus?.completed ?? 0;
+  const inPrepCount = stats?.groupStatus?.inPreparation ?? 0;
+  const pendingCount = stats?.groupStatus?.pending ?? 0;
+
+  const strokeOffset = isLoaded ? circumference * (1 - (completedPercent / 100 || 0)) : circumference;
 
   return (
     <div
@@ -161,6 +142,14 @@ export default function DashboardPage() {
           title={t('dashboard.title', 'لوحة التحكم الرئيسية')}
           onMenuClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         />
+
+        {/* Sync Toast Feedback Banner */}
+        {syncFeedback && (
+          <div className="bg-emerald-50 border-b border-emerald-200 px-6 py-2.5 flex items-center justify-center gap-2 text-emerald-800 text-xs sm:text-sm font-semibold transition-all animate-fadeIn">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{syncFeedback}</span>
+          </div>
+        )}
 
         {/* Dashboard Main Body */}
         <main className="flex-1 p-6 sm:p-8 space-y-6 max-w-[1600px] w-full mx-auto">
@@ -217,9 +206,11 @@ export default function DashboardPage() {
                 <span className="text-xs font-semibold text-slate-500">
                   {t('dashboard.incomplete_alerts', 'تنبيهات البيانات الناقصة')}
                 </span>
-                <span className="px-2.5 py-0.5 text-[11px] font-bold bg-[#fef3c7] text-[#d97706] rounded-md animate-pulse">
-                  {t('dashboard.incomplete_alerts_badge', 'مهم')}
-                </span>
+                {incompleteAlertsVal > 0 && (
+                  <span className="px-2.5 py-0.5 text-[11px] font-bold bg-[#fef3c7] text-[#d97706] rounded-md animate-pulse">
+                    {t('dashboard.incomplete_alerts_badge', 'مهم')}
+                  </span>
+                )}
               </div>
               <div className={`text-2xl sm:text-[28px] font-bold text-[#ef4444] tracking-tight ${isRTL ? 'text-right' : 'text-left'}`}>
                 {animatedAlerts} {t('dashboard.incomplete_alerts_unit', 'تنبيه')}
@@ -261,48 +252,64 @@ export default function DashboardPage() {
                   <span>{t('dashboard.nationalities_title', 'توزيع المعتمرين حسب الجنسية')}</span>
                   <TrendingUp className="w-4 h-4 text-emerald-500" />
                 </h2>
-                <span className="text-xs text-slate-400 font-medium">
-                  {isRTL ? 'تحديث فوري' : 'Live Analytics'}
+                <span className="text-xs text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full font-semibold flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  {isRTL ? 'مباشر من قاعدة البيانات' : 'Live from Database'}
                 </span>
               </div>
 
-              <div className="space-y-6">
-                {nationalities.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-4 text-xs sm:text-sm font-medium group">
-                    {/* Country Name */}
-                    <span className="w-20 text-slate-800 shrink-0 font-medium group-hover:text-emerald-700 transition-colors">
-                      {item.country}
-                    </span>
+              {nationalities.length === 0 ? (
+                <div className="py-12 text-center text-slate-400 flex flex-col items-center justify-center gap-2">
+                  <FolderOpen className="w-8 h-8 text-slate-300" />
+                  <p className="text-sm font-medium">
+                    {isRTL ? 'لا توجد مجموعات مسجلة بعد' : 'No pilgrim groups registered yet'}
+                  </p>
+                  <button
+                    onClick={() => navigate('/groups')}
+                    className="mt-2 text-xs font-bold text-emerald-600 hover:text-emerald-700 underline"
+                  >
+                    {isRTL ? '+ إضافة مجموعة الآن' : '+ Add Group Now'}
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {nationalities.map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-4 text-xs sm:text-sm font-medium group">
+                      {/* Country Name */}
+                      <span className="w-24 text-slate-800 shrink-0 font-medium group-hover:text-emerald-700 transition-colors">
+                        {item.country}
+                      </span>
 
-                    {/* Progress Bar Track with Smooth Fill Animation */}
-                    <div className="flex-1 h-3.5 bg-[#f8fafc] border border-slate-100 rounded-full overflow-hidden flex justify-start relative shadow-inner">
-                      <div
-                        className="h-full rounded-full transition-all duration-1000 ease-out relative overflow-hidden group-hover:brightness-110"
-                        style={{
-                          backgroundColor: item.color,
-                          width: isLoaded ? item.width : '0%',
-                          transitionDelay: `${item.delayMs}ms`,
-                          transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
-                        }}
-                      >
-                        {/* Shimmer Light Accent Effect */}
+                      {/* Progress Bar Track with Smooth Fill Animation */}
+                      <div className="flex-1 h-3.5 bg-[#f8fafc] border border-slate-100 rounded-full overflow-hidden flex justify-start relative shadow-inner">
                         <div
-                          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent w-full h-full opacity-60"
+                          className="h-full rounded-full transition-all duration-1000 ease-out relative overflow-hidden group-hover:brightness-110"
                           style={{
-                            transform: isLoaded ? 'translateX(100%)' : 'translateX(-100%)',
-                            transition: `transform 1.2s ease-out ${item.delayMs + 200}ms`,
+                            backgroundColor: item.color,
+                            width: isLoaded ? item.width : '0%',
+                            transitionDelay: `${item.delayMs}ms`,
+                            transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
                           }}
-                        />
+                        >
+                          {/* Shimmer Light Accent Effect */}
+                          <div
+                            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent w-full h-full opacity-60"
+                            style={{
+                              transform: isLoaded ? 'translateX(100%)' : 'translateX(-100%)',
+                              transition: `transform 1.2s ease-out ${item.delayMs + 200}ms`,
+                            }}
+                          />
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Pilgrim Count */}
-                    <span className={`w-28 text-slate-800 font-bold shrink-0 tabular-nums ${isRTL ? 'text-left' : 'text-right'} group-hover:scale-105 transition-transform`}>
-                      {item.targetCount} {isRTL ? 'معتمر' : 'Pilgrims'}
-                    </span>
-                  </div>
-                ))}
-              </div>
+                      {/* Pilgrim Count */}
+                      <span className={`w-28 text-slate-800 font-bold shrink-0 tabular-nums ${isRTL ? 'text-left' : 'text-right'} group-hover:scale-105 transition-transform`}>
+                        {item.targetCount} {isRTL ? 'معتمر' : 'Pilgrims'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Widget 2 (4 Cols): Groups Status Donut with Stroke Draw Animation */}
@@ -377,7 +384,7 @@ export default function DashboardPage() {
                     <span className="text-slate-700 font-medium">{t('common.completed', 'مكتمل')}</span>
                   </div>
                   <span className="text-slate-500 font-semibold">
-                    72 {t('dashboard.active_groups_unit', 'مجموعة')} (67%)
+                    {completedCount} {t('dashboard.active_groups_unit', 'مجموعة')} ({completedPercent}%)
                   </span>
                 </div>
 
@@ -387,7 +394,7 @@ export default function DashboardPage() {
                     <span className="text-slate-700 font-medium">{t('common.in_progress', 'قيد التجهيز')}</span>
                   </div>
                   <span className="text-slate-500 font-semibold">
-                    25 {t('dashboard.active_groups_unit', 'مجموعة')} (23%)
+                    {inPrepCount} {t('dashboard.active_groups_unit', 'مجموعة')} ({inPrepPercent}%)
                   </span>
                 </div>
 
@@ -397,7 +404,7 @@ export default function DashboardPage() {
                     <span className="text-slate-700 font-medium">{t('common.pending', 'معلق')}</span>
                   </div>
                   <span className="text-slate-500 font-semibold">
-                    10 {t('dashboard.active_groups_unit', 'مجموعة')} (10%)
+                    {pendingCount} {t('dashboard.active_groups_unit', 'مجموعة')} ({pendingPercent}%)
                   </span>
                 </div>
               </div>
@@ -438,11 +445,12 @@ export default function DashboardPage() {
 
                 {/* Sync Data Button */}
                 <button
-                  onClick={() => { }}
-                  className="w-full py-3.5 px-4 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-bold text-sm rounded-xl transition flex items-center justify-center gap-3 shadow-xs active:scale-[0.98] cursor-pointer"
+                  onClick={handleSyncData}
+                  disabled={isSyncing}
+                  className="w-full py-3.5 px-4 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-bold text-sm rounded-xl transition flex items-center justify-center gap-3 shadow-xs active:scale-[0.98] cursor-pointer disabled:opacity-60"
                 >
-                  <RotateCw className="w-4 h-4 text-slate-600 shrink-0" />
-                  <span>{t('dashboard.sync_data_btn', 'مزامنة البيانات')}</span>
+                  <RotateCw className={`w-4 h-4 text-slate-600 shrink-0 ${isSyncing ? 'animate-spin text-emerald-600' : ''}`} />
+                  <span>{isSyncing ? (isRTL ? 'جاري المزامنة...' : 'Syncing Live Data...') : t('dashboard.sync_data_btn', 'مزامنة البيانات')}</span>
                 </button>
               </div>
             </div>
@@ -454,9 +462,14 @@ export default function DashboardPage() {
               }`}
               style={{ transitionDelay: '400ms' }}
             >
-              <h2 className="text-base font-bold text-[#0f172a] mb-6">
-                {t('dashboard.activities_title', 'آخر التحديثات والنشاطات')}
-              </h2>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-base font-bold text-[#0f172a]">
+                  {t('dashboard.activities_title', 'آخر التحديثات والنشاطات')}
+                </h2>
+                <span className="text-xs text-slate-400 font-medium">
+                  {isRTL ? 'سجل العمليات المباشر' : 'Live Activity Feed'}
+                </span>
+              </div>
 
               <div className="space-y-3.5">
                 {activities.map((act) => (
@@ -469,12 +482,12 @@ export default function DashboardPage() {
                         {act.badge}
                       </span>
                       <span className="text-slate-800 font-medium truncate">
-                        {act.title}
+                        {isRTL ? (act.titleAr || act.title) : act.title}
                       </span>
                     </div>
 
                     <span className="text-slate-400 text-xs shrink-0 font-normal">
-                      {act.time}
+                      {isRTL ? (act.timeAr || act.time) : act.time}
                     </span>
                   </div>
                 ))}
@@ -486,4 +499,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

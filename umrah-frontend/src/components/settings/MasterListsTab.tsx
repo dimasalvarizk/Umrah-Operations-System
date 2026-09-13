@@ -14,26 +14,22 @@ import {
   Tag,
   AlertTriangle,
   RotateCcw,
+  Navigation,
+  Bed,
+  Compass,
+  Route,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
-
-export type ListCategory =
-  | 'agents'
-  | 'airlines'
-  | 'countries'
-  | 'branches'
-  | 'transport'
-  | 'packages';
-
-export interface BaseListItem {
-  id: string;
-  nameEn: string;
-  nameAr: string;
-  code?: string;
-  secondary?: string;
-  status: 'Active' | 'Inactive';
-  notes?: string;
-}
+import {
+  getSystemListsApi,
+  createSystemListItemApi,
+  updateSystemListItemApi,
+  toggleSystemListStatusApi,
+  deleteSystemListItemApi,
+  resetSystemListCategoryApi,
+  type ListCategory,
+  type BaseListItem,
+} from '../../services/settingsApi';
 
 const DEFAULT_AGENTS: BaseListItem[] = [
   { id: '1', nameEn: 'Hasoob Al-Haiba', nameAr: 'حاسوب الهيبة', code: 'AGT-01', secondary: 'Saudi Arabia', status: 'Active', notes: 'Main agency partner' },
@@ -93,6 +89,47 @@ const DEFAULT_PACKAGES: BaseListItem[] = [
   { id: '4', nameEn: 'Ramadan Last 10 Days Special', nameAr: 'برنامج العشر الأواخر من رمضان', code: 'PKG-RAM10', secondary: 'Makkah Clock Towers', status: 'Active', notes: 'Iftar & Suhoor Included' },
 ];
 
+const DEFAULT_AIRPORTS: BaseListItem[] = [
+  { id: '1', nameEn: 'Prince Mohammad Bin Abdulaziz Int. Airport - Madinah (MED)', nameAr: 'مطار الأمير محمد بن عبد العزيز الدولي - المدينة (MED)', code: 'MED', secondary: 'Madinah, KSA', status: 'Active', notes: 'GACA Approved Umrah Terminal' },
+  { id: '2', nameEn: 'King Abdulaziz Int. Airport - Jeddah (JED)', nameAr: 'مطار الملك عبد العزيز الدولي - جدة (JED)', code: 'JED', secondary: 'Jeddah, KSA', status: 'Active', notes: 'Hajj & Umrah Main Gateway' },
+  { id: '3', nameEn: 'Taif International Airport (TIF)', nameAr: 'مطار الطائف الدولي (TIF)', code: 'TIF', secondary: 'Taif, KSA', status: 'Active', notes: 'Miqat Qarn Al-Manazil Gateway' },
+  { id: '4', nameEn: 'King Khalid Int. Airport - Riyadh (RUH)', nameAr: 'مطار الملك خالد الدولي - الرياض (RUH)', code: 'RUH', secondary: 'Riyadh, KSA', status: 'Active', notes: 'Capital Hub & Connecting Port' },
+  { id: '5', nameEn: 'Yanbu Prince Abdul Mohsin Int. Airport (YNB)', nameAr: 'مطار الأمير عبد المحسن بن عبد العزيز ينبع (YNB)', code: 'YNB', secondary: 'Yanbu, KSA', status: 'Active', notes: 'Red Sea & Western Port' },
+];
+
+const DEFAULT_ROOM_TYPES: BaseListItem[] = [
+  { id: '1', nameEn: 'Double Room (2 Persons)', nameAr: 'غرفة ثنائية (شخصين)', code: 'DBL-2', secondary: '2 Beds • 28 m²', status: 'Active', notes: '2 Standard Single Beds' },
+  { id: '2', nameEn: 'King Room (2 Persons)', nameAr: 'غرفة كينج فاخرة (شخصين)', code: 'KNG-2', secondary: '1 King Bed • 32 m²', status: 'Active', notes: '1 Master King Size Bed' },
+  { id: '3', nameEn: 'Single Room (1 Person)', nameAr: 'غرفة مفردة (شخص واحد)', code: 'SGL-1', secondary: '1 Bed • 22 m²', status: 'Active', notes: 'Private single traveler' },
+  { id: '4', nameEn: 'Triple Room (3 Persons)', nameAr: 'غرفة ثلاثية (٣ أشخاص)', code: 'TRP-3', secondary: '3 Beds • 30 m²', status: 'Active', notes: '3 Standard Single Beds' },
+  { id: '5', nameEn: 'Quad Room (4 Persons)', nameAr: 'غرفة رباعية (٤ أشخاص)', code: 'QAD-4', secondary: '4 Beds • 36 m²', status: 'Active', notes: '4 Standard Single Beds' },
+  { id: '6', nameEn: 'Quint Room (5 Persons)', nameAr: 'غرفة خماسية (٥ أشخاص)', code: 'QNT-5', secondary: '5 Beds • 45 m²', status: 'Active', notes: '5 Single Beds Family' },
+  { id: '7', nameEn: 'Family Suite (6 Persons)', nameAr: 'جناح عائلي (٦ أشخاص)', code: 'STE-6', secondary: '6 Beds • 55 m²', status: 'Active', notes: 'Connecting Suite 6 Pax' },
+  { id: '8', nameEn: 'Royal VIP Suite (4-6 Persons)', nameAr: 'جناح ملكي فاخر (٤-٦ أشخاص)', code: 'ROY-VIP', secondary: '4-6 Beds • 75 m²', status: 'Active', notes: 'Direct Haram View Luxury' },
+];
+
+const DEFAULT_GUIDES: BaseListItem[] = [
+  { id: '1', nameEn: 'Youssef Makki', nameAr: 'يوسف مكي', code: 'GUD-01', secondary: 'Senior Makkah Mutawwif', status: 'Active', notes: 'Arabic, English, Indonesian' },
+  { id: '2', nameEn: 'Abdulrahman Saber', nameAr: 'عبد الرحمن صابر', code: 'GUD-02', secondary: 'Madinah Ziyarah Specialist', status: 'Active', notes: 'Arabic, English, Urdu' },
+  { id: '3', nameEn: 'Ahmed Al-Otaibi', nameAr: 'أحمد العتيبي', code: 'GUD-03', secondary: 'Historical Sites Guide', status: 'Active', notes: 'Arabic, English' },
+  { id: '4', nameEn: 'Faisal Al-Harbi', nameAr: 'فيصل الحربي', code: 'GUD-04', secondary: 'VIP Delegations Lead', status: 'Active', notes: 'Arabic, English, Turkish' },
+  { id: '5', nameEn: 'Jamal Mustafa', nameAr: 'جمال مصطفى', code: 'GUD-05', secondary: 'Airport Logistics & Guide', status: 'Active', notes: 'Arabic, English, French' },
+  { id: '6', nameEn: 'Tariq Al-Husseini', nameAr: 'طارق الحسيني', code: 'GUD-06', secondary: 'Hajj & Umrah Fiqh Guide', status: 'Active', notes: 'Arabic, English, Malay' },
+];
+
+const DEFAULT_ROUTES: BaseListItem[] = [
+  { id: '1', nameEn: 'Makkah ➔ Madinah', nameAr: 'مكة ← المدينة', code: 'MKH-MED', secondary: 'Intercity Bus / Haramain', status: 'Active', notes: 'Standard umrah route' },
+  { id: '2', nameEn: 'Madinah ➔ Makkah', nameAr: 'المدينة ← مكة', code: 'MED-MKH', secondary: 'Intercity Bus / Haramain', status: 'Active', notes: 'Standard umrah route' },
+  { id: '3', nameEn: 'Jeddah Airport ➔ Makkah', nameAr: 'مطار جدة ← مكة', code: 'JED-MKH', secondary: 'Airport Arrival Transfer', status: 'Active', notes: 'Arrival reception' },
+  { id: '4', nameEn: 'Makkah ➔ Jeddah Airport', nameAr: 'مكة ← مطار جدة', code: 'MKH-JED', secondary: 'Airport Departure Transfer', status: 'Active', notes: 'Departure farewell' },
+  { id: '5', nameEn: 'Makkah (Rusaifah) ↔ Madinah', nameAr: 'مكة (الرصيفة) ↔ المدينة', code: 'HSR-MKH-MED', secondary: 'Haramain High Speed Train', status: 'Active', notes: 'Express bullet train' },
+  { id: '6', nameEn: 'Makkah ↔ Mount Thawr', nameAr: 'مكة المكرمة ↔ جبل ثور', code: 'MKH-THW', secondary: 'Makkah Historic Ziyarah', status: 'Active', notes: 'Historical ziyarah site' },
+  { id: '7', nameEn: 'Jakarta ➔ Jeddah (JED Airport)', nameAr: 'جاكرتا ← جدة (مطار الملك عبد العزيز)', code: 'CGK-JED', secondary: 'International Flight', status: 'Active', notes: 'Direct flight Indonesia - KSA' },
+  { id: '8', nameEn: 'Jakarta ➔ Madinah (MED Airport)', nameAr: 'جاكرتا ← المدينة (مطار الأمير محمد)', code: 'CGK-MED', secondary: 'International Flight', status: 'Active', notes: 'Direct flight Indonesia - Madinah' },
+  { id: '9', nameEn: 'Jeddah ➔ Jakarta', nameAr: 'جدة ← جاكرتا', code: 'JED-CGK', secondary: 'Return International Flight', status: 'Active', notes: 'Return flight to Indonesia' },
+  { id: '10', nameEn: 'Madinah ➔ Jakarta', nameAr: 'المدينة ← جاكرتا', code: 'MED-CGK', secondary: 'Return International Flight', status: 'Active', notes: 'Return flight from Madinah' },
+];
+
 export default function MasterListsTab() {
   const { isRTL } = useLanguage();
 
@@ -131,7 +168,78 @@ export default function MasterListsTab() {
     return saved ? JSON.parse(saved) : DEFAULT_PACKAGES;
   });
 
-  // Save to localStorage whenever modified
+  const [airportsList, setAirportsList] = useState<BaseListItem[]>(() => {
+    const saved = localStorage.getItem('system_list_airports');
+    return saved ? JSON.parse(saved) : DEFAULT_AIRPORTS;
+  });
+
+  const [roomTypesList, setRoomTypesList] = useState<BaseListItem[]>(() => {
+    const saved = localStorage.getItem('system_list_room_types');
+    return saved ? JSON.parse(saved) : DEFAULT_ROOM_TYPES;
+  });
+
+  const [guidesList, setGuidesList] = useState<BaseListItem[]>(() => {
+    const saved = localStorage.getItem('system_list_guides');
+    return saved ? JSON.parse(saved) : DEFAULT_GUIDES;
+  });
+
+  const [routesList, setRoutesList] = useState<BaseListItem[]>(() => {
+    const saved = localStorage.getItem('system_list_routes');
+    return saved ? JSON.parse(saved) : DEFAULT_ROUTES;
+  });
+
+  // Fetch active category from backend API
+  const fetchCategoryData = async (cat: ListCategory) => {
+    try {
+      const items = await getSystemListsApi(cat);
+      if (Array.isArray(items)) {
+        switch (cat) {
+          case 'agents': setAgentsList(items); break;
+          case 'airlines': setAirlinesList(items); break;
+          case 'countries': setCountriesList(items); break;
+          case 'branches': setBranchesList(items); break;
+          case 'transport': setTransportList(items); break;
+          case 'packages': setPackagesList(items); break;
+          case 'airports': setAirportsList(items); break;
+          case 'room_types': setRoomTypesList(items); break;
+          case 'guides': setGuidesList(items); break;
+          case 'routes': setRoutesList(items); break;
+        }
+      }
+    } catch (err) {
+      console.warn('Backend offline, using local storage fallback for', cat, err);
+    }
+  };
+
+  const fetchAllCategories = async () => {
+    const cats: ListCategory[] = ['agents', 'airlines', 'countries', 'branches', 'transport', 'packages', 'airports', 'room_types', 'guides', 'routes'];
+    await Promise.allSettled(cats.map((c) => fetchCategoryData(c)));
+  };
+
+  useEffect(() => {
+    fetchAllCategories();
+  }, []);
+
+  useEffect(() => {
+    fetchCategoryData(activeCategory);
+  }, [activeCategory]);
+
+  useEffect(() => {
+    const handleSync = (e: any) => {
+      if (e?.detail?.category) {
+        fetchCategoryData(e.detail.category);
+      } else {
+        fetchAllCategories();
+      }
+    };
+
+    window.addEventListener('umrah_system_lists_updated', handleSync);
+    return () => {
+      window.removeEventListener('umrah_system_lists_updated', handleSync);
+    };
+  }, []);
+
+  // Save to localStorage whenever modified as local backup
   useEffect(() => {
     localStorage.setItem('system_list_agents', JSON.stringify(agentsList));
   }, [agentsList]);
@@ -155,6 +263,22 @@ export default function MasterListsTab() {
   useEffect(() => {
     localStorage.setItem('system_list_packages', JSON.stringify(packagesList));
   }, [packagesList]);
+
+  useEffect(() => {
+    localStorage.setItem('system_list_airports', JSON.stringify(airportsList));
+  }, [airportsList]);
+
+  useEffect(() => {
+    localStorage.setItem('system_list_room_types', JSON.stringify(roomTypesList));
+  }, [roomTypesList]);
+
+  useEffect(() => {
+    localStorage.setItem('system_list_guides', JSON.stringify(guidesList));
+  }, [guidesList]);
+
+  useEffect(() => {
+    localStorage.setItem('system_list_routes', JSON.stringify(routesList));
+  }, [routesList]);
 
   // Modals state
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -202,47 +326,95 @@ export default function MasterListsTab() {
       labelAr: 'الدول والجنسيات',
       icon: Globe2,
       count: countriesList.length,
-      itemLabelEn: 'Country / Nationality',
-      itemLabelAr: 'الدولة / الجنسية',
-      codePlaceholderEn: 'ISO & Dial Code (e.g., ID +62)',
+      itemLabelEn: 'Country',
+      itemLabelAr: 'الدولة',
+      codePlaceholderEn: 'Country Code (e.g., SA, EG, ID)',
       secondaryLabelEn: 'Region / Continent',
-      secondaryLabelAr: 'الإقليم / القارة',
+      secondaryLabelAr: 'المنطقة / القارة',
     },
     {
       id: 'branches' as ListCategory,
       labelEn: 'Branches & Hubs',
-      labelAr: 'الفروع والمراكز التشغيلية',
+      labelAr: 'الفروع والمكاتب',
       icon: MapPin,
       count: branchesList.length,
       itemLabelEn: 'Branch / Hub',
-      itemLabelAr: 'الفرع / المركز',
+      itemLabelAr: 'فرع / مكتب',
       codePlaceholderEn: 'Branch Code (e.g., MKH-01)',
-      secondaryLabelEn: 'Address / Location',
+      secondaryLabelEn: 'Location / Address',
       secondaryLabelAr: 'الموقع / العنوان',
     },
     {
       id: 'transport' as ListCategory,
       labelEn: 'Transport Companies',
-      labelAr: 'شركات النقل والحافلات',
+      labelAr: 'شركات النقل',
       icon: Bus,
       count: transportList.length,
-      itemLabelEn: 'Transport Company',
+      itemLabelEn: 'Transport Provider',
       itemLabelAr: 'شركة النقل',
-      codePlaceholderEn: 'Company Code (e.g., BUS-05)',
-      secondaryLabelEn: 'Vehicle Specs / Fleet Type',
-      secondaryLabelAr: 'نوع الأسطول والخدمة',
+      codePlaceholderEn: 'Provider Code (e.g., BUS-01)',
+      secondaryLabelEn: 'Fleet Type / Service',
+      secondaryLabelAr: 'نوع الأسطول / الخدمة',
     },
     {
       id: 'packages' as ListCategory,
       labelEn: 'Package & Service Types',
-      labelAr: 'باقات وبرامج العمرة',
+      labelAr: 'أنواع الباقات والبرامج',
       icon: Tag,
       count: packagesList.length,
-      itemLabelEn: 'Package Tier',
-      itemLabelAr: 'نوع البرنامج / الباقة',
+      itemLabelEn: 'Package Type',
+      itemLabelAr: 'نوع الباقة',
       codePlaceholderEn: 'Package Code (e.g., PKG-VIP)',
-      secondaryLabelEn: 'Hotel Tier / Highlights',
-      secondaryLabelAr: 'تصنيف الفنادق والمزايا',
+      secondaryLabelEn: 'Category / Tier',
+      secondaryLabelAr: 'الفئة / المستوى',
+    },
+    {
+      id: 'airports' as ListCategory,
+      labelEn: 'Airports & Gateways',
+      labelAr: 'المطارات والمنافذ',
+      icon: Navigation,
+      count: airportsList.length,
+      itemLabelEn: 'Airport / Gateway',
+      itemLabelAr: 'المطار / المنفذ',
+      codePlaceholderEn: 'IATA Airport Code (e.g., JED, MED)',
+      secondaryLabelEn: 'City / Port Location',
+      secondaryLabelAr: 'المدينة / موقع المنفذ',
+    },
+    {
+      id: 'room_types' as ListCategory,
+      labelEn: 'Room Types & Suites',
+      labelAr: 'أنواع الغرف والأجنحة',
+      icon: Bed,
+      count: roomTypesList.length,
+      itemLabelEn: 'Room Type',
+      itemLabelAr: 'نوع الغرفة',
+      codePlaceholderEn: 'Room Code (e.g., DBL-2, ROY-VIP)',
+      secondaryLabelEn: 'Capacity & Specifications',
+      secondaryLabelAr: 'السعة والمواصفات',
+    },
+    {
+      id: 'guides' as ListCategory,
+      labelEn: 'Trip Guides & Mutawwifs',
+      labelAr: 'المرشدين والمطوفين',
+      icon: Compass,
+      count: guidesList.length,
+      itemLabelEn: 'Guide / Mutawwif',
+      itemLabelAr: 'المرشد / المطوف',
+      codePlaceholderEn: 'Guide Code (e.g., GUD-01)',
+      secondaryLabelEn: 'Specialty / Spoken Languages',
+      secondaryLabelAr: 'التخصص / اللغات',
+    },
+    {
+      id: 'routes' as ListCategory,
+      labelEn: 'Program Name & Routes',
+      labelAr: 'برامج ومسارات الرحلات',
+      icon: Route,
+      count: routesList.length,
+      itemLabelEn: 'Program / Route',
+      itemLabelAr: 'البرنامج / المسار',
+      codePlaceholderEn: 'Route Code (e.g., MKH-MED, JED-MKH)',
+      secondaryLabelEn: 'Route Type / Destination',
+      secondaryLabelAr: 'نوع المسار / الوجهة',
     },
   ];
 
@@ -263,8 +435,16 @@ export default function MasterListsTab() {
         return transportList;
       case 'packages':
         return packagesList;
+      case 'airports':
+        return airportsList;
+      case 'room_types':
+        return roomTypesList;
+      case 'guides':
+        return guidesList;
+      case 'routes':
+        return routesList;
     }
-  }, [activeCategory, agentsList, airlinesList, countriesList, branchesList, transportList, packagesList]);
+  }, [activeCategory, agentsList, airlinesList, countriesList, branchesList, transportList, packagesList, airportsList, roomTypesList, guidesList, routesList]);
 
   // Set active list helper
   const setCurrentList = (updater: (prev: BaseListItem[]) => BaseListItem[]) => {
@@ -287,6 +467,18 @@ export default function MasterListsTab() {
       case 'packages':
         setPackagesList(updater);
         break;
+      case 'airports':
+        setAirportsList(updater);
+        break;
+      case 'room_types':
+        setRoomTypesList(updater);
+        break;
+      case 'guides':
+        setGuidesList(updater);
+        break;
+      case 'routes':
+        setRoutesList(updater);
+        break;
     }
   };
 
@@ -304,7 +496,7 @@ export default function MasterListsTab() {
   }, [currentList, searchQuery]);
 
   // Reset to default helper
-  const handleResetToDefault = () => {
+  const handleResetToDefault = async () => {
     if (
       window.confirm(
         isRTL
@@ -312,26 +504,36 @@ export default function MasterListsTab() {
           : 'Are you sure you want to reset this list to the initial defaults?'
       )
     ) {
-      switch (activeCategory) {
-        case 'agents':
-          setAgentsList(DEFAULT_AGENTS);
-          break;
-        case 'airlines':
-          setAirlinesList(DEFAULT_AIRLINES);
-          break;
-        case 'countries':
-          setCountriesList(DEFAULT_COUNTRIES);
-          break;
-        case 'branches':
-          setBranchesList(DEFAULT_BRANCHES);
-          break;
-        case 'transport':
-          setTransportList(DEFAULT_TRANSPORT);
-          break;
-        case 'packages':
-          setPackagesList(DEFAULT_PACKAGES);
-          break;
+      try {
+        const resetItems = await resetSystemListCategoryApi(activeCategory);
+        switch (activeCategory) {
+          case 'agents': setAgentsList(resetItems); break;
+          case 'airlines': setAirlinesList(resetItems); break;
+          case 'countries': setCountriesList(resetItems); break;
+          case 'branches': setBranchesList(resetItems); break;
+          case 'transport': setTransportList(resetItems); break;
+          case 'packages': setPackagesList(resetItems); break;
+          case 'airports': setAirportsList(resetItems); break;
+          case 'room_types': setRoomTypesList(resetItems); break;
+          case 'guides': setGuidesList(resetItems); break;
+          case 'routes': setRoutesList(resetItems); break;
+        }
+      } catch {
+        switch (activeCategory) {
+          case 'agents': setAgentsList(DEFAULT_AGENTS); break;
+          case 'airlines': setAirlinesList(DEFAULT_AIRLINES); break;
+          case 'countries': setCountriesList(DEFAULT_COUNTRIES); break;
+          case 'branches': setBranchesList(DEFAULT_BRANCHES); break;
+          case 'transport': setTransportList(DEFAULT_TRANSPORT); break;
+          case 'packages': setPackagesList(DEFAULT_PACKAGES); break;
+          case 'airports': setAirportsList(DEFAULT_AIRPORTS); break;
+          case 'room_types': setRoomTypesList(DEFAULT_ROOM_TYPES); break;
+          case 'guides': setGuidesList(DEFAULT_GUIDES); break;
+          case 'routes': setRoutesList(DEFAULT_ROUTES); break;
+        }
       }
+      window.dispatchEvent(new CustomEvent('umrah_system_lists_updated', { detail: { category: activeCategory } }));
+      window.dispatchEvent(new CustomEvent('umrah_notification_refresh'));
       setFeedback(isRTL ? 'تمت استعادة القائمة الافتراضية بنجاح' : 'List reset to defaults successfully');
       setTimeout(() => setFeedback(null), 3000);
     }
@@ -349,12 +551,11 @@ export default function MasterListsTab() {
   };
 
   // Submit Add Item
-  const handleSaveAdd = (e: React.FormEvent) => {
+  const handleSaveAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nameEnInput.trim() && !nameArInput.trim()) return;
 
-    const newItem: BaseListItem = {
-      id: Date.now().toString(),
+    const payload = {
       nameEn: nameEnInput.trim() || nameArInput.trim(),
       nameAr: nameArInput.trim() || nameEnInput.trim(),
       code: codeInput.trim() || undefined,
@@ -363,7 +564,17 @@ export default function MasterListsTab() {
       notes: notesInput.trim() || undefined,
     };
 
-    setCurrentList((prev) => [newItem, ...prev]);
+    try {
+      const created = await createSystemListItemApi(activeCategory, payload);
+      setCurrentList((prev) => [created, ...prev]);
+    } catch {
+      const localNew: BaseListItem = { id: Date.now().toString(), ...payload };
+      setCurrentList((prev) => [localNew, ...prev]);
+    }
+
+    window.dispatchEvent(new CustomEvent('umrah_system_lists_updated', { detail: { category: activeCategory } }));
+    window.dispatchEvent(new CustomEvent('umrah_notification_refresh'));
+
     setIsAddOpen(false);
     setFeedback(isRTL ? 'تمت إضافة العنصر بنجاح' : 'Item added successfully');
     setTimeout(() => setFeedback(null), 3000);
@@ -382,25 +593,32 @@ export default function MasterListsTab() {
   };
 
   // Submit Edit Item
-  const handleSaveEdit = (e: React.FormEvent) => {
+  const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!itemToEdit) return;
 
+    const payload = {
+      nameEn: nameEnInput.trim(),
+      nameAr: nameArInput.trim(),
+      code: codeInput.trim() || undefined,
+      secondary: secondaryInput.trim() || undefined,
+      status: statusInput,
+      notes: notesInput.trim() || undefined,
+    };
+
+    try {
+      await updateSystemListItemApi(activeCategory, itemToEdit.id, payload);
+    } catch (err) {
+      console.warn('Backend update fallback:', err);
+    }
+
     setCurrentList((prev) =>
-      prev.map((it) =>
-        it.id === itemToEdit.id
-          ? {
-              ...it,
-              nameEn: nameEnInput.trim(),
-              nameAr: nameArInput.trim(),
-              code: codeInput.trim() || undefined,
-              secondary: secondaryInput.trim() || undefined,
-              status: statusInput,
-              notes: notesInput.trim() || undefined,
-            }
-          : it
-      )
+      prev.map((it) => (it.id === itemToEdit.id ? { ...it, ...payload } : it))
     );
+
+    window.dispatchEvent(new CustomEvent('umrah_system_lists_updated', { detail: { category: activeCategory } }));
+    window.dispatchEvent(new CustomEvent('umrah_notification_refresh'));
+
     setIsEditOpen(false);
     setItemToEdit(null);
     setFeedback(isRTL ? 'تم تحديث البيانات بنجاح' : 'Item updated successfully');
@@ -408,11 +626,21 @@ export default function MasterListsTab() {
   };
 
   // Toggle Status
-  const handleToggleStatus = (item: BaseListItem) => {
+  const handleToggleStatus = async (item: BaseListItem) => {
     const nextStatus = item.status === 'Active' ? 'Inactive' : 'Active';
+    try {
+      await toggleSystemListStatusApi(activeCategory, item.id);
+    } catch (err) {
+      console.warn('Backend toggle fallback:', err);
+    }
+
     setCurrentList((prev) =>
       prev.map((it) => (it.id === item.id ? { ...it, status: nextStatus } : it))
     );
+
+    window.dispatchEvent(new CustomEvent('umrah_system_lists_updated', { detail: { category: activeCategory } }));
+    window.dispatchEvent(new CustomEvent('umrah_notification_refresh'));
+
     setFeedback(
       isRTL
         ? `تم تحويل الحالة إلى ${nextStatus === 'Active' ? 'نشط' : 'غير نشط'}`
@@ -422,12 +650,21 @@ export default function MasterListsTab() {
   };
 
   // Confirm Delete
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (itemToDelete) {
-      setCurrentList((prev) => prev.filter((it) => it.id !== itemToDelete.id));
+      const id = itemToDelete.id;
+      setCurrentList((prev) => prev.filter((it) => it.id !== id));
       setItemToDelete(null);
       setFeedback(isRTL ? 'تم حذف العنصر من القائمة' : 'Item deleted from list');
       setTimeout(() => setFeedback(null), 3000);
+      try {
+        await deleteSystemListItemApi(activeCategory, id);
+      } catch (err) {
+        console.warn('Backend delete fallback:', err);
+      }
+
+      window.dispatchEvent(new CustomEvent('umrah_system_lists_updated', { detail: { category: activeCategory } }));
+      window.dispatchEvent(new CustomEvent('umrah_notification_refresh'));
     }
   };
 

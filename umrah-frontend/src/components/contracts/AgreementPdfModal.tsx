@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { X, Printer } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import AgreementPdfView, { type AgreementPdfData } from './AgreementPdfView';
@@ -21,9 +22,9 @@ export default function AgreementPdfModal({
     window.print();
   };
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-start p-2 sm:p-4 bg-black/75 backdrop-blur-xs overflow-y-auto animate-fadeIn print:p-0 print:bg-white print:static print:overflow-visible"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-start p-2 sm:p-4 bg-slate-900/40 backdrop-blur-xs overflow-y-auto animate-fadeIn print:p-0 print:bg-white print:static print:overflow-visible"
     >
       {/* Top Action Bar (Hidden on print) */}
       <div
@@ -64,6 +65,7 @@ export default function AgreementPdfModal({
       <div className="w-full flex justify-center pb-6 print:pb-0 print:w-full">
         <AgreementPdfView data={data} />
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

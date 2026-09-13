@@ -17,6 +17,7 @@ export default function GroupStatusSelector({
 }: GroupStatusSelectorProps) {
   const { t, isRTL, direction } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
+  const [openUpward, setOpenUpward] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -44,6 +45,18 @@ export default function GroupStatusSelector({
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen]);
+
+  const handleToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!disabled) {
+      if (!isOpen && dropdownRef.current) {
+        const rect = dropdownRef.current.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom;
+        setOpenUpward(spaceBelow < 180);
+      }
+      setIsOpen(!isOpen);
+    }
+  };
 
   const statusConfig: Record<
     GroupStatusType,
@@ -87,7 +100,7 @@ export default function GroupStatusSelector({
 
   return (
     <div
-      className="relative inline-flex items-center justify-center text-start"
+      className={`relative inline-flex items-center justify-center text-start ${isOpen ? 'z-40' : 'z-10'}`}
       ref={dropdownRef}
       onClick={(e) => e.stopPropagation()}
       dir={direction}
@@ -96,10 +109,7 @@ export default function GroupStatusSelector({
       <button
         type="button"
         disabled={disabled}
-        onClick={(e) => {
-          e.stopPropagation();
-          if (!disabled) setIsOpen(!isOpen);
-        }}
+        onClick={handleToggle}
         className={`text-xs font-bold px-3 py-1 rounded-md shadow-2xs inline-flex items-center justify-between gap-2 border transition-all duration-150 cursor-pointer select-none group active:scale-95 whitespace-nowrap min-w-[105px] ${
           current.bgClass
         } ${current.textClass} ${current.borderClass} ${
@@ -120,7 +130,7 @@ export default function GroupStatusSelector({
         <div
           className={`absolute ${
             isRTL ? 'left-0' : 'right-0'
-          } top-full mt-1.5 w-44 bg-white border border-slate-200/90 rounded-xl shadow-xl shadow-slate-900/10 p-1.5 z-50 animate-fadeIn`}
+          } ${openUpward ? 'bottom-full mb-1.5' : 'top-full mt-1.5'} w-44 bg-white border border-slate-200/90 rounded-xl shadow-xl shadow-slate-900/15 p-1.5 z-50 animate-fadeIn`}
           onClick={(e) => e.stopPropagation()}
         >
           <div className="px-2.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100/80 mb-1">

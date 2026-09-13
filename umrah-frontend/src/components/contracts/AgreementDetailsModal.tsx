@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { X, FileText, Calendar, Building2, MapPin, CheckCircle2, Clock, AlertTriangle, Printer } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import type { AgreementItem } from './AddAgreementModal';
@@ -43,8 +44,8 @@ export default function AgreementDetailsModal({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/30 backdrop-blur-xs animate-fadeIn">
       <div
         className="bg-white rounded-2xl max-w-lg w-full shadow-2xl relative border border-slate-100 flex flex-col justify-between max-h-[90vh] overflow-hidden"
         dir={direction}
@@ -164,6 +165,7 @@ export default function AgreementDetailsModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

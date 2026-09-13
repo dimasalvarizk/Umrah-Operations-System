@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   X,
   Download,
@@ -9,7 +9,10 @@ import {
   Calendar,
   Shield,
   FileCheck,
-  FileCode
+  FileCode,
+  ZoomIn,
+  ZoomOut,
+  RotateCw
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -31,6 +34,14 @@ interface FilePreviewModalProps {
 export default function FilePreviewModal({ isOpen, onClose, file }: FilePreviewModalProps) {
   const { isRTL, direction } = useLanguage();
   const [zoomLevel, setZoomLevel] = useState(100);
+  const [rotation, setRotation] = useState(0);
+  const [imageError, setImageError] = useState(false);
+
+  useEffect(() => {
+    setImageError(false);
+    setZoomLevel(100);
+    setRotation(0);
+  }, [file]);
 
   if (!isOpen || !file) return null;
 
@@ -119,31 +130,52 @@ export default function FilePreviewModal({ isOpen, onClose, file }: FilePreviewM
 
         {/* Content Body */}
         <div className="p-4 sm:p-6 overflow-y-auto flex-1 bg-slate-50/80 flex items-center justify-center min-h-[320px]">
-          {isImage && file.url ? (
+          {isImage && file.url && !imageError ? (
             <div className="flex flex-col items-center justify-center w-full">
-              <div className="relative max-h-[55vh] max-w-full overflow-hidden rounded-xl border border-slate-200 shadow-sm bg-white p-2">
+              <div className="relative max-h-[55vh] max-w-full overflow-hidden rounded-xl border border-slate-200 shadow-sm bg-white p-3 flex items-center justify-center">
                 <img
                   src={file.url}
                   alt={fileName}
-                  className="max-h-[50vh] w-auto object-contain rounded-lg transition-transform duration-200"
-                  style={{ transform: `scale(${zoomLevel / 100})` }}
+                  onError={() => setImageError(true)}
+                  className="max-h-[50vh] w-auto max-w-full object-contain rounded-lg transition-transform duration-200"
+                  style={{ transform: `scale(${zoomLevel / 100}) rotate(${rotation}deg)` }}
                 />
               </div>
-              <div className="flex items-center gap-2 mt-3 bg-white border border-slate-200 rounded-lg px-3 py-1 text-xs text-slate-600 shadow-2xs">
+              <div className="flex items-center gap-2 mt-3 bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-600 shadow-2xs">
                 <button
                   type="button"
                   onClick={() => setZoomLevel((z) => Math.max(50, z - 25))}
-                  className="hover:text-slate-900 px-1.5 font-bold cursor-pointer"
+                  className="hover:text-emerald-700 p-1 flex items-center gap-0.5 font-bold cursor-pointer transition"
+                  title="Zoom Out"
                 >
-                  -
+                  <ZoomOut className="w-3.5 h-3.5" />
                 </button>
-                <span className="font-mono">{zoomLevel}%</span>
+                <span className="font-mono text-slate-800 font-semibold px-1">{zoomLevel}%</span>
                 <button
                   type="button"
-                  onClick={() => setZoomLevel((z) => Math.min(200, z + 25))}
-                  className="hover:text-slate-900 px-1.5 font-bold cursor-pointer"
+                  onClick={() => setZoomLevel((z) => Math.min(250, z + 25))}
+                  className="hover:text-emerald-700 p-1 flex items-center gap-0.5 font-bold cursor-pointer transition"
+                  title="Zoom In"
                 >
-                  +
+                  <ZoomIn className="w-3.5 h-3.5" />
+                </button>
+                <span className="text-slate-300">|</span>
+                <button
+                  type="button"
+                  onClick={() => setRotation((r) => (r + 90) % 360)}
+                  className="hover:text-emerald-700 p-1 flex items-center gap-1 cursor-pointer transition"
+                  title="Rotate Image"
+                >
+                  <RotateCw className="w-3.5 h-3.5" />
+                  <span className="text-[11px]">{isRTL ? 'تدوير' : 'Rotate'}</span>
+                </button>
+                <span className="text-slate-300">|</span>
+                <button
+                  type="button"
+                  onClick={() => { setZoomLevel(100); setRotation(0); }}
+                  className="text-[11px] text-slate-500 hover:text-slate-800 px-1 cursor-pointer transition"
+                >
+                  {isRTL ? 'إعادة ضبط' : 'Reset'}
                 </button>
               </div>
             </div>

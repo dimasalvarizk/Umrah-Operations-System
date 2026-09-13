@@ -166,14 +166,7 @@ export default function Step4PermitsNotes({
   setUploadedFiles: parentSetUploadedFiles,
 }: Step4PermitsNotesProps) {
   const { t, isRTL } = useLanguage();
-  const [localUploadedFiles, setLocalUploadedFiles] = useState<Record<string, UploadedFileItem>>({
-    arrivalGrouping: {
-      name: 'Frame 82717156.png',
-      size: 348120,
-      uploadedAt: new Date().toLocaleDateString('en-GB'),
-      categoryTitle: isRTL ? 'تفويج الوصول' : 'Arrival Grouping',
-    },
-  });
+  const [localUploadedFiles, setLocalUploadedFiles] = useState<Record<string, UploadedFileItem>>({});
 
   const [previewFile, setPreviewFile] = useState<FilePreviewData | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -182,18 +175,22 @@ export default function Step4PermitsNotes({
   const setFiles = parentSetUploadedFiles ?? setLocalUploadedFiles;
 
   const handleFileUpload = (fieldKey: string, file: File, categoryTitle: string) => {
-    const objectUrl = URL.createObjectURL(file);
-    setFiles((prev) => ({
-      ...prev,
-      [fieldKey]: {
-        name: file.name,
-        size: file.size,
-        url: objectUrl,
-        type: file.type,
-        uploadedAt: new Date().toLocaleDateString('en-GB'),
-        categoryTitle: categoryTitle,
-      },
-    }));
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      setFiles((prev) => ({
+        ...prev,
+        [fieldKey]: {
+          name: file.name,
+          size: file.size,
+          url: dataUrl,
+          type: file.type || (file.name.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg'),
+          uploadedAt: new Date().toLocaleDateString('en-GB'),
+          categoryTitle: categoryTitle,
+        },
+      }));
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleFileRemove = (fieldKey: string) => {
@@ -243,8 +240,8 @@ export default function Step4PermitsNotes({
                   isRTL ? 'pr-3.5 pl-9 text-right' : 'pl-3.5 pr-9 text-left'
                 }`}
               >
-                <option value="مكتمل">{t('common.completed', 'مكتمل')}</option>
                 <option value="معلق">{t('common.pending', 'معلق')}</option>
+                <option value="مكتمل">{t('common.completed', 'مكتمل')}</option>
                 <option value="قيد التنفيذ">{t('common.in_progress', 'قيد التنفيذ')}</option>
                 <option value="لا يوجد">{isRTL ? 'لا يوجد' : 'None'}</option>
               </select>
@@ -312,8 +309,8 @@ export default function Step4PermitsNotes({
                 }`}
               >
                 <option value="لا يوجد">{isRTL ? 'لا يوجد' : 'None'}</option>
-                <option value="مكتمل">{t('common.completed', 'مكتمل')}</option>
                 <option value="معلق">{t('common.pending', 'معلق')}</option>
+                <option value="مكتمل">{t('common.completed', 'مكتمل')}</option>
                 <option value="قيد التنفيذ">{t('common.in_progress', 'قيد التنفيذ')}</option>
               </select>
               <ChevronDown className={`w-4 h-4 text-slate-400 absolute top-1/2 -translate-y-1/2 pointer-events-none ${
@@ -341,7 +338,7 @@ export default function Step4PermitsNotes({
             </div>
             <input
               type="text"
-              placeholder={isRTL ? 'أدخل المزارات المطلوبة بمكة' : 'e.g. Cave of Hira, Mount Thawr'}
+              placeholder={isRTL ? 'أدخل المزارات المطلوبة بمكة (مثال: غار حراء، جبل ثور)' : 'e.g. Cave of Hira, Mount Thawr'}
               value={makkahZiyarat}
               onChange={(e) => setMakkahZiyarat(e.target.value)}
               className="w-full bg-white border border-slate-200/90 rounded-lg px-3.5 py-2.5 text-xs sm:text-sm text-slate-700 placeholder:text-slate-400 shadow-2xs focus:outline-none focus:ring-1 focus:ring-slate-300 transition"
@@ -364,7 +361,7 @@ export default function Step4PermitsNotes({
             </div>
             <input
               type="text"
-              placeholder={isRTL ? 'أدخل المزارات المطلوبة بالمدينة' : 'e.g. Quba Mosque, Mount Uhud'}
+              placeholder={isRTL ? 'أدخل المزارات المطلوبة بالمدينة (مثال: مسجد قباء، جبل أحد)' : 'e.g. Quba Mosque, Mount Uhud'}
               value={madinahZiyarat}
               onChange={(e) => setMadinahZiyarat(e.target.value)}
               className="w-full bg-white border border-slate-200/90 rounded-lg px-3.5 py-2.5 text-xs sm:text-sm text-slate-700 placeholder:text-slate-400 shadow-2xs focus:outline-none focus:ring-1 focus:ring-slate-300 transition"
@@ -376,7 +373,7 @@ export default function Step4PermitsNotes({
       {/* Section 2: Permits / Agreements */}
       <div className="pt-1">
         <h3 className="text-sm font-bold text-slate-900">
-          {isRTL ? 'الاتفاقيات' : 'Permits & Agreements'}
+          {isRTL ? 'الاتفاقيات والتصاريح' : 'Permits & Agreements'}
         </h3>
       </div>
 
@@ -405,12 +402,12 @@ export default function Step4PermitsNotes({
                   isRTL ? 'pr-6 pl-9 text-right' : 'pl-6 pr-9 text-left'
                 }`}
               >
-                <option value="مقبول">{isRTL ? 'مقبول' : 'Approved'}</option>
                 <option value="قيد المراجعة">{isRTL ? 'قيد المراجعة' : 'In Review'}</option>
+                <option value="مقبول">{isRTL ? 'مقبول' : 'Approved'}</option>
                 <option value="لم يقدم">{isRTL ? 'لم يقدم' : 'Not Submitted'}</option>
                 <option value="مرفوض">{isRTL ? 'مرفوض' : 'Rejected'}</option>
               </select>
-              <span className={`w-2 h-2 rounded-full bg-[#10b981] absolute top-1/2 -translate-y-1/2 pointer-events-none ${
+              <span className={`w-2 h-2 rounded-full bg-[#f59e0b] absolute top-1/2 -translate-y-1/2 pointer-events-none ${
                 isRTL ? 'right-2.5' : 'left-2.5'
               }`} />
               <ChevronDown className={`w-4 h-4 text-slate-400 absolute top-1/2 -translate-y-1/2 pointer-events-none ${
@@ -480,8 +477,8 @@ export default function Step4PermitsNotes({
                 }`}
               >
                 <option value="لم يقدم">{isRTL ? 'لم يقدم' : 'Not Submitted'}</option>
-                <option value="مقبول">{isRTL ? 'مقبول' : 'Approved'}</option>
                 <option value="قيد المراجعة">{isRTL ? 'قيد المراجعة' : 'In Review'}</option>
+                <option value="مقبول">{isRTL ? 'مقبول' : 'Approved'}</option>
                 <option value="مرفوض">{isRTL ? 'مرفوض' : 'Rejected'}</option>
               </select>
               <span className={`w-2 h-2 rounded-full bg-[#94a3b8] absolute top-1/2 -translate-y-1/2 pointer-events-none ${
@@ -520,7 +517,7 @@ export default function Step4PermitsNotes({
           </div>
           <input
             type="text"
-            placeholder={isRTL ? 'مثال: يوجد / متحف بيت الأصيل' : 'e.g. Yes / Bayt Al-Aseel Cultural Museum'}
+            placeholder={isRTL ? 'مثال: يوجد / متحف بيت الأصيل' : 'e.g. Bayt Al-Aseel Cultural Museum'}
             value={enrichmentProgram}
             onChange={(e) => setEnrichmentProgram(e.target.value)}
             className="w-full bg-white border border-slate-200/90 rounded-lg px-3.5 py-2.5 text-xs sm:text-sm text-slate-700 placeholder:text-slate-400 shadow-2xs focus:outline-none focus:ring-1 focus:ring-slate-300 transition"

@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS hotels (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  code VARCHAR(50) NOT NULL UNIQUE,
+  name VARCHAR(255) NOT NULL,
+  name_en VARCHAR(255),
+  location VARCHAR(100) NOT NULL,
+  location_en VARCHAR(100),
+  address VARCHAR(255),
+  address_en VARCHAR(255),
+  status VARCHAR(50) DEFAULT 'نشط',
+  rating INT DEFAULT 5,
+  available_rooms INT DEFAULT 0,
+  price_per_night DECIMAL(10,2) DEFAULT 0.00,
+  distance_to_haram VARCHAR(100),
+  image TEXT,
+  room_types_data JSON,
+  amenities_data JSON,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

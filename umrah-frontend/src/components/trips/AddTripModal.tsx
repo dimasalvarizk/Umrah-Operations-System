@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { X, ChevronDown, Calendar, AlertTriangle, Check, Plane } from 'lucide-react';
 import type { TripItem } from './TripDetailsModal';
 import busBadge from '../../assets/bus-badge.png';
 import { useLanguage } from '../../context/LanguageContext';
 import { resolveAirlinePreset } from '../groups/add-group/Step3FlightsTransport';
+import { getSystemListsApi } from '../../services/settingsApi';
 
 interface AddTripModalProps {
   isOpen: boolean;
@@ -139,6 +140,29 @@ export const TRANSPORT_COMPANIES = [
   },
 ];
 
+export function calculateNightsDuration(startStr: string, endStr: string, rtl: boolean): string {
+  if (!startStr || !endStr) return '';
+  const s = new Date(startStr);
+  const e = new Date(endStr);
+  if (isNaN(s.getTime()) || isNaN(e.getTime())) return '';
+  const diffTime = e.getTime() - s.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+  if (diffDays < 0) {
+    return rtl ? 'نطاق تاريخ غير صالح' : 'Invalid Date Range';
+  }
+  if (diffDays === 0) {
+    return rtl ? 'يوم واحد (بدون مبيت)' : '1 Day (Same Day)';
+  }
+  const nights = diffDays;
+  if (rtl) {
+    if (nights === 1) return 'ليلة واحدة';
+    if (nights === 2) return 'ليلتان';
+    if (nights >= 3 && nights <= 10) return `${nights} ليالٍ`;
+    return `${nights} ليلة`;
+  }
+  return `${nights} ${nights === 1 ? 'Night' : 'Nights'}`;
+}
+
 export default function AddTripModal({
   isOpen,
   onClose,
@@ -149,10 +173,13 @@ export default function AddTripModal({
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
 
+  // Dynamic system master lists (fetched directly from database via API)
+  const [dynamicRoutes, setDynamicRoutes] = useState<{ ar: string; en: string }[]>(ROUTE_OPTIONS);
+
   // Helper to normalize route between languages or fallback
   const normalizeRoute = (val: string, rtl: boolean) => {
     if (!val) return rtl ? 'مكة ← المدينة' : 'Makkah ➔ Madinah';
-    const found = ROUTE_OPTIONS.find((r) => r.ar === val || r.en === val);
+    const found = dynamicRoutes.find((r) => r.ar === val || r.en === val) || ROUTE_OPTIONS.find((r) => r.ar === val || r.en === val);
     if (found) return rtl ? found.ar : found.en;
     return val;
   };
@@ -167,7 +194,7 @@ export default function AddTripModal({
   // Section 2: Dates & Duration
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [expectedDuration, setExpectedDuration] = useState('14 Nights');
+  const [expectedDuration, setExpectedDuration] = useState('');
 
   // Section 3: Pilgrims & Guide
   const [pilgrimsCount, setPilgrimsCount] = useState<string>('');
@@ -185,35 +212,65 @@ export default function AddTripModal({
   const [driverName, setDriverName] = useState('محمد العمري');
   const [driverPhone, setDriverPhone] = useState('+966 50 123 4567');
 
-  // Dynamic system master lists
   const [dynamicAirlines, setDynamicAirlines] = useState(DEFAULT_AIRLINES_LIST);
   const [dynamicTransport, setDynamicTransport] = useState(TRANSPORT_COMPANIES);
   const [dynamicCountries, setDynamicCountries] = useState(NATIONALITY_OPTIONS);
-  const [dynamicPackages, setDynamicPackages] = useState([
+  const [dynamicPackages, setDynamicPackages] = useState<{ id: string; nameAr: string; nameEn: string }[]>([
     { id: '1', nameAr: 'برنامج اقتصادي', nameEn: 'Economy Package' },
     { id: '2', nameAr: 'برنامج VIP فاخر', nameEn: 'VIP Luxury Package' },
     { id: '3', nameAr: 'برنامج مميز', nameEn: 'Premium Package' },
     { id: '4', nameAr: 'برنامج مخصص', nameEn: 'Custom Delegation' },
   ]);
+  const [dynamicGuides, setDynamicGuides] = useState<{ id: string; nameAr: string; nameEn: string }[]>([
+    { id: '1', nameAr: 'يوسف مكي', nameEn: 'Youssef Makki' },
+    { id: '2', nameAr: 'عبد الرحمن صابر', nameEn: 'Abdulrahman Saber' },
+    { id: '3', nameAr: 'أحمد العتيبي', nameEn: 'Ahmed Al-Otaibi' },
+    { id: '4', nameAr: 'فيصل الحربي', nameEn: 'Faisal Al-Harbi' },
+    { id: '5', nameAr: 'جمال مصطفى', nameEn: 'Jamal Mustafa' },
+  ]);
 
-  useEffect(() => {
+  const loadLiveSystemLists = useCallback(async () => {
     try {
-      const savedAirlines = localStorage.getItem('system_list_airlines');
-      if (savedAirlines) {
-        const parsed = JSON.parse(savedAirlines);
-        if (Array.isArray(parsed) && parsed.length > 0) setDynamicAirlines(parsed);
+      const [airlinesRes, transportRes, countriesRes, packagesRes, guidesRes, routesRes] = await Promise.allSettled([
+        getSystemListsApi('airlines'),
+        getSystemListsApi('transport'),
+        getSystemListsApi('countries'),
+        getSystemListsApi('packages'),
+        getSystemListsApi('guides'),
+        getSystemListsApi('routes'),
+      ]);
+
+      if (routesRes.status === 'fulfilled' && routesRes.value.length > 0) {
+        const activeR = routesRes.value.filter((r) => r.status === 'Active');
+        if (activeR.length > 0) {
+          setDynamicRoutes(activeR.map((r) => ({ ar: r.nameAr, en: r.nameEn })));
+        }
       }
-      const savedTransport = localStorage.getItem('system_list_transport');
-      if (savedTransport) {
-        const parsedT = JSON.parse(savedTransport);
-        if (Array.isArray(parsedT) && parsedT.length > 0) {
+
+      if (airlinesRes.status === 'fulfilled' && airlinesRes.value.length > 0) {
+        const active = airlinesRes.value.filter((a) => a.status === 'Active');
+        if (active.length > 0) {
+          setDynamicAirlines(
+            active.map((a) => ({
+              id: a.id,
+              nameEn: a.nameEn,
+              nameAr: a.nameAr,
+              code: a.code || 'SV',
+            }))
+          );
+        }
+      }
+
+      if (transportRes.status === 'fulfilled' && transportRes.value.length > 0) {
+        const activeT = transportRes.value.filter((t) => t.status === 'Active');
+        if (activeT.length > 0) {
           setDynamicTransport(
-            parsedT.map((t: any) => ({
+            activeT.map((t) => ({
               id: t.id,
               nameAr: t.nameAr,
               nameEn: t.nameEn,
-              vehicleTypeAr: t.secondary || 'حافلات نقل حجاج ومعتمرين',
-              vehicleTypeEn: t.secondary || 'Pilgrim Mass Buses',
+              vehicleTypeAr: t.secondary || 'حافلات نقل حجاج ومعتمرين 50 راكب VIP',
+              vehicleTypeEn: t.secondary || '50-Seater Pilgrim Mass VIP Buses',
               driverNameAr: 'سائق معتمد',
               driverNameEn: 'Certified Driver',
               phone: '+966 50 123 4567',
@@ -222,24 +279,59 @@ export default function AddTripModal({
           );
         }
       }
-      const savedCountries = localStorage.getItem('system_list_countries');
-      if (savedCountries) {
-        const parsedC = JSON.parse(savedCountries);
-        if (Array.isArray(parsedC) && parsedC.length > 0) {
-          setDynamicCountries(parsedC.map((c: any) => ({ ar: c.nameAr, en: c.nameEn })));
+
+      if (countriesRes.status === 'fulfilled' && countriesRes.value.length > 0) {
+        const activeC = countriesRes.value.filter((c) => c.status === 'Active');
+        if (activeC.length > 0) {
+          setDynamicCountries(activeC.map((c) => ({ ar: c.nameAr, en: c.nameEn })));
         }
       }
-      const savedPackages = localStorage.getItem('system_list_packages');
-      if (savedPackages) {
-        const parsedP = JSON.parse(savedPackages);
-        if (Array.isArray(parsedP) && parsedP.length > 0) {
-          setDynamicPackages(parsedP);
+
+      if (packagesRes.status === 'fulfilled' && packagesRes.value.length > 0) {
+        const activeP = packagesRes.value.filter((p) => p.status === 'Active');
+        if (activeP.length > 0) {
+          setDynamicPackages(
+            activeP.map((p) => ({
+              id: p.id,
+              nameAr: p.nameAr,
+              nameEn: p.nameEn,
+            }))
+          );
         }
       }
-    } catch {
-      // Fallback
+
+      if (guidesRes.status === 'fulfilled' && guidesRes.value.length > 0) {
+        const activeG = guidesRes.value.filter((g) => g.status === 'Active');
+        if (activeG.length > 0) {
+          setDynamicGuides(
+            activeG.map((g) => ({
+              id: g.id,
+              nameAr: g.nameAr,
+              nameEn: g.nameEn,
+            }))
+          );
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load system lists in AddTripModal:', err);
     }
   }, []);
+
+  useEffect(() => {
+    loadLiveSystemLists();
+
+    const handleUpdate = () => {
+      loadLiveSystemLists();
+    };
+
+    window.addEventListener('umrah_system_lists_updated', handleUpdate);
+    window.addEventListener('umrah_transport_updated', handleUpdate);
+
+    return () => {
+      window.removeEventListener('umrah_system_lists_updated', handleUpdate);
+      window.removeEventListener('umrah_transport_updated', handleUpdate);
+    };
+  }, [loadLiveSystemLists]);
 
   const handleCompanyChange = (companyName: string) => {
     setTransportCompany(companyName);
@@ -269,7 +361,14 @@ export default function AddTripModal({
       setProgramType(initialData.programType || 'برنامج اقتصادي');
       setStartDate(initialData.startDate);
       setEndDate(initialData.endDate);
-      setExpectedDuration(initialData.expectedDuration || (isRTL ? '١٤ ليلة' : '14 Nights'));
+      if (initialData.startDate && initialData.endDate) {
+        setExpectedDuration(
+          initialData.expectedDuration ||
+            calculateNightsDuration(initialData.startDate, initialData.endDate, isRTL)
+        );
+      } else {
+        setExpectedDuration(initialData.expectedDuration || (isRTL ? '١٤ ليلة' : '14 Nights'));
+      }
       setPilgrimsCount(String(initialData.pilgrimsCount || ''));
       setGuideName(initialData.guideName);
       setDominantNationality(initialData.dominantNationality || (isRTL ? 'السعودية' : 'Saudi Arabia'));
@@ -288,7 +387,7 @@ export default function AddTripModal({
       setProgramType(isRTL ? 'برنامج اقتصادي' : 'Economy Package');
       setStartDate('');
       setEndDate('');
-      setExpectedDuration(isRTL ? '١٤ ليلة' : '14 Nights');
+      setExpectedDuration('');
       setPilgrimsCount('');
       setGuideName('');
       setDominantNationality(isRTL ? 'السعودية' : 'Saudi Arabia');
@@ -302,6 +401,16 @@ export default function AddTripModal({
       setStatus('قيد التنفيذ');
     }
   }, [initialData, isOpen, isRTL]);
+
+  // Automatically recalculate duration whenever startDate, endDate, or language changes
+  useEffect(() => {
+    if (startDate && endDate) {
+      const calc = calculateNightsDuration(startDate, endDate, isRTL);
+      if (calc) {
+        setExpectedDuration(calc);
+      }
+    }
+  }, [startDate, endDate, isRTL]);
 
   if (!isOpen) return null;
 
@@ -416,12 +525,12 @@ export default function AddTripModal({
                         isRTL ? 'pr-4 pl-9 text-right' : 'pl-4 pr-9 text-left'
                       }`}
                     >
-                      {ROUTE_OPTIONS.map((opt) => (
+                      {dynamicRoutes.map((opt) => (
                         <option key={opt.ar} value={isRTL ? opt.ar : opt.en}>
                           {isRTL ? opt.ar : opt.en}
                         </option>
                       ))}
-                      {!ROUTE_OPTIONS.some((r) => r.ar === routePath || r.en === routePath) && routePath && (
+                      {!dynamicRoutes.some((r) => r.ar === routePath || r.en === routePath) && routePath && (
                         <option value={routePath}>{routePath}</option>
                       )}
                     </select>
@@ -535,8 +644,8 @@ export default function AddTripModal({
                     type="text"
                     value={expectedDuration}
                     onChange={(e) => setExpectedDuration(e.target.value)}
-                    placeholder={isRTL ? '١٤ ليلة' : '14 Nights'}
-                    className="w-full bg-transparent border border-slate-200/90 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-400 focus:outline-none shadow-2xs cursor-default"
+                    placeholder={isRTL ? 'مثال: ٤ ليالٍ' : 'e.g. 4 Nights'}
+                    className="w-full bg-white border border-slate-200/90 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-800 font-medium focus:outline-none focus:ring-1 focus:ring-slate-300 shadow-2xs"
                   />
                 </div>
               </div>
@@ -575,11 +684,17 @@ export default function AddTripModal({
                       }`}
                     >
                       <option value="">{isRTL ? 'ابحث عن مرشد...' : 'Select Guide...'}</option>
-                      <option value={isRTL ? 'يوسف مكي' : 'Youssef Makki'}>{isRTL ? 'يوسف مكي' : 'Youssef Makki'}</option>
-                      <option value={isRTL ? 'عبد الرحمن صابر' : 'Abdulrahman Saber'}>{isRTL ? 'عبد الرحمن صابر' : 'Abdulrahman Saber'}</option>
-                      <option value={isRTL ? 'أحمد العتيبي' : 'Ahmed Al-Otaibi'}>{isRTL ? 'أحمد العتيبي' : 'Ahmed Al-Otaibi'}</option>
-                      <option value={isRTL ? 'فيصل الحربي' : 'Faisal Al-Harbi'}>{isRTL ? 'فيصل الحربي' : 'Faisal Al-Harbi'}</option>
-                      <option value={isRTL ? 'جمال مصطفى' : 'Jamal Mustafa'}>{isRTL ? 'جمال مصطفى' : 'Jamal Mustafa'}</option>
+                      {dynamicGuides.map((g) => {
+                        const val = isRTL ? g.nameAr : g.nameEn;
+                        return (
+                          <option key={g.id} value={val}>
+                            {val}
+                          </option>
+                        );
+                      })}
+                      {!dynamicGuides.some((g) => g.nameAr === guideName || g.nameEn === guideName) && guideName && (
+                        <option value={guideName}>{guideName}</option>
+                      )}
                     </select>
                     <ChevronDown className={`w-4 h-4 text-slate-400 absolute top-1/2 -translate-y-1/2 pointer-events-none ${
                       isRTL ? 'left-3' : 'right-3'

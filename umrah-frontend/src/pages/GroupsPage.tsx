@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Sidebar from '../components/layout/Sidebar';
 import Navbar from '../components/layout/Navbar';
 import AddGroupModal from '../components/groups/AddGroupModal';
@@ -12,17 +13,151 @@ import {
   ChevronLeft,
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import {
+  getGroupsApi,
+  createGroupApi,
+  updateGroupApi,
+  updateGroupStatusApi,
+} from '../services/groupsApi';
 
 interface GroupData {
   id: string;
   code: string;
   name: string;
+  agreementNumber?: string;
   mainAgent: string;
   subAgent: string;
   nationality: string;
+  packageType?: string;
   pilgrimsCount: number;
-  status: 'مكتمل' | 'قيد التجهيز' | 'ناقص';
+  status: 'مكتمل' | 'قيد التجهيز' | 'ناقص' | string;
+  makkahHotel?: string;
+  makkahCheckIn?: string;
+  makkahCheckOut?: string;
+  madinahHotel?: string;
+  madinahCheckIn?: string;
+  madinahCheckOut?: string;
+  makkahHotel2?: string;
+  makkah2CheckIn?: string;
+  makkah2CheckOut?: string;
+  hospitalityNotes?: string;
+  departureAirline?: string;
+  departureFlightNo?: string;
+  departureDate?: string;
+  departureAirport?: string;
+  departureDestination?: string;
+  arrivalAirline?: string;
+  arrivalFlightNo?: string;
+  arrivalDate?: string;
+  arrivalAirport?: string;
+  arrivalOrigin?: string;
+  transportCompany?: string;
+  operationNumber?: string;
+  driverName?: string;
+  driverPhone?: string;
+  busPlateNo?: string;
+  umrahPermitStatus?: string;
+  rawdahMenPermitStatus?: string;
+  rawdahWomenPermitStatus?: string;
+  arrivalGrouping?: string;
+  arrivalGroupingStatus?: string;
+  interCityGrouping?: string;
+  intercityGroupingStatus?: string;
+  departureGrouping?: string;
+  departureGroupingStatus?: string;
+  makkahZiyarat?: string;
+  madinahZiyarat?: string;
+  enrichmentProgram?: string;
+  missingRequirements?: string;
+  additionalNotes?: string;
+  uploadedFiles?: any;
+  hotelsData?: any;
+  flightTransportData?: any;
+  permitsNotesData?: any;
 }
+
+const DEFAULT_GROUPS: GroupData[] = [
+  {
+    id: '1',
+    code: 'GRP-2401',
+    name: 'Al-Anwar Group 1',
+    mainAgent: 'Makkah Aviation Agency',
+    subAgent: 'Tasheel Tourism',
+    nationality: 'Pakistan',
+    pilgrimsCount: 145,
+    status: 'مكتمل',
+  },
+  {
+    id: '2',
+    code: 'GRP-2402',
+    name: 'Al-Tawheed Groups',
+    mainAgent: 'Noor Al-Iman International',
+    subAgent: 'Sub-Agent in Egypt',
+    nationality: 'Egypt',
+    pilgrimsCount: 88,
+    status: 'قيد التجهيز',
+  },
+  {
+    id: '3',
+    code: 'GRP-2403',
+    name: 'Jakarta Premium Pilgrims',
+    mainAgent: 'Indonesia Travel',
+    subAgent: 'Al-Huda Trips',
+    nationality: 'Indonesia',
+    pilgrimsCount: 210,
+    status: 'مكتمل',
+  },
+  {
+    id: '4',
+    code: 'GRP-2404',
+    name: 'Al-Safa & Al-Marwa Group',
+    mainAgent: 'Al-Safa Travel India',
+    subAgent: 'Noor Al-Safa Sub-Agent',
+    nationality: 'India',
+    pilgrimsCount: 120,
+    status: 'ناقص',
+  },
+  {
+    id: '5',
+    code: 'GRP-2405',
+    name: 'Taibah Al-Taibah Group',
+    mainAgent: 'Ankara Tourism Agency',
+    subAgent: 'Tasheel Turkey',
+    nationality: 'Turkey',
+    pilgrimsCount: 65,
+    status: 'قيد التجهيز',
+  },
+  {
+    id: '6',
+    code: 'GRP-2406',
+    name: 'Islamic Association Indonesia',
+    mainAgent: 'Islamic Association Indonesia',
+    subAgent: 'Tasheel Jakarta',
+    nationality: 'Indonesia',
+    pilgrimsCount: 180,
+    status: 'مكتمل',
+  },
+  {
+    id: '7',
+    code: 'GRP-2407',
+    name: 'Al-Quds Al-Sharif Group',
+    mainAgent: 'Modern Amman Agency',
+    subAgent: 'Al-Quds Jordan',
+    nationality: 'Jordan',
+    pilgrimsCount: 45,
+    status: 'ناقص',
+  },
+  {
+    id: '8',
+    code: 'GRP-2408',
+    name: 'Al-Rahman Special Groups',
+    mainAgent: 'Al-Rahman Pakistan',
+    subAgent: 'Tasheel Karachi',
+    nationality: 'Pakistan',
+    pilgrimsCount: 112,
+    status: 'قيد التجهيز',
+  },
+];
 
 export default function GroupsPage() {
   const { t, isRTL, direction } = useLanguage();
@@ -36,117 +171,166 @@ export default function GroupsPage() {
   const [statusFilter, setStatusFilter] = useState('الكل');
   const [currentPage, setCurrentPage] = useState(1);
 
+  const [searchParams] = useSearchParams();
+
   // Group items
-  const [groupsList, setGroupsList] = useState<GroupData[]>([
-    {
-      id: '1',
-      code: 'GRP-2401',
-      name: isRTL ? 'مجموعة الأنوار 1' : 'Al-Anwar Group 1',
-      mainAgent: isRTL ? 'وكالة مكة للطيران' : 'Makkah Aviation Agency',
-      subAgent: isRTL ? 'تسهيل للسياحة' : 'Tasheel Tourism',
-      nationality: isRTL ? 'باكستان' : 'Pakistan',
-      pilgrimsCount: 145,
-      status: 'مكتمل',
-    },
-    {
-      id: '2',
-      code: 'GRP-2402',
-      name: isRTL ? 'أفواج التوحيد' : 'Al-Tawheed Groups',
-      mainAgent: isRTL ? 'نور الإيمان الدولية' : 'Noor Al-Iman International',
-      subAgent: isRTL ? 'الوكيل الفرعي بمصر' : 'Sub-Agent in Egypt',
-      nationality: isRTL ? 'مصر' : 'Egypt',
-      pilgrimsCount: 88,
-      status: 'قيد التجهيز',
-    },
-    {
-      id: '3',
-      code: 'GRP-2403',
-      name: isRTL ? 'حجاج جاكرتا المميز' : 'Jakarta Premium Pilgrims',
-      mainAgent: isRTL ? 'إندونيسيا ترافيل' : 'Indonesia Travel',
-      subAgent: isRTL ? 'رحلات الهدى' : 'Al-Huda Trips',
-      nationality: isRTL ? 'إندونيسيا' : 'Indonesia',
-      pilgrimsCount: 210,
-      status: 'مكتمل',
-    },
-    {
-      id: '4',
-      code: 'GRP-2404',
-      name: isRTL ? 'فوج الصفا والمروة' : 'Al-Safa & Al-Marwa Group',
-      mainAgent: isRTL ? 'الصفا ترافيل الهند' : 'Al-Safa Travel India',
-      subAgent: isRTL ? 'تور الصفا الفرعي' : 'Noor Al-Safa Sub-Agent',
-      nationality: isRTL ? 'الهند' : 'India',
-      pilgrimsCount: 120,
-      status: 'ناقص',
-    },
-    {
-      id: '5',
-      code: 'GRP-2405',
-      name: isRTL ? 'مجموعة طيبة الطيبة' : 'Taibah Al-Taibah Group',
-      mainAgent: isRTL ? 'وكالة أنقرة للسياحة' : 'Ankara Tourism Agency',
-      subAgent: isRTL ? 'تسهيل تركيا' : 'Tasheel Turkey',
-      nationality: isRTL ? 'تركيا' : 'Turkey',
-      pilgrimsCount: 65,
-      status: 'قيد التجهيز',
-    },
-    {
-      id: '6',
-      code: 'GRP-2406',
-      name: isRTL ? 'فوج الرحمة والمغفرة' : 'Al-Rahma & Al-Maghfira Group',
-      mainAgent: isRTL ? 'رابطة الإسلام إندونيسيا' : 'Islamic Association Indonesia',
-      subAgent: isRTL ? 'تسهيل جاكرتا' : 'Tasheel Jakarta',
-      nationality: isRTL ? 'إندونيسيا' : 'Indonesia',
-      pilgrimsCount: 180,
-      status: 'مكتمل',
-    },
-    {
-      id: '7',
-      code: 'GRP-2407',
-      name: isRTL ? 'مجموعة القدس الشريف' : 'Al-Quds Al-Sharif Group',
-      mainAgent: isRTL ? 'وكالة عمان الحديثة' : 'Modern Amman Agency',
-      subAgent: isRTL ? 'القدس الأردنية' : 'Al-Quds Jordan',
-      nationality: isRTL ? 'الأردن' : 'Jordan',
-      pilgrimsCount: 45,
-      status: 'ناقص',
-    },
-    {
-      id: '8',
-      code: 'GRP-2408',
-      name: isRTL ? 'أفواج الرحمن الخاصة' : 'Al-Rahman Special Groups',
-      mainAgent: isRTL ? 'الرحمن باكستان' : 'Al-Rahman Pakistan',
-      subAgent: isRTL ? 'تسهيل كراتشي' : 'Tasheel Karachi',
-      nationality: isRTL ? 'باكستان' : 'Pakistan',
-      pilgrimsCount: 112,
-      status: 'قيد التجهيز',
-    },
-  ]);
+  const [groupsList, setGroupsList] = useState<GroupData[]>(() => {
+    try {
+      const saved = localStorage.getItem('umrah_groups_list');
+      return saved ? JSON.parse(saved) : DEFAULT_GROUPS;
+    } catch {
+      return DEFAULT_GROUPS;
+    }
+  });
+
+  // Auto open modal when query param is present (e.g. from notification click /groups?openGroup=test)
+  useEffect(() => {
+    const target = searchParams.get('openGroup') || searchParams.get('groupId') || searchParams.get('code');
+    if (target && groupsList.length > 0) {
+      const match = groupsList.find(
+        (g) =>
+          String(g.id) === target ||
+          String(g.code).toLowerCase() === target.toLowerCase() ||
+          String(g.name).toLowerCase() === target.toLowerCase()
+      );
+      if (match) {
+        setSelectedGroup(match as any);
+        setIsDetailsModalOpen(true);
+      } else {
+        setSearchQuery(target);
+      }
+    }
+  }, [searchParams, groupsList]);
+
+  // Handle immediate open record event if already on the groups page
+  useEffect(() => {
+    const handleOpenRecord = (e: any) => {
+      const detail = e.detail;
+      if (detail && (detail.type === 'group' || detail.type === 'permit') && detail.id) {
+        const target = String(detail.id);
+        const match = groupsList.find(
+          (g) =>
+            String(g.id) === target ||
+            String(g.code).toLowerCase() === target.toLowerCase() ||
+            String(g.name).toLowerCase() === target.toLowerCase()
+        );
+        if (match) {
+          setSelectedGroup(match as any);
+          setIsDetailsModalOpen(true);
+        } else {
+          setSearchQuery(target);
+        }
+      }
+    };
+    window.addEventListener('umrah_open_record', handleOpenRecord);
+    return () => window.removeEventListener('umrah_open_record', handleOpenRecord);
+  }, [groupsList]);
+
+  // Load from backend
+  const fetchGroups = async () => {
+    try {
+      const { groups } = await getGroupsApi({
+        search: searchQuery,
+        agent: agentFilter,
+        status: statusFilter,
+      });
+      if (Array.isArray(groups)) {
+        setGroupsList(
+          groups.map((g) => ({
+            ...g,
+            id: String(g.id),
+            code: g.code,
+            name: g.name,
+            agreementNumber: g.agreementNumber || '',
+            mainAgent: g.mainAgent || '',
+            subAgent: g.subAgent || '',
+            nationality: g.nationality || '',
+            packageType: g.packageType || '',
+            pilgrimsCount: Number(g.pilgrimsCount) || 0,
+            status: g.status || 'قيد التجهيز',
+            hotelsData: g.hotelsData,
+            flightTransportData: g.flightTransportData,
+            permitsNotesData: g.permitsNotesData,
+          }))
+        );
+      }
+    } catch (err) {
+      console.error('Failed to fetch groups from DB:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchGroups();
+  }, [searchQuery, agentFilter, statusFilter]);
+
+  // Persist backup to localStorage safely
+  useEffect(() => {
+    try {
+      const lightweight = groupsList.map((g) => ({
+        id: g.id,
+        code: g.code,
+        name: g.name,
+        mainAgent: g.mainAgent,
+        subAgent: g.subAgent,
+        nationality: g.nationality,
+        pilgrimsCount: g.pilgrimsCount,
+        status: g.status,
+      }));
+      localStorage.setItem('umrah_groups_list', JSON.stringify(lightweight));
+    } catch {}
+  }, [groupsList]);
 
   // Filtering logic
   const filteredGroups = useMemo(() => {
-    return groupsList.filter((grp) => {
+    const query = searchQuery.trim().toLowerCase();
+    return (groupsList || []).filter((grp) => {
+      if (!grp) return false;
+      const code = String(grp.code || '').toLowerCase();
+      const name = String(grp.name || '').toLowerCase();
+      const mainAgent = String(grp.mainAgent || '').toLowerCase();
+      const subAgent = String(grp.subAgent || '').toLowerCase();
+      const nationality = String(grp.nationality || '').toLowerCase();
+
       const matchSearch =
-        searchQuery.trim() === '' ||
-        grp.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        grp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        grp.mainAgent.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        grp.subAgent.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        grp.nationality.toLowerCase().includes(searchQuery.toLowerCase());
+        query === '' ||
+        code.includes(query) ||
+        name.includes(query) ||
+        mainAgent.includes(query) ||
+        subAgent.includes(query) ||
+        nationality.includes(query);
 
       const matchAgent =
         agentFilter === 'الكل' ||
+        agentFilter === 'All' ||
         grp.mainAgent === agentFilter ||
         grp.subAgent === agentFilter;
 
       const matchStatus =
-        statusFilter === 'الكل' || grp.status === statusFilter;
+        statusFilter === 'الكل' ||
+        statusFilter === 'All' ||
+        grp.status === statusFilter;
 
       return matchSearch && matchAgent && matchStatus;
     });
   }, [searchQuery, agentFilter, statusFilter, groupsList]);
 
-  const handleStatusChange = (groupId: string, newStatus: GroupStatusType) => {
+  const ITEMS_PER_PAGE = 8;
+  const totalPages = Math.max(1, Math.ceil(filteredGroups.length / ITEMS_PER_PAGE));
+  const validCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedGroups = useMemo(() => {
+    const start = (validCurrentPage - 1) * ITEMS_PER_PAGE;
+    return filteredGroups.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredGroups, validCurrentPage]);
+
+  const handleStatusChange = async (groupId: string, newStatus: GroupStatusType) => {
     setGroupsList((prev) =>
       prev.map((g) => (g.id === groupId ? { ...g, status: newStatus } : g))
     );
+
+    try {
+      await updateGroupStatusApi(groupId, newStatus);
+    } catch {}
   };
 
   return (
@@ -190,7 +374,7 @@ export default function GroupsPage() {
             </div>
 
             {/* Filters and Action Buttons */}
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2.5">
               {/* Agent Filter Dropdown */}
               <div className="relative">
                 <select
@@ -202,41 +386,29 @@ export default function GroupsPage() {
                 >
                   <option value="الكل">{isRTL ? 'الوكيل: جميع الوكلاء' : 'Agent: All Agents'}</option>
                   {(() => {
-                    try {
-                      const saved = localStorage.getItem('system_list_agents');
-                      if (saved) {
-                        const parsed = JSON.parse(saved);
-                        if (Array.isArray(parsed) && parsed.length > 0) {
-                          return parsed
-                            .filter((a: { status: string }) => a.status === 'Active')
-                            .map((agent: { id: string; nameAr: string; nameEn: string }) => {
-                              const label = isRTL ? agent.nameAr : agent.nameEn;
-                              return (
-                                <option key={agent.id} value={label}>
-                                  {label}
-                                </option>
-                              );
-                            });
-                        }
-                      }
-                    } catch {
-                      // ignore
-                    }
-                    return (
-                      <>
-                        <option value={isRTL ? 'حاسوب لتجارة التقنية - 2067' : 'Hasoob Technology Trading - 2067'}>
-                          {isRTL ? 'حاسوب لتجارة التقنية - 2067' : 'Hasoob Technology Trading - 2067'}
-                        </option>
-                        <option value={isRTL ? 'أودست للسياحة والسفر - 2114' : 'ODST Travel and Tourism - 2114'}>
-                          {isRTL ? 'أودست للسياحة والسفر - 2114' : 'ODST Travel and Tourism - 2114'}
-                        </option>
-                        <option value={isRTL ? 'وكالة مكة للطيران' : 'Makkah Aviation Agency'}>{isRTL ? 'وكالة مكة للطيران' : 'Makkah Aviation Agency'}</option>
-                        <option value={isRTL ? 'نور الإيمان الدولية' : 'Noor Al-Iman International'}>{isRTL ? 'نور الإيمان الدولية' : 'Noor Al-Iman International'}</option>
-                        <option value={isRTL ? 'إندونيسيا ترافيل' : 'Indonesia Travel'}>{isRTL ? 'إندونيسيا ترافيل' : 'Indonesia Travel'}</option>
-                        <option value={isRTL ? 'الصفا ترافيل الهند' : 'Safa Travel India'}>{isRTL ? 'الصفا ترافيل الهند' : 'Safa Travel India'}</option>
-                        <option value={isRTL ? 'وكالة أنقرة للسياحة' : 'Ankara Tours Agency'}>{isRTL ? 'وكالة أنقرة للسياحة' : 'Ankara Tours Agency'}</option>
-                      </>
+                    const dynamicAgents = Array.from(
+                      new Set(
+                        groupsList
+                          .flatMap((g) => [g.mainAgent, g.subAgent])
+                          .filter((agent): agent is string => Boolean(agent && agent.trim()))
+                      )
                     );
+                    const defaultAgents = [
+                      'Makkah Aviation Agency',
+                      'Noor Al-Iman International',
+                      'Indonesia Travel',
+                      'Al-Safa Travel India',
+                      'Ankara Tourism Agency',
+                      'Islamic Association Indonesia',
+                      'Modern Amman Agency',
+                      'Al-Rahman Pakistan',
+                    ];
+                    const agents = Array.from(new Set([...dynamicAgents, ...defaultAgents]));
+                    return agents.map((agent) => (
+                      <option key={agent} value={agent}>
+                        {agent}
+                      </option>
+                    ));
                   })()}
                 </select>
                 <ChevronDown className={`w-4 h-4 text-slate-500 absolute top-1/2 -translate-y-1/2 pointer-events-none ${
@@ -287,8 +459,8 @@ export default function GroupsPage() {
           </div>
 
           {/* Groups Table Card Container */}
-          <div className="bg-white border border-slate-200/90 rounded-2xl shadow-xs overflow-hidden">
-            <div className="overflow-x-auto">
+          <div className="bg-white border border-slate-200/90 rounded-2xl shadow-xs">
+            <div className="overflow-x-auto min-h-[280px] pb-10">
               <table className={`w-full border-collapse ${isRTL ? 'text-right' : 'text-left'}`}>
                 {/* Table Header */}
                 <thead>
@@ -305,44 +477,74 @@ export default function GroupsPage() {
 
                 {/* Table Body */}
                 <tbody className="divide-y divide-slate-100 text-xs sm:text-sm">
-                  {filteredGroups.length > 0 ? (
-                    filteredGroups.map((group) => (
+                  {paginatedGroups.length > 0 ? (
+                    paginatedGroups.map((group) => (
                       <tr
                         key={group.id}
                         onClick={() => {
+                          const hotels = typeof group.hotelsData === 'string'
+                            ? (() => { try { return JSON.parse(group.hotelsData || '{}'); } catch { return {}; } })()
+                            : (group.hotelsData || {});
+                          const flights = typeof group.flightTransportData === 'string'
+                            ? (() => { try { return JSON.parse(group.flightTransportData || '{}'); } catch { return {}; } })()
+                            : (group.flightTransportData || {});
+                          const permits = typeof group.permitsNotesData === 'string'
+                            ? (() => { try { return JSON.parse(group.permitsNotesData || '{}'); } catch { return {}; } })()
+                            : (group.permitsNotesData || {});
+
                           setSelectedGroup({
-                            id: group.id,
-                            code: group.code,
-                            name: group.name,
-                            groupCodeNumber: '480900XXXXXX',
-                            agreementNumber: (group as any).agreementNumber || 'AGR-1125900',
-                            mainAgent: group.mainAgent,
-                            subAgent: group.subAgent,
-                            nationality: group.nationality,
-                            pilgrimsCount: group.pilgrimsCount,
-                            status: group.status,
-                            makkahHotel: isRTL ? 'فندق مكة 1' : 'Makkah Hotel 1',
-                            makkahCheckIn: '2024-08-15',
-                            makkahCheckOut: '2024-08-20',
-                            madinahHotel: isRTL ? 'فندق المدينة المنورة' : 'Madinah Hotel',
-                            madinahCheckIn: '2024-08-20',
-                            madinahCheckOut: '2024-08-25',
-                            departureFlightNo: 'SV-0379',
-                            departureDate: '2024-08-25',
-                            departureAirport: isRTL ? 'مطار الأمير محمد بن عبدالعزيز - المدينة' : 'Prince Mohammad Bin Abdulaziz Airport - Madinah',
-                            arrivalFlightNo: 'SV-0378',
-                            arrivalDate: '2024-08-15',
-                            transportCompany: isRTL ? 'شركة حافل للنقل' : 'Hafil Transport Company',
-                            operationNumber: 'OPS-7489',
-                            driverName: isRTL ? 'سامي السلمي' : 'Sami Al-Sulami',
-                            driverPhone: '+966 51 234 5678',
-                            busPlateNo: '9312 HFL',
-                            umrahPermitStatus: isRTL ? 'مقبول' : 'Approved',
-                            rawdahMenPermitStatus: isRTL ? 'قيد المراجعة' : 'In Review',
-                            rawdahWomenPermitStatus: isRTL ? 'لم يُقدم' : 'Not Submitted',
-                            arrivalGrouping: isRTL ? 'مكتمل' : 'Completed',
-                            interCityGrouping: isRTL ? 'مغلق' : 'Closed',
-                            departureGrouping: isRTL ? 'لا يوجد' : 'None',
+                            ...group,
+                            groupCodeNumber: group.code,
+                            agreementNumber: group.agreementNumber || '',
+                            mainAgent: group.mainAgent || '',
+                            subAgent: group.subAgent || '',
+                            nationality: group.nationality || '',
+                            packageType: group.packageType || '',
+                            pilgrimsCount: group.pilgrimsCount || 0,
+                            status: group.status || 'قيد التجهيز',
+
+                            makkahHotel: group.makkahHotel || hotels.makkahHotel || hotels.makkahHotel1 || '',
+                            makkahCheckIn: group.makkahCheckIn || hotels.makkahCheckIn || hotels.makkah1CheckIn || '',
+                            makkahCheckOut: group.makkahCheckOut || hotels.makkahCheckOut || hotels.makkah1CheckOut || '',
+                            madinahHotel: group.madinahHotel || hotels.madinahHotel || '',
+                            madinahCheckIn: group.madinahCheckIn || hotels.madinahCheckIn || '',
+                            madinahCheckOut: group.madinahCheckOut || hotels.madinahCheckOut || '',
+                            makkahHotel2: group.makkahHotel2 || hotels.makkahHotel2 || '',
+                            makkah2CheckIn: group.makkah2CheckIn || hotels.makkah2CheckIn || '',
+                            makkah2CheckOut: group.makkah2CheckOut || hotels.makkah2CheckOut || '',
+                            hospitalityNotes: group.hospitalityNotes || hotels.hospitalityNotes || '',
+
+                            departureAirline: group.departureAirline || flights.departureAirline || '',
+                            departureFlightNo: group.departureFlightNo || flights.departureFlightNo || '',
+                            departureDate: group.departureDate || flights.departureDate || '',
+                            departureAirport: group.departureAirport || flights.departureAirport || '',
+                            departureDestination: group.departureDestination || flights.departureDestination || '',
+                            arrivalAirline: group.arrivalAirline || flights.arrivalAirline || '',
+                            arrivalFlightNo: group.arrivalFlightNo || flights.arrivalFlightNo || '',
+                            arrivalDate: group.arrivalDate || flights.arrivalDate || '',
+                            arrivalAirport: group.arrivalAirport || flights.arrivalAirport || '',
+                            arrivalOrigin: group.arrivalOrigin || flights.arrivalOrigin || '',
+                            transportCompany: group.transportCompany || flights.transportCompany || '',
+                            operationNumber: group.operationNumber || flights.operationNumber || '',
+                            driverName: group.driverName || flights.driverName || '',
+                            driverPhone: group.driverPhone || flights.driverPhone || '',
+                            busPlateNo: group.busPlateNo || flights.busPlateNo || '',
+
+                            umrahPermitStatus: group.umrahPermitStatus || permits.umrahPermitStatus || 'قيد المراجعة',
+                            rawdahMenPermitStatus: group.rawdahMenPermitStatus || permits.rawdahMenPermitStatus || 'قيد المراجعة',
+                            rawdahWomenPermitStatus: group.rawdahWomenPermitStatus || permits.rawdahWomenPermitStatus || 'لم يُقدم',
+                            arrivalGrouping: group.arrivalGrouping || permits.arrivalGrouping || 'معلق',
+                            interCityGrouping: group.interCityGrouping || permits.interCityGrouping || 'معلق',
+                            departureGrouping: group.departureGrouping || permits.departureGrouping || 'لا يوجد',
+                            makkahZiyarat: group.makkahZiyarat || permits.makkahZiyarat || '',
+                            madinahZiyarat: group.madinahZiyarat || permits.madinahZiyarat || '',
+                            enrichmentProgram: group.enrichmentProgram || permits.enrichmentProgram || '',
+                            missingRequirements: group.missingRequirements || permits.missingRequirements || '',
+                            additionalNotes: group.additionalNotes || permits.additionalNotes || '',
+                            uploadedFiles: group.uploadedFiles || permits.uploadedFiles || {},
+                            hotelsData: hotels,
+                            flightTransportData: flights,
+                            permitsNotesData: permits,
                           });
                           setIsDetailsModalOpen(true);
                         }}
@@ -381,7 +583,7 @@ export default function GroupsPage() {
                         {/* Status */}
                         <td className="py-4 px-6 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                           <GroupStatusSelector
-                            value={group.status}
+                            value={group.status as GroupStatusType}
                             onChange={(newStatus) => handleStatusChange(group.id, newStatus)}
                           />
                         </td>
@@ -408,46 +610,29 @@ export default function GroupsPage() {
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-slate-50 transition cursor-pointer disabled:opacity-40"
-                  disabled={currentPage === 1}
+                  disabled={validCurrentPage === 1}
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
 
-                <button
-                  onClick={() => setCurrentPage(1)}
-                  className={`w-8 h-8 rounded-lg text-sm font-bold flex items-center justify-center transition cursor-pointer ${
-                    currentPage === 1
-                      ? 'bg-[#1c2844] text-white shadow-xs'
-                      : 'border border-slate-200 text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  1
-                </button>
-                <button
-                  onClick={() => setCurrentPage(2)}
-                  className={`w-8 h-8 rounded-lg text-sm font-bold flex items-center justify-center transition cursor-pointer ${
-                    currentPage === 2
-                      ? 'bg-[#1c2844] text-white shadow-xs'
-                      : 'border border-slate-200 text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  2
-                </button>
-                <button
-                  onClick={() => setCurrentPage(3)}
-                  className={`w-8 h-8 rounded-lg text-sm font-bold flex items-center justify-center transition cursor-pointer ${
-                    currentPage === 3
-                      ? 'bg-[#1c2844] text-white shadow-xs'
-                      : 'border border-slate-200 text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  3
-                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`w-8 h-8 rounded-lg text-sm font-bold flex items-center justify-center transition cursor-pointer ${
+                      validCurrentPage === page
+                        ? 'bg-[#1c2844] text-white shadow-xs'
+                        : 'border border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
 
                 <button
-                  onClick={() => setCurrentPage((p) => Math.min(3, p + 1))}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-slate-50 transition cursor-pointer disabled:opacity-40"
-                  disabled={currentPage === 3}
+                  disabled={validCurrentPage >= totalPages}
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -455,7 +640,9 @@ export default function GroupsPage() {
 
               {/* Total Count Text */}
               <div className="text-xs sm:text-sm text-slate-500 font-medium">
-                {isRTL ? 'عرض ١-٨ من أصل ٢٤ مجموعة نشطة' : 'Showing 1-8 of 24 active groups'}
+                {isRTL
+                  ? `عرض ${filteredGroups.length} من أصل ${groupsList.length} مجموعة نشطة`
+                  : `Showing ${filteredGroups.length} of ${groupsList.length} active groups`}
               </div>
             </div>
           </div>
@@ -470,20 +657,60 @@ export default function GroupsPage() {
           setEditingGroup(null);
         }}
         initialData={editingGroup}
-        onSuccess={(savedGroup) => {
+        onSuccess={async (savedGroup) => {
           if (editingGroup) {
-            setGroupsList((prev) =>
-              prev.map((g) =>
-                g.id === editingGroup.id
-                  ? { ...g, ...savedGroup }
-                  : g
-              )
-            );
+            try {
+              const updated = await updateGroupApi(editingGroup.id, savedGroup);
+              setGroupsList((prev) =>
+                prev.map((g) =>
+                  g.id === editingGroup.id
+                    ? {
+                        ...g,
+                        ...updated,
+                        id: String(updated.id),
+                        pilgrimsCount: Number(updated.pilgrimsCount) || savedGroup.pilgrimsCount,
+                      }
+                    : g
+                )
+              );
+              await fetchGroups();
+            } catch {
+              setGroupsList((prev) =>
+                prev.map((g) =>
+                  g.id === editingGroup.id
+                    ? { ...g, ...savedGroup }
+                    : g
+                )
+              );
+            }
           } else {
-            setGroupsList((prev) => [
-              { id: String(Date.now()), ...savedGroup },
-              ...prev,
-            ]);
+            try {
+              const created = await createGroupApi(savedGroup);
+              setGroupsList((prev) => [
+                {
+                  id: String(created.id),
+                  code: created.code,
+                  name: created.name,
+                  agreementNumber: created.agreementNumber,
+                  mainAgent: created.mainAgent || savedGroup.mainAgent || '-',
+                  subAgent: created.subAgent || savedGroup.subAgent || '-',
+                  nationality: created.nationality || savedGroup.nationality || '-',
+                  packageType: created.packageType || savedGroup.packageType,
+                  pilgrimsCount: Number(created.pilgrimsCount) || savedGroup.pilgrimsCount,
+                  status: created.status || savedGroup.status || 'قيد التجهيز',
+                  hotelsData: created.hotelsData || savedGroup.hotelsData,
+                  flightTransportData: created.flightTransportData || savedGroup.flightTransportData,
+                  permitsNotesData: created.permitsNotesData || savedGroup.permitsNotesData,
+                },
+                ...prev,
+              ]);
+              await fetchGroups();
+            } catch {
+              setGroupsList((prev) => [
+                { id: String(Date.now()), ...savedGroup },
+                ...prev,
+              ]);
+            }
           }
           setEditingGroup(null);
         }}

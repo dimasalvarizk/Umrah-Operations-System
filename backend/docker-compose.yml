@@ -1,0 +1,296 @@
+services:
+  # ===================================================
+  # 1. MySQL Database Service
+  # ===================================================
+  mysql:
+    image: mysql:8.0
+    container_name: ${MYSQL_CONTAINER_NAME:-umrah-mysql}
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks:
+      - umrah-network
+
+  # ===================================================
+  # 2. phpMyAdmin Database GUI (Optional / Internal)
+  # ===================================================
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: ${PMA_CONTAINER_NAME:-umrah-phpmyadmin}
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      UPLOAD_LIMIT: ${PMA_UPLOAD_LIMIT:-64M}
+    ports:
+      - "${PMA_PORT:-8080}:80"
+    networks:
+      - umrah-network
+
+  # ===================================================
+  # 3. API Gateway (Public Entrypoint / Reverse Proxy)
+  # ===================================================
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: umrah-api-gateway
+    restart: unless-stopped
+    ports:
+      - "${PORT:-5000}:5000"
+    environment:
+      PORT: 5000
+      NODE_ENV: ${NODE_ENV:-production}
+      AUTH_SERVICE_URL: http://auth-service:5001
+      SETTINGS_SERVICE_URL: http://settings-service:5002
+      GROUPS_SERVICE_URL: http://groups-service:5003
+      TRIPS_SERVICE_URL: http://trips-service:5004
+      HOTELS_SERVICE_URL: http://hotels-service:5005
+      TRANSPORT_SERVICE_URL: http://transport-service:5006
+      CONTRACTS_SERVICE_URL: http://contracts-service:5007
+      NOTES_SERVICE_URL: http://notes-service:5008
+    depends_on:
+      - auth-service
+      - settings-service
+      - groups-service
+      - trips-service
+      - hotels-service
+      - transport-service
+      - contracts-service
+      - notes-service
+    networks:
+      - umrah-network
+
+  # ===================================================
+  # 4. Auth Microservice
+  # ===================================================
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    container_name: umrah-auth-service
+    restart: unless-stopped
+    environment:
+      PORT: 5001
+      NODE_ENV: ${NODE_ENV:-production}
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      DB_NAME: ${MYSQL_DATABASE}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_SECURE: ${SMTP_SECURE}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL}
+      ADMIN_DEFAULT_PASSWORD: ${ADMIN_DEFAULT_PASSWORD}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - umrah-network
+
+  # ===================================================
+  # 5. Settings & Master Lists Microservice
+  # ===================================================
+  settings-service:
+    build:
+      context: ./settings-service
+      dockerfile: Dockerfile
+    container_name: umrah-settings-service
+    restart: unless-stopped
+    environment:
+      PORT: 5002
+      NODE_ENV: ${NODE_ENV:-production}
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      DB_NAME: ${MYSQL_DATABASE}
+      JWT_SECRET: ${JWT_SECRET}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_SECURE: ${SMTP_SECURE}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - umrah-network
+
+  # ===================================================
+  # 6. Groups & Pilgrims Microservice
+  # ===================================================
+  groups-service:
+    build:
+      context: ./groups-service
+      dockerfile: Dockerfile
+    container_name: umrah-groups-service
+    restart: unless-stopped
+    environment:
+      PORT: 5003
+      NODE_ENV: ${NODE_ENV:-production}
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      DB_NAME: ${MYSQL_DATABASE}
+      SETTINGS_SERVICE_URL: http://settings-service:5002
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - umrah-network
+
+  # ===================================================
+  # 7. Trips & Flights Microservice
+  # ===================================================
+  trips-service:
+    build:
+      context: ./trips-service
+      dockerfile: Dockerfile
+    container_name: umrah-trips-service
+    restart: unless-stopped
+    environment:
+      PORT: 5004
+      NODE_ENV: ${NODE_ENV:-production}
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      DB_NAME: ${MYSQL_DATABASE}
+      SETTINGS_SERVICE_URL: http://settings-service:5002
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - umrah-network
+
+  # ===================================================
+  # 8. Hotels & Accommodation Microservice
+  # ===================================================
+  hotels-service:
+    build:
+      context: ./hotels-service
+      dockerfile: Dockerfile
+    container_name: umrah-hotels-service
+    restart: unless-stopped
+    environment:
+      PORT: 5005
+      NODE_ENV: ${NODE_ENV:-production}
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      DB_NAME: ${MYSQL_DATABASE}
+      SETTINGS_SERVICE_URL: http://settings-service:5002
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - umrah-network
+
+  # ===================================================
+  # 9. Transport & Fleet Microservice
+  # ===================================================
+  transport-service:
+    build:
+      context: ./transport-service
+      dockerfile: Dockerfile
+    container_name: umrah-transport-service
+    restart: unless-stopped
+    environment:
+      PORT: 5006
+      NODE_ENV: ${NODE_ENV:-production}
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      DB_NAME: ${MYSQL_DATABASE}
+      SETTINGS_SERVICE_URL: http://settings-service:5002
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - umrah-network
+
+  # ===================================================
+  # 10. Contracts & Agreements Microservice
+  # ===================================================
+  contracts-service:
+    build:
+      context: ./contracts-service
+      dockerfile: Dockerfile
+    container_name: umrah-contracts-service
+    restart: unless-stopped
+    environment:
+      PORT: 5007
+      NODE_ENV: ${NODE_ENV:-production}
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      DB_NAME: ${MYSQL_DATABASE}
+      SETTINGS_SERVICE_URL: http://settings-service:5002
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - umrah-network
+
+  # ===================================================
+  # 11. Notes & Operational Tasks Microservice
+  # ===================================================
+  notes-service:
+    build:
+      context: ./notes-service
+      dockerfile: Dockerfile
+    container_name: umrah-notes-service
+    restart: unless-stopped
+    environment:
+      PORT: 5008
+      NODE_ENV: ${NODE_ENV:-production}
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      DB_NAME: ${MYSQL_DATABASE}
+      SETTINGS_SERVICE_URL: http://settings-service:5002
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - umrah-network
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  umrah-network:
+    driver: bridge

@@ -1,0 +1,24 @@
+{
+  "name": "umrah-operations-system",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Umrah Operations System - Fullstack Monorepo",
+  "scripts": {
+    "dev": "concurrently --kill-others-on-fail --prefix-colors \"bgBlue.bold,bgGreen.bold,bgMagenta.bold,bgCyan.bold,bgYellow.bold,bgRed.bold,bgWhite.bold,bgBlueBright.bold,bgGreenBright.bold,bgMagentaBright.bold\" --names \"FRONTEND,GATEWAY,AUTH,SETTINGS,GROUPS,TRIPS,HOTELS,TRANSPORT,CONTRACTS,NOTES\" \"npm run dev --prefix umrah-frontend\" \"npm run dev --prefix backend/api-gateway\" \"npm run dev --prefix backend/auth-service\" \"npm run dev --prefix backend/settings-service\" \"npm run dev --prefix backend/groups-service\" \"npm run dev --prefix backend/trips-service\" \"npm run dev --prefix backend/hotels-service\" \"npm run dev --prefix backend/transport-service\" \"npm run dev --prefix backend/contracts-service\" \"npm run dev --prefix backend/notes-service\"",
+    "dev:frontend": "npm run dev --prefix umrah-frontend",
+    "dev:backend": "concurrently --kill-others-on-fail --prefix-colors \"bgGreen.bold,bgMagenta.bold,bgCyan.bold,bgYellow.bold,bgRed.bold,bgWhite.bold,bgBlueBright.bold,bgGreenBright.bold,bgMagentaBright.bold\" --names \"GATEWAY,AUTH,SETTINGS,GROUPS,TRIPS,HOTELS,TRANSPORT,CONTRACTS,NOTES\" \"npm run dev --prefix backend/api-gateway\" \"npm run dev --prefix backend/auth-service\" \"npm run dev --prefix backend/settings-service\" \"npm run dev --prefix backend/groups-service\" \"npm run dev --prefix backend/trips-service\" \"npm run dev --prefix backend/hotels-service\" \"npm run dev --prefix backend/transport-service\" \"npm run dev --prefix backend/contracts-service\" \"npm run dev --prefix backend/notes-service\"",
+    "dev:gateway": "npm run dev --prefix backend/api-gateway",
+    "dev:auth": "npm run dev --prefix backend/auth-service",
+    "dev:settings": "npm run dev --prefix backend/settings-service",
+    "dev:groups": "npm run dev --prefix backend/groups-service",
+    "dev:trips": "npm run dev --prefix backend/trips-service",
+    "dev:hotels": "npm run dev --prefix backend/hotels-service",
+    "dev:transport": "npm run dev --prefix backend/transport-service",
+    "dev:contracts": "npm run dev --prefix backend/contracts-service",
+    "dev:notes": "npm run dev --prefix backend/notes-service",
+    "install:all": "npm install && npm --prefix umrah-frontend install && npm --prefix backend/api-gateway install && npm --prefix backend/auth-service install && npm --prefix backend/settings-service install && npm --prefix backend/groups-service install && npm --prefix backend/trips-service install && npm --prefix backend/hotels-service install && npm --prefix backend/transport-service install && npm --prefix backend/contracts-service install && npm --prefix backend/notes-service install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

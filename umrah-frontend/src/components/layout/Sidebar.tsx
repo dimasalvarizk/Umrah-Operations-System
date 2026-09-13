@@ -16,6 +16,7 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import logoLogin from '../../assets/logo-login.png';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAuth } from '../../context/AuthContext';
 
 interface SidebarProps {
   isMobileMenuOpen: boolean;
@@ -32,8 +33,25 @@ export default function Sidebar({
   const location = useLocation();
   const { t, isRTL, language, setLanguage } = useLanguage();
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+  const { user, logout } = useAuth();
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const displayRole = user?.role
+    ? user.role === 'admin'
+      ? (isRTL ? 'مسؤول النظام' : 'System Admin')
+      : user.role === 'operator'
+        ? (isRTL ? 'مشرف العمليات' : 'Operations Supervisor')
+        : user.role === 'agent'
+          ? (isRTL ? 'وكيل سياحي' : 'Travel Agent')
+          : user.role === 'supervisor'
+            ? (isRTL ? 'مشرف' : 'Supervisor')
+            : user.role
+    : t('nav.user_role', 'مشرف العمليات');
+
+  const avatarInitial = user?.name
+    ? user.name.trim().charAt(0).toUpperCase()
+    : (isRTL ? 'أ' : 'A');
 
   // Close popup when clicking outside
   useEffect(() => {
@@ -140,15 +158,19 @@ export default function Sidebar({
         <div className="px-4 py-5 border-t border-slate-900/90 flex items-center justify-between relative">
           {/* User info & avatar */}
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-full bg-[#273859] text-blue-100 font-bold text-sm flex items-center justify-center shrink-0 border border-blue-400/20 shadow-sm">
-              {isRTL ? 'أ' : 'A'}
+            <div className="w-9 h-9 rounded-full bg-[#273859] text-blue-100 font-bold text-sm flex items-center justify-center shrink-0 border border-blue-400/20 shadow-sm overflow-hidden">
+              {user?.avatar ? (
+                <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+              ) : (
+                avatarInitial
+              )}
             </div>
             <div className={`truncate ${isRTL ? 'text-right' : 'text-left'}`}>
               <div className="text-xs font-bold text-white leading-tight truncate">
-                {t('nav.user_name', 'أحمد محمد')}
+                {user?.name || t('nav.user_name', 'أحمد محمد')}
               </div>
               <div className="text-[10px] text-slate-400 mt-0.5 truncate">
-                {t('nav.user_role', 'مشرف العمليات')}
+                {displayRole}
               </div>
             </div>
           </div>
@@ -232,7 +254,10 @@ export default function Sidebar({
 
             {/* Logout button */}
             <button
-              onClick={() => navigate('/login')}
+              onClick={() => {
+                logout();
+                navigate('/login');
+              }}
               className="p-1.5 text-rose-500 hover:text-rose-400 hover:bg-white/5 rounded-lg transition cursor-pointer"
               title={t('nav.logout', 'تسجيل الخروج')}
             >

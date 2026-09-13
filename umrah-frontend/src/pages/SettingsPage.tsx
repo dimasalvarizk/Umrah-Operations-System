@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Sidebar from '../components/layout/Sidebar';
 import Navbar from '../components/layout/Navbar';
 import { useLanguage } from '../context/LanguageContext';
@@ -18,8 +19,23 @@ export type SettingsTabId =
 
 export default function SettingsPage() {
   const { direction, t, isRTL } = useLanguage();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<SettingsTabId>('team');
+
+  const initialTab = (searchParams.get('tab') as SettingsTabId) || 'team';
+  const [activeTab, setActiveTab] = useState<SettingsTabId>(initialTab);
+
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab') as SettingsTabId;
+    if (tabFromUrl && ['team', 'profile', 'security', 'notifications', 'lists'].includes(tabFromUrl)) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (tabId: SettingsTabId) => {
+    setActiveTab(tabId);
+    setSearchParams({ tab: tabId });
+  };
 
   const tabs: Array<{
     id: SettingsTabId;
@@ -84,7 +100,7 @@ export default function SettingsPage() {
                   <button
                     key={tab.id}
                     type="button"
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => handleTabChange(tab.id)}
                     className={`px-3.5 sm:px-4 py-2.5 text-xs sm:text-sm font-semibold transition-all shrink-0 cursor-pointer border-b-2 ${
                       isActive
                         ? 'border-amber-500 text-slate-900 font-bold'

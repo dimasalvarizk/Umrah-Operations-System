@@ -1,0 +1,70 @@
+-- Groups & Pilgrims Operations Table Schema
+CREATE TABLE IF NOT EXISTS `groups` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `code` VARCHAR(50) NOT NULL UNIQUE,
+  `name` VARCHAR(200) NOT NULL,
+  `agreement_number` VARCHAR(100) DEFAULT NULL,
+  `main_agent` VARCHAR(200) DEFAULT NULL,
+  `sub_agent` VARCHAR(200) DEFAULT NULL,
+  `nationality` VARCHAR(100) DEFAULT NULL,
+  `package_type` VARCHAR(200) DEFAULT NULL,
+  `pilgrims_count` INT NOT NULL DEFAULT 1,
+  `status` VARCHAR(50) DEFAULT 'قيد التجهيز',
+  
+  -- Step 2: Hotels & Accommodation
+  `makkah_hotel` VARCHAR(255) DEFAULT NULL,
+  `makkah_checkin` VARCHAR(50) DEFAULT NULL,
+  `makkah_checkout` VARCHAR(50) DEFAULT NULL,
+  `madinah_hotel` VARCHAR(255) DEFAULT NULL,
+  `madinah_checkin` VARCHAR(50) DEFAULT NULL,
+  `madinah_checkout` VARCHAR(50) DEFAULT NULL,
+  `makkah_hotel2` VARCHAR(255) DEFAULT NULL,
+  `makkah2_checkin` VARCHAR(50) DEFAULT NULL,
+  `makkah2_checkout` VARCHAR(50) DEFAULT NULL,
+  `hospitality_notes` TEXT DEFAULT NULL,
+
+  -- Step 3: Flights & Land Transport
+  `departure_airline` VARCHAR(255) DEFAULT NULL,
+  `departure_flight_no` VARCHAR(100) DEFAULT NULL,
+  `departure_date` VARCHAR(50) DEFAULT NULL,
+  `departure_airport` VARCHAR(255) DEFAULT NULL,
+  `departure_destination` VARCHAR(255) DEFAULT NULL,
+  `arrival_airline` VARCHAR(255) DEFAULT NULL,
+  `arrival_flight_no` VARCHAR(100) DEFAULT NULL,
+  `arrival_date` VARCHAR(50) DEFAULT NULL,
+  `arrival_airport` VARCHAR(255) DEFAULT NULL,
+  `arrival_origin` VARCHAR(255) DEFAULT NULL,
+  `transport_company` VARCHAR(255) DEFAULT NULL,
+  `operation_number` VARCHAR(100) DEFAULT NULL,
+  `driver_name` VARCHAR(255) DEFAULT NULL,
+  `driver_phone` VARCHAR(100) DEFAULT NULL,
+  `bus_plate_no` VARCHAR(100) DEFAULT NULL,
+
+  -- Step 4: Permits, Ziyarat & Notes
+  `umrah_permit_status` VARCHAR(100) DEFAULT NULL,
+  `rawdah_men_permit_status` VARCHAR(100) DEFAULT NULL,
+  `rawdah_women_permit_status` VARCHAR(100) DEFAULT NULL,
+  `arrival_grouping_status` VARCHAR(100) DEFAULT NULL,
+  `intercity_grouping_status` VARCHAR(100) DEFAULT NULL,
+  `departure_grouping_status` VARCHAR(100) DEFAULT NULL,
+  `makkah_ziyarat` TEXT DEFAULT NULL,
+  `madinah_ziyarat` TEXT DEFAULT NULL,
+  `enrichment_program` TEXT DEFAULT NULL,
+  `missing_requirements` TEXT DEFAULT NULL,
+  `additional_notes` TEXT DEFAULT NULL,
+  `uploaded_files` JSON DEFAULT NULL,
+
+  -- JSON Blobs for complete compatibility
+  `hotels_data` JSON DEFAULT NULL,
+  `flight_transport_data` JSON DEFAULT NULL,
+  `permits_notes_data` JSON DEFAULT NULL,
+
+  `created_by` INT DEFAULT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX `idx_groups_code` (`code`),
+  INDEX `idx_groups_status` (`status`),
+  INDEX `idx_groups_main_agent` (`main_agent`),
+  INDEX `idx_groups_departure_date` (`departure_date`),
+  INDEX `idx_groups_arrival_date` (`arrival_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
