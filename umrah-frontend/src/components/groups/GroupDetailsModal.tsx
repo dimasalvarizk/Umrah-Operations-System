@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Info, Calendar, Plane, ShieldCheck, SquarePen, Eye, Paperclip, Image as ImageIcon, FileText } from 'lucide-react';
+import { X, Info, Calendar, Plane, ShieldCheck, SquarePen, Eye, Paperclip, Image as ImageIcon, FileText, Copy, Check } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import FilePreviewModal, { type FilePreviewData } from '../common/FilePreviewModal';
 
@@ -84,6 +84,17 @@ export default function GroupDetailsModal({
   const { t, isRTL, direction } = useLanguage();
   const [previewFile, setPreviewFile] = useState<FilePreviewData | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const handleCopyText = (e: React.MouseEvent, text?: string, key?: string) => {
+    e.stopPropagation();
+    if (!text || text === '-') return;
+    navigator.clipboard.writeText(text);
+    if (key) {
+      setCopiedField(key);
+      setTimeout(() => setCopiedField(null), 2000);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -187,9 +198,21 @@ export default function GroupDetailsModal({
               <span className="text-xs sm:text-sm font-semibold text-slate-600">
                 {data.name}
               </span>
-              <span className="bg-white text-slate-600 border border-slate-200/80 px-2 py-0.5 rounded text-xs font-mono font-medium shadow-2xs">
-                {data.code}
-              </span>
+              <div className="flex items-center gap-1 bg-white border border-slate-200/80 px-2 py-0.5 rounded text-xs font-mono font-medium shadow-2xs">
+                <span>{data.code}</span>
+                <button
+                  type="button"
+                  onClick={(e) => handleCopyText(e, data.code, 'headerCode')}
+                  className="p-0.5 hover:text-emerald-600 text-slate-400 transition cursor-pointer"
+                  title={copiedField === 'headerCode' ? (isRTL ? 'تم النسخ!' : 'Copied!') : (isRTL ? 'نسخ الكود' : 'Copy Code')}
+                >
+                  {copiedField === 'headerCode' ? (
+                    <Check className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
+                  ) : (
+                    <Copy className="w-3 h-3" />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -220,7 +243,21 @@ export default function GroupDetailsModal({
 
               <div className="bg-[#f8fafc] border border-slate-200/70 rounded-xl px-4 py-2.5 flex items-center justify-between">
                 <span className="text-xs text-slate-400 font-normal">{t('groups.col_code', 'رقم المجموعة (نسك)')}</span>
-                <span className="text-xs sm:text-sm font-bold text-slate-800 font-mono">{data.groupCodeNumber}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs sm:text-sm font-bold text-slate-800 font-mono">{data.groupCodeNumber}</span>
+                  <button
+                    type="button"
+                    onClick={(e) => handleCopyText(e, data.groupCodeNumber, 'groupCodeNumber')}
+                    className="p-1 rounded bg-white border border-slate-200 text-slate-400 hover:text-emerald-600 hover:border-emerald-300 transition cursor-pointer shadow-2xs"
+                    title={copiedField === 'groupCodeNumber' ? (isRTL ? 'تم النسخ!' : 'Copied!') : (isRTL ? 'نسخ رقم المجموعة' : 'Copy Group Number')}
+                  >
+                    {copiedField === 'groupCodeNumber' ? (
+                      <Check className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
+                    ) : (
+                      <Copy className="w-3 h-3" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div className="bg-[#f8fafc] border border-slate-200/70 rounded-xl px-4 py-2.5 flex items-center justify-between">
@@ -230,6 +267,20 @@ export default function GroupDetailsModal({
                     Nusuk
                   </span>
                   <span className="text-xs sm:text-sm font-bold text-emerald-800 font-mono">{data.agreementNumber}</span>
+                  {data.agreementNumber && data.agreementNumber !== '-' && (
+                    <button
+                      type="button"
+                      onClick={(e) => handleCopyText(e, data.agreementNumber, 'agreementNumber')}
+                      className="p-1 rounded bg-white border border-slate-200 text-slate-400 hover:text-emerald-600 hover:border-emerald-300 transition cursor-pointer shadow-2xs"
+                      title={copiedField === 'agreementNumber' ? (isRTL ? 'تم النسخ!' : 'Copied!') : (isRTL ? 'نسخ رقم الاتفاقية' : 'Copy Agreement Number')}
+                    >
+                      {copiedField === 'agreementNumber' ? (
+                        <Check className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
+                      ) : (
+                        <Copy className="w-3 h-3" />
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
 

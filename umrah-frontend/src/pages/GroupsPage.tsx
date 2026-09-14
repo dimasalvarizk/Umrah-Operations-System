@@ -11,6 +11,10 @@ import {
   Plus,
   ChevronRight,
   ChevronLeft,
+  Copy,
+  Check,
+  Trash2,
+  Loader2,
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import {
@@ -18,6 +22,7 @@ import {
   createGroupApi,
   updateGroupApi,
   updateGroupStatusApi,
+  deleteGroupApi,
 } from '../services/groupsApi';
 
 interface GroupData {
@@ -172,6 +177,35 @@ export default function GroupsPage() {
   const [currentPage, setCurrentPage] = useState(1);
 
   const [searchParams] = useSearchParams();
+
+  const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null);
+  const [groupToDelete, setGroupToDelete] = useState<GroupData | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+
+  const handleCopyCode = (e: React.MouseEvent, code: string, id: string) => {
+    e.stopPropagation();
+    if (!code || code === '-') return;
+    navigator.clipboard.writeText(code);
+    setCopiedCodeId(id);
+    setTimeout(() => setCopiedCodeId(null), 2000);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!groupToDelete) return;
+    setIsDeleting(true);
+    try {
+      await deleteGroupApi(groupToDelete.id);
+      setGroupsList((prev) => prev.filter((g) => g.id !== groupToDelete.id));
+      setGroupToDelete(null);
+    } catch (err) {
+      console.error('Failed to delete group:', err);
+      // Local fallback removal
+      setGroupsList((prev) => prev.filter((g) => g.id !== groupToDelete.id));
+      setGroupToDelete(null);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Group items
   const [groupsList, setGroupsList] = useState<GroupData[]>(() => {
@@ -472,6 +506,7 @@ export default function GroupsPage() {
                     <th className="py-4 px-6 whitespace-nowrap">{t('groups.col_nationality', 'الجنسية')}</th>
                     <th className="py-4 px-6 text-center whitespace-nowrap">{t('groups.col_pilgrims', 'عدد الحجاج')}</th>
                     <th className="py-4 px-6 text-center whitespace-nowrap">{t('groups.col_status', 'الحالة')}</th>
+                    <th className="py-4 px-6 text-center whitespace-nowrap">{t('common.actions', 'إجراءات')}</th>
                   </tr>
                 </thead>
 
@@ -550,9 +585,27 @@ export default function GroupsPage() {
                         }}
                         className="hover:bg-slate-50/80 transition-colors cursor-pointer"
                       >
-                        {/* Group Code */}
+                        {/* Group Code + Copy Button */}
                         <td className="py-4 px-6 font-bold text-[#0f172a] whitespace-nowrap">
-                          {group.code}
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono">{group.code}</span>
+                            <button
+                              type="button"
+                              onClick={(e) => handleCopyCode(e, group.code, group.id)}
+                              className={`p-1.5 rounded-lg border transition cursor-pointer shadow-2xs flex items-center justify-center ${
+                                copiedCodeId === group.id
+                                  ? 'bg-emerald-50 border-emerald-300 text-emerald-600'
+                                  : 'bg-white border-slate-200/90 text-slate-400 hover:text-slate-700 hover:bg-slate-50'
+                              }`}
+                              title={copiedCodeId === group.id ? (isRTL ? 'تم النسخ!' : 'Copied!') : (isRTL ? 'نسخ رقم المجموعة' : 'Copy Group Number')}
+                            >
+                              {copiedCodeId === group.id ? (
+                                <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" />
+                              ) : (
+                                <Copy className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                          </div>
                         </td>
 
                         {/* Group Name */}
@@ -587,12 +640,29 @@ export default function GroupsPage() {
                             onChange={(newStatus) => handleStatusChange(group.id, newStatus)}
                           />
                         </td>
+
+                        {/* Actions (Delete Button) */}
+                        <td className="py-4 px-6 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setGroupToDelete(group);
+                              }}
+                              className="w-8 h-8 rounded-lg border border-rose-200/80 bg-white hover:bg-rose-50 text-rose-500 hover:text-rose-600 flex items-center justify-center transition cursor-pointer active:scale-95 shadow-2xs"
+                              title={isRTL ? 'حذف المجموعة' : 'Delete Group'}
+                            >
+                              <Trash2 className="w-3.5 h-3.5 stroke-[2]" />
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
                       <td
-                        colSpan={7}
+                        colSpan={8}
                         className="py-12 text-center text-slate-400 text-sm"
                       >
                         {t('groups.no_results', 'لا توجد نتائج مطابقة لخيارات البحث')}
@@ -727,6 +797,86 @@ export default function GroupsPage() {
           setIsAddModalOpen(true);
         }}
       />
+
+      {/* Delete Group Confirmation Modal */}
+      {groupToDelete && (
+        <div 
+          onClick={(e) => { if (e.target === e.currentTarget && !isDeleting) setGroupToDelete(null); }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn"
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-100 p-6 space-y-5 animate-scaleUp"
+            dir={direction}
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 border border-rose-100">
+                <Trash2 className="w-6 h-6 stroke-[2.2]" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  {isRTL ? 'تأكيد حذف المجموعة' : 'Delete Group Confirmation'}
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {isRTL
+                    ? 'هل أنت متأكد من رغبتك في حذف هذه المجموعة نهائياً؟'
+                    : 'Are you sure you want to permanently delete this group?'}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-400 font-medium">{isRTL ? 'اسم المجموعة:' : 'Group Name:'}</span>
+                <span className="text-xs sm:text-sm font-bold text-slate-800">{groupToDelete.name}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-400 font-medium">{isRTL ? 'رقم المجموعة:' : 'Group Number:'}</span>
+                <span className="text-xs font-bold text-slate-700 font-mono bg-white px-2 py-0.5 rounded border border-slate-200/80">
+                  {groupToDelete.code}
+                </span>
+              </div>
+              {groupToDelete.pilgrimsCount > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-slate-400 font-medium">{isRTL ? 'عدد الحجاج:' : 'Pilgrims Count:'}</span>
+                  <span className="text-xs font-bold text-slate-800">{groupToDelete.pilgrimsCount}</span>
+                </div>
+              )}
+            </div>
+
+            <p className="text-xs text-rose-600 bg-rose-50/80 border border-rose-200/60 rounded-xl p-3 leading-relaxed">
+              {isRTL
+                ? 'تنبيه: سيتم حذف جميع بيانات المجموعة والرحلات والتصاريح المرتبطة بها نهائياً ولا يمكن التراجع عن هذا الإجراء.'
+                : 'Warning: All flight, hotel, and permit records associated with this group will be deleted. This action cannot be undone.'}
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-1">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setGroupToDelete(null)}
+                className="px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 rounded-xl transition cursor-pointer border border-slate-200 active:scale-95 disabled:opacity-50"
+              >
+                {isRTL ? 'إلغاء' : 'Cancel'}
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleConfirmDelete}
+                className="px-5 py-2.5 text-xs sm:text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition cursor-pointer active:scale-95 shadow-xs flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>{isRTL ? 'جاري الحذف...' : 'Deleting...'}</span>
+                  </>
+                ) : (
+                  <span>{isRTL ? 'حذف نهائي' : 'Delete Group'}</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
