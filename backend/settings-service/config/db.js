@@ -242,6 +242,54 @@ async function initDb() {
           ]
         );
       }
+
+      // Auto-sync any existing team_members to users table if missing
+      try {
+        const bcrypt = require('bcryptjs');
+        const defaultPassword = process.env.ADMIN_DEFAULT_PASSWORD || 'Admin123!';
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(defaultPassword, salt);
+
+        // Ensure users table role column supports custom roles (Super Admin, Staff, Viewer)
+        try {
+          await pool.query("ALTER TABLE `users` MODIFY COLUMN `role` VARCHAR(50) DEFAULT 'admin'");
+        } catch {}
+
+        const [allTeam] = await pool.query('SELECT * FROM `team_members`');
+        for (const tm of allTeam) {
+          if (!tm.email) continue;
+          const cleanEmail = tm.email.toLowerCase().trim();
+          const [userCheck] = await pool.query('SELECT id FROM `users` WHERE `email` = ? LIMIT 1', [cleanEmail]);
+          const userStatus = (tm.status || 'Active').toLowerCase() === 'active' ? 'active' : 'inactive';
+          const displayName = (tm.name_en || tm.name_ar || cleanEmail).trim();
+
+          if (userCheck.length === 0) {
+            const [insUser] = await pool.query(
+              `INSERT INTO \`users\` (\`name\`, \`email\`, \`password\`, \`role\`, \`phone\`, \`employee_id\`, \`branch\`, \`department\`, \`job_title\`, \`status\`)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              [
+                displayName,
+                cleanEmail,
+                hashedPassword,
+                tm.role || 'Staff',
+                tm.phone || null,
+                tm.employee_id || null,
+                tm.branch || null,
+                tm.department || null,
+                tm.job_title || null,
+                userStatus
+              ]
+            );
+            await pool.query('UPDATE `team_members` SET `user_id` = ? WHERE `id` = ?', [insUser.insertId, tm.id]);
+          } else {
+            if (!tm.user_id) {
+              await pool.query('UPDATE `team_members` SET `user_id` = ? WHERE `id` = ?', [userCheck[0].id, tm.id]);
+            }
+          }
+        }
+      } catch (syncErr) {
+        console.warn('Team to Users startup sync note:', syncErr.message);
+      }
     } catch (teamSeedErr) {
       console.warn('Team seeding note:', teamSeedErr.message);
     }

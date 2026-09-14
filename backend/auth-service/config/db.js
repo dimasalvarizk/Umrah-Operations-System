@@ -43,7 +43,7 @@ async function initDb() {
         \`name\` VARCHAR(150) NOT NULL,
         \`email\` VARCHAR(150) NOT NULL UNIQUE,
         \`password\` VARCHAR(255) NOT NULL,
-        \`role\` ENUM('admin', 'operator', 'agent', 'supervisor') DEFAULT 'admin',
+        \`role\` VARCHAR(50) DEFAULT 'admin',
         \`phone\` VARCHAR(50) DEFAULT NULL,
         \`avatar\` MEDIUMTEXT DEFAULT NULL,
         \`employee_id\` VARCHAR(50) DEFAULT NULL,
@@ -76,8 +76,9 @@ async function initDb() {
     if (!colNames.includes('job_title')) {
       await pool.query(`ALTER TABLE \`users\` ADD COLUMN \`job_title\` VARCHAR(100) DEFAULT NULL AFTER \`department\``);
     }
-    // Check if avatar needs mediumtext modification
+    // Check if avatar and role need modification
     await pool.query(`ALTER TABLE \`users\` MODIFY COLUMN \`avatar\` MEDIUMTEXT DEFAULT NULL`);
+    await pool.query(`ALTER TABLE \`users\` MODIFY COLUMN \`role\` VARCHAR(50) DEFAULT 'admin'`);
 
     // Create login_logs table for real-time audit logs
     await pool.query(`
