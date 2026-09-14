@@ -75,7 +75,9 @@ export async function getMeApi(token: string): Promise<{ success: boolean; data:
 
   const data = await res.json();
   if (!res.ok) {
-    throw new Error(data.message || 'Failed to authenticate user');
+    const err: any = new Error(data.message || 'Failed to authenticate user');
+    err.status = res.status;
+    throw err;
   }
 
   return data;

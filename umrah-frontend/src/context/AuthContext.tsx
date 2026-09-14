@@ -43,9 +43,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               sessionStorage.setItem('umrah_auth_user', JSON.stringify(res.data.user));
             }
           }
-        } catch {
-          // Token expired or invalid
-          logout();
+        } catch (err: any) {
+          // Only log out if specifically unauthorized (401 or 403)
+          if (err?.status === 401 || err?.status === 403) {
+            logout();
+          } else {
+            console.warn('Backend verification unavailable, using persisted session:', err?.message || err);
+          }
         }
       }
       setIsLoading(false);

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import heroLogin from '../assets/hero-login.jpg';
 import logoLogin from '../assets/logo-login.png';
@@ -23,7 +23,7 @@ import { forgotPasswordApi, verifyResetCodeApi, resetPasswordApi } from '../serv
 export default function LoginPage() {
   const navigate = useNavigate();
   const { t, direction, isRTL } = useLanguage();
-  const { login } = useAuth();
+  const { login, isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
   // Login form state
   const [email, setEmail] = useState('');
@@ -46,6 +46,58 @@ export default function LoginPage() {
   const [forgotError, setForgotError] = useState('');
   const [forgotSuccess, setForgotSuccess] = useState('');
 
+  // Load remembered credentials on mount
+  useEffect(() => {
+    try {
+      const savedEmail = localStorage.getItem('umrah_remembered_email');
+      const savedRememberMe = localStorage.getItem('umrah_remember_me');
+      if (savedEmail) {
+        setEmail(savedEmail);
+        setRememberMe(savedRememberMe !== 'false');
+      }
+    } catch (e) {
+      console.error('Failed to load remembered credentials:', e);
+    }
+  }, []);
+
+  // Auto redirect if already authenticated and session is valid
+  useEffect(() => {
+    if (isAuthenticated && !isAuthLoading) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, isAuthLoading, navigate]);
+
+  const handleRememberMeChange = (checked: boolean) => {
+    setRememberMe(checked);
+    try {
+      if (checked && email.trim()) {
+        localStorage.setItem('umrah_remembered_email', email.trim());
+        localStorage.setItem('umrah_remember_me', 'true');
+      } else if (!checked) {
+        localStorage.removeItem('umrah_remembered_email');
+        localStorage.removeItem('umrah_remember_me');
+      }
+    } catch (e) {
+      console.error('Failed to update remember me storage:', e);
+    }
+  };
+
+  const handleEmailChange = (val: string) => {
+    setEmail(val);
+    if (rememberMe) {
+      try {
+        if (val.trim()) {
+          localStorage.setItem('umrah_remembered_email', val.trim());
+          localStorage.setItem('umrah_remember_me', 'true');
+        } else {
+          localStorage.removeItem('umrah_remembered_email');
+        }
+      } catch (e) {
+        console.error('Failed to update remembered email:', e);
+      }
+    }
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
@@ -59,7 +111,15 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      await login(email, password, rememberMe);
+      if (rememberMe) {
+        localStorage.setItem('umrah_remembered_email', email.trim());
+        localStorage.setItem('umrah_remember_me', 'true');
+      } else {
+        localStorage.removeItem('umrah_remembered_email');
+        localStorage.removeItem('umrah_remember_me');
+      }
+
+      await login(email.trim(), password, rememberMe);
       setSuccessMessage(t('login.success_redirect', 'تم تسجيل الدخول بنجاح! جاري تحويلك...'));
       setTimeout(() => {
         navigate('/dashboard');
@@ -197,9 +257,9 @@ export default function LoginPage() {
           <LanguageSwitcher variant="login" />
         </div>
 
-        <div className="my-auto max-w-md w-full mx-auto py-8 text-right">
+        <div className={`my-auto max-w-md w-full mx-auto py-8 ${isRTL ? 'text-right' : 'text-left'}`}>
           {/* Welcome Header */}
-          <div className="mb-8 text-right">
+          <div className={`mb-8 ${isRTL ? 'text-right' : 'text-left'}`}>
             <h1 className="text-3xl font-extrabold text-[#111827] tracking-tight">
               {t('login.welcome', 'مرحباً بك')}
             </h1>
@@ -210,26 +270,26 @@ export default function LoginPage() {
 
           {/* Feedback Messages */}
           {errorMessage && (
-            <div className="mb-6 p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center justify-end gap-2.5 animate-fadeIn text-right">
-              <span>{errorMessage}</span>
+            <div className={`mb-6 p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center ${isRTL ? 'justify-end' : 'justify-start'} gap-2.5 animate-fadeIn`}>
               <AlertCircle className="w-4 h-4 flex-shrink-0 text-red-500" />
+              <span>{errorMessage}</span>
             </div>
           )}
 
           {successMessage && (
-            <div className="mb-6 p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs flex items-center justify-end gap-2.5 animate-fadeIn text-right">
-              <span>{successMessage}</span>
+            <div className={`mb-6 p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs flex items-center ${isRTL ? 'justify-end' : 'justify-start'} gap-2.5 animate-fadeIn`}>
               <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-600" />
+              <span>{successMessage}</span>
             </div>
           )}
 
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email Field */}
-            <div className="space-y-1.5 text-right">
+            <div className={`space-y-1.5 ${isRTL ? 'text-right' : 'text-left'}`}>
               <label
                 htmlFor="email"
-                className="block text-xs font-semibold text-slate-700 text-right"
+                className={`block text-xs font-semibold text-slate-700 ${isRTL ? 'text-right' : 'text-left'}`}
               >
                 {t('login.email', 'البريد الإلكتروني')}
               </label>
@@ -238,20 +298,20 @@ export default function LoginPage() {
                   id="email"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => handleEmailChange(e.target.value)}
                   placeholder={t('login.email_placeholder', 'name@company.com')}
                   dir="ltr"
-                  className="w-full bg-[#f8fafc] border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-200 text-right placeholder:text-right"
+                  className={`w-full bg-[#f8fafc] border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-200 ${isRTL ? 'text-right placeholder:text-right' : 'text-left placeholder:text-left'}`}
                   required
                 />
               </div>
             </div>
 
             {/* Password Field */}
-            <div className="space-y-1.5 text-right">
+            <div className={`space-y-1.5 ${isRTL ? 'text-right' : 'text-left'}`}>
               <label
                 htmlFor="password"
-                className="block text-xs font-semibold text-slate-700 text-right"
+                className={`block text-xs font-semibold text-slate-700 ${isRTL ? 'text-right' : 'text-left'}`}
               >
                 {t('login.password', 'كلمة المرور')}
               </label>
@@ -277,23 +337,26 @@ export default function LoginPage() {
             </div>
 
             {/* Remember Me & Forgot Password */}
-            <div className="flex items-center justify-between pt-1" dir="ltr">
+            <div className="flex items-center justify-between pt-1" dir={direction}>
               <label className="flex items-center gap-2.5 cursor-pointer select-none group">
                 <input
                   type="checkbox"
                   checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
+                  onChange={(e) => handleRememberMeChange(e.target.checked)}
                   className="sr-only"
                 />
                 <div
-                  className={`w-[18px] h-[18px] rounded-[5px] border-[1.5px] flex items-center justify-center transition-all duration-150 bg-white ${rememberMe ? 'border-slate-400' : 'border-slate-300 group-hover:border-slate-400'
-                    }`}
+                  className={`w-[18px] h-[18px] rounded-[5px] border-[1.5px] flex items-center justify-center transition-all duration-150 ${
+                    rememberMe
+                      ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm shadow-emerald-500/20'
+                      : 'bg-white border-slate-300 group-hover:border-emerald-500'
+                  }`}
                 >
                   {rememberMe && (
-                    <div className="w-[10px] h-[10px] rounded-[2.5px] bg-[#10b981]" />
+                    <Check className="w-3.5 h-3.5 stroke-[3] text-white" />
                   )}
                 </div>
-                <span className="text-xs text-slate-600 font-medium">
+                <span className="text-xs text-slate-600 font-medium group-hover:text-slate-900 transition-colors">
                   {t('login.remember_me', 'تذكرني على هذا الجهاز')}
                 </span>
               </label>
