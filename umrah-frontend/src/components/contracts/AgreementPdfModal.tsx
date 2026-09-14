@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Printer } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
@@ -16,6 +17,17 @@ export default function AgreementPdfModal({
 }: AgreementPdfModalProps) {
   const { direction, t } = useLanguage();
 
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('pdf-modal-open');
+    } else {
+      document.body.classList.remove('pdf-modal-open');
+    }
+    return () => {
+      document.body.classList.remove('pdf-modal-open');
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handlePrint = () => {
@@ -24,7 +36,8 @@ export default function AgreementPdfModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-start p-2 sm:p-4 bg-slate-900/40 backdrop-blur-xs overflow-y-auto animate-fadeIn print:p-0 print:bg-white print:static print:overflow-visible"
+      id="agreement-pdf-modal"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-start p-2 sm:p-4 bg-slate-900/40 backdrop-blur-xs overflow-y-auto animate-fadeIn print:static print:inset-auto print:z-auto print:p-0 print:m-0 print:bg-white print:overflow-visible print:block"
     >
       {/* Top Action Bar (Hidden on print) */}
       <div
@@ -62,7 +75,7 @@ export default function AgreementPdfModal({
       </div>
 
       {/* Sheet Content */}
-      <div className="w-full flex justify-center pb-6 print:pb-0 print:w-full">
+      <div className="w-full flex justify-center pb-6 print:pb-0 print:w-full print:m-0">
         <AgreementPdfView data={data} />
       </div>
     </div>,

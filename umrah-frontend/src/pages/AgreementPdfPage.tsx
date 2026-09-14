@@ -1,15 +1,56 @@
-import { useNavigate } from 'react-router-dom';
+import { useMemo } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Printer, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import AgreementPdfView from '../components/contracts/AgreementPdfView';
+import AgreementPdfView, { type AgreementPdfData } from '../components/contracts/AgreementPdfView';
 
 export default function AgreementPdfPage() {
   const navigate = useNavigate();
+  const { id } = useParams<{ id?: string }>();
   const { direction, t, isRTL } = useLanguage();
 
   const handlePrint = () => {
     window.print();
   };
+
+  const agreementData: AgreementPdfData | undefined = useMemo(() => {
+    try {
+      const saved = localStorage.getItem('contracts_agreements_list');
+      if (saved) {
+        const list = JSON.parse(saved);
+        const found = list.find((a: any) => String(a.id) === String(id) || a.agreementNo === id);
+        if (found) {
+          const roomsSaved = localStorage.getItem(`agreement_rooms_${found.id || found.agreementNo}`);
+          const roomsData = roomsSaved ? JSON.parse(roomsSaved) : [];
+
+          return {
+            referenceNumber: found.agreementNo || 'AGR-1125900',
+            date: found.date || found.created_at || '29/08/2026',
+            status: isRTL ? 'رسمي / معتمد' : 'Official / Approved',
+            agreementTitle: found.title || found.hotelName,
+            hotelName: found.hotelName,
+            city: found.location || (isRTL ? 'مكة المكرمة' : 'Makkah'),
+            rating: found.rating || 5,
+            period: found.period || `${found.startDate || ''} - ${found.endDate || ''}`,
+            durationDays: found.duration || '4 Days',
+            totalPrice: found.totalAmount ? `${found.totalAmount} SAR` : '19,200 SAR',
+            documentNumber: 'CO-AGR-2026-09',
+            agentName: found.agent || 'Hasoob Technology Trading',
+            packageTier: found.packageTier || 'VIP Executive 14 Days',
+            rooms: roomsData.length > 0 ? roomsData.map((r: any) => ({
+              type: r.type,
+              capacity: r.capacity,
+              size: r.size,
+              count: `${r.count} ${isRTL ? 'غرف' : 'Rooms'}`,
+            })) : undefined,
+          };
+        }
+      }
+    } catch (e) {
+      console.error('Error loading agreement for PDF:', e);
+    }
+    return undefined;
+  }, [id, isRTL]);
 
   return (
     <div
@@ -36,7 +77,7 @@ export default function AgreementPdfPage() {
               {t('contracts.preview_pdf', 'معاينة وثيقة الاتفاقية (PDF)')}
             </h1>
             <p className="text-[10px] text-slate-400 font-mono">
-              CO-AGR-2026-09 • {t('contracts.official_certified', 'معتمد')}
+              {agreementData?.referenceNumber || 'CO-AGR-2026-09'} • {t('contracts.official_certified', 'معتمد')}
             </p>
           </div>
         </div>
@@ -56,7 +97,7 @@ export default function AgreementPdfPage() {
 
       {/* Printable Sheet View */}
       <main className="w-full flex justify-center print:w-full print:m-0 print:p-0">
-        <AgreementPdfView />
+        <AgreementPdfView data={agreementData} />
       </main>
     </div>
   );

@@ -62,15 +62,62 @@
 }
 
 @media print {
-  body {
+  /* Reset background and text color for clean printing */
+  html, body {
     background-color: #ffffff !important;
+    background: #ffffff !important;
     color: #0f172a !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
   }
 
   @page {
-    size: A4;
-    margin: 10mm;
+    size: A4 portrait;
+    margin: 8mm 8mm 8mm 8mm;
+  }
+
+  /* When PDF Modal is open, hide the background React app root entirely */
+  body.pdf-modal-open #root,
+  body.pdf-open #root,
+  body:has(#agreement-pdf-modal) #root {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Hide common navigation and UI elements during any print */
+  nav,
+  aside,
+  header.print-hidden,
+  .print-hidden,
+  .print\:hidden,
+  [data-print="hidden"] {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Make PDF Document take full page cleanly */
+  #agreement-pdf-document {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 10px !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 0 !important;
+    background: #ffffff !important;
+  }
+
+  /* Avoid page breaks inside key document cards/rows */
+  #agreement-pdf-document .pdf-card,
+  #agreement-pdf-document table,
+  #agreement-pdf-document tr,
+  #agreement-pdf-document .pdf-avoid-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 }

@@ -1160,26 +1160,30 @@ export default function AgreementDetailPage() {
       dir={direction}
     >
       {/* Sidebar */}
-      <Sidebar
-        isMobileMenuOpen={isMobileMenuOpen}
-        setIsMobileMenuOpen={setIsMobileMenuOpen}
-        activeTab="contracts"
-      />
+      <div className="print:hidden">
+        <Sidebar
+          isMobileMenuOpen={isMobileMenuOpen}
+          setIsMobileMenuOpen={setIsMobileMenuOpen}
+          activeTab="contracts"
+        />
+      </div>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Navbar */}
-        <Navbar
-          title={t('contracts.tab_agreement_details', 'تفاصيل الاتفاقية')}
-          onMenuClick={() => setIsMobileMenuOpen(true)}
-          showBackButton
-          onBackClick={() => navigate('/contracts')}
-        />
+        <div className="print:hidden">
+          <Navbar
+            title={t('contracts.tab_agreement_details', 'تفاصيل الاتفاقية')}
+            onMenuClick={() => setIsMobileMenuOpen(true)}
+            showBackButton
+            onBackClick={() => navigate('/contracts')}
+          />
+        </div>
 
         {/* Page Body */}
-        <main className="p-4 sm:p-8 space-y-6 flex-1 max-w-7xl mx-auto w-full">
+        <main className="p-4 sm:p-8 space-y-6 flex-1 max-w-7xl mx-auto w-full print:p-0 print:m-0 print:max-w-none">
           {/* Breadcrumb & Top Actions Bar */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 print:hidden">
             {/* Breadcrumb */}
             <div className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
               <span
@@ -1218,7 +1222,7 @@ export default function AgreementDetailPage() {
           {/* Top Banner Card */}
           <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-2xs flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[#d0ebff]/90 text-[#1c7ed6] flex items-center justify-center shrink-0 shadow-2xs">
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[#d0ebff]/90 text-[#1c7ed6] flex items-center justify-center shrink-0 shadow-2xs print:border print:border-slate-300">
                 <FileText className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2]" />
               </div>
               <div className="space-y-1">
@@ -1232,7 +1236,7 @@ export default function AgreementDetailPage() {
                   </span>
                   <button
                     onClick={handleCopyAgreementNo}
-                    className="p-1 hover:bg-slate-100 rounded-md transition cursor-pointer text-slate-500 hover:text-slate-800"
+                    className="p-1 hover:bg-slate-100 rounded-md transition cursor-pointer text-slate-500 hover:text-slate-800 print:hidden"
                     title={isRTL ? 'نسخ الرقم المرجعي' : 'Copy Reference No.'}
                   >
                     {copied ? (
@@ -1247,7 +1251,7 @@ export default function AgreementDetailPage() {
           </div>
 
           {/* Tabs Navigation */}
-          <div className="border-b border-slate-200/80 flex items-center gap-6 overflow-x-auto text-xs sm:text-sm font-semibold text-slate-500">
+          <div className="border-b border-slate-200/80 flex items-center gap-6 overflow-x-auto text-xs sm:text-sm font-semibold text-slate-500 print:hidden">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.label;
               return (
@@ -1278,7 +1282,7 @@ export default function AgreementDetailPage() {
                     </h3>
                     <button
                       onClick={() => setIsEditBasicOpen(true)}
-                      className="px-3 py-1 rounded-lg text-xs font-bold bg-[#eff6ff] text-[#2563eb] hover:bg-[#dbeafe] transition cursor-pointer"
+                      className="px-3 py-1 rounded-lg text-xs font-bold bg-[#eff6ff] text-[#2563eb] hover:bg-[#dbeafe] transition cursor-pointer print:hidden"
                     >
                       {t('common.edit', 'تعديل')}
                     </button>
@@ -1347,7 +1351,7 @@ export default function AgreementDetailPage() {
                     {!isReadOnly && (
                       <button
                         onClick={() => setIsEditAgreementOpen(true)}
-                        className="px-3 py-1 rounded-lg text-xs font-bold bg-[#eff6ff] text-[#2563eb] hover:bg-[#dbeafe] transition cursor-pointer"
+                        className="px-3 py-1 rounded-lg text-xs font-bold bg-[#eff6ff] text-[#2563eb] hover:bg-[#dbeafe] transition cursor-pointer print:hidden"
                       >
                         {t('common.edit', 'تعديل')}
                       </button>
@@ -1388,7 +1392,7 @@ export default function AgreementDetailPage() {
                   </h3>
 
                   {!isReadOnly && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 print:hidden">
                       <button
                         onClick={handleOpenEditRooms}
                         className="px-3 py-1 rounded-lg text-xs font-bold bg-[#eff6ff] text-[#2563eb] hover:bg-[#dbeafe] transition cursor-pointer"
