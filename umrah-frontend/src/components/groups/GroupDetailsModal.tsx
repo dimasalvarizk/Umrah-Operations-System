@@ -87,27 +87,6 @@ export default function GroupDetailsModal({
 
   if (!isOpen) return null;
 
-  const defaultFiles: Record<string, { name: string; size?: number; url?: string; type?: string; uploadedAt?: string; categoryTitle?: string }> = {
-    arrivalGrouping: {
-      name: 'Frame 82717156.png',
-      size: 348120,
-      uploadedAt: '15/08/2024',
-      categoryTitle: isRTL ? 'تفويج الوصول' : 'Arrival Grouping',
-    },
-    umrahPermit: {
-      name: 'nusuk_permit_GRP2401.pdf',
-      size: 512000,
-      uploadedAt: '12/08/2024',
-      categoryTitle: isRTL ? 'تصريح عمرة (نسك)' : 'Umrah Permit (Nusuk)',
-    },
-    rawdahMen: {
-      name: 'rawdah_permit_men.pdf',
-      size: 380400,
-      uploadedAt: '14/08/2024',
-      categoryTitle: isRTL ? 'تصريح الروضة - رجال' : 'Rawdah Permit (Men)',
-    },
-  };
-
   const hotels = typeof (group as any)?.hotelsData === 'string' 
     ? (() => { try { return JSON.parse((group as any)?.hotelsData || '{}'); } catch { return {}; } })()
     : ((group as any)?.hotelsData || {});
@@ -173,7 +152,7 @@ export default function GroupDetailsModal({
       ? group.uploadedFiles 
       : (permits.uploadedFiles && Object.keys(permits.uploadedFiles).length > 0) 
         ? permits.uploadedFiles 
-        : defaultFiles,
+        : {},
     hotelsData: hotels,
     flightTransportData: flights,
     permitsNotesData: permits,
