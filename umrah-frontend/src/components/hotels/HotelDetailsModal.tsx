@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, MapPin, Building2, Bed, CheckCircle2, SquarePen, Star, Plus, Pencil, Trash2, Check, ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
 import type { HotelItem, RoomTypeRow } from '../../pages/HotelsPage';
 import { useLanguage } from '../../context/LanguageContext';
+import { usePermissions } from '../../hooks/usePermissions';
 
 interface HotelDetailsModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ export default function HotelDetailsModal({
   onUpdateHotel,
 }: HotelDetailsModalProps) {
   const { t, isRTL, direction } = useLanguage();
+  const { isReadOnly } = usePermissions();
 
   const [rooms, setRooms] = useState<RoomTypeRow[]>([]);
   const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
@@ -398,12 +400,12 @@ export default function HotelDetailsModal({
                     <th className="py-3 px-4 sm:px-6 font-medium">{isRTL ? 'السعة' : 'Capacity'}</th>
                     <th className="py-3 px-4 sm:px-6 font-medium">{isRTL ? 'متوسط السعر / ليلة' : 'Avg. Price / Night'}</th>
                     <th className="py-3 px-4 sm:px-6 font-medium">{isRTL ? 'الغرف المتاحة' : 'Available Rooms'}</th>
-                    <th className="py-3 px-3 text-center font-medium w-20">{isRTL ? 'الإجراءات' : 'Actions'}</th>
+                    {!isReadOnly && <th className="py-3 px-3 text-center font-medium w-20">{isRTL ? 'الإجراءات' : 'Actions'}</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {rooms.map((room) => {
-                    const isEditing = editingRoomId === room.id;
+                    const isEditing = !isReadOnly && editingRoomId === room.id;
 
                     if (isEditing) {
                       return (
@@ -478,32 +480,34 @@ export default function HotelDetailsModal({
                         <td className="py-3 px-4 sm:px-6 text-slate-600 font-medium">{room.capacity}</td>
                         <td className="py-3 px-4 sm:px-6 font-bold text-[#00c48c]">{room.price} {t('common.currency', 'ر.س')}</td>
                         <td className="py-3 px-4 sm:px-6 font-bold text-slate-800">{room.roomsCount} {isRTL ? 'غرفة' : 'Rooms'}</td>
-                        <td className="py-3 px-3 text-center">
-                          <div className="flex items-center justify-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
-                            <button
-                              type="button"
-                              onClick={() => handleStartEdit(room)}
-                              className="p-1 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-md transition cursor-pointer"
-                              title={isRTL ? 'تعديل الغرفة' : 'Edit Room'}
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteRoom(room.id)}
-                              className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition cursor-pointer"
-                              title={isRTL ? 'حذف الغرفة' : 'Delete Room'}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </td>
+                        {!isReadOnly && (
+                          <td className="py-3 px-3 text-center">
+                            <div className="flex items-center justify-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
+                              <button
+                                type="button"
+                                onClick={() => handleStartEdit(room)}
+                                className="p-1 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-md transition cursor-pointer"
+                                title={isRTL ? 'تعديل الغرفة' : 'Edit Room'}
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteRoom(room.id)}
+                                className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition cursor-pointer"
+                                title={isRTL ? 'حذف الغرفة' : 'Delete Room'}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
 
                   {/* Inline Add Row */}
-                  {isAddingRoom && (
+                  {!isReadOnly && isAddingRoom && (
                     <tr className="bg-emerald-50/40 border-t border-emerald-100">
                       <td className="py-2.5 px-3">
                         <input
@@ -573,7 +577,7 @@ export default function HotelDetailsModal({
             </div>
 
             {/* Add Room Type Button matching mockup */}
-            {!isAddingRoom && (
+            {!isReadOnly && !isAddingRoom && (
               <div className="flex justify-start pt-1">
                 <button
                   type="button"
@@ -597,7 +601,7 @@ export default function HotelDetailsModal({
                 <span>{isRTL ? '٤. المرافق والخدمات المشمولة' : '4. Amenities & Services'}</span>
               </div>
 
-              {!isAddingAmenity && (
+              {!isReadOnly && !isAddingAmenity && (
                 <button
                   type="button"
                   onClick={() => {
@@ -614,7 +618,7 @@ export default function HotelDetailsModal({
             </div>
 
             {/* Add Amenity Form */}
-            {isAddingAmenity && (
+            {!isReadOnly && isAddingAmenity && (
               <div className="bg-emerald-50/50 border border-emerald-200 rounded-xl p-3 flex items-center gap-2.5 animate-fadeIn">
                 <input
                   type="text"
@@ -653,7 +657,7 @@ export default function HotelDetailsModal({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {amenitiesList.map((amenity, idx) => {
-                const isEditing = editingAmenityIdx === idx;
+                const isEditing = !isReadOnly && editingAmenityIdx === idx;
 
                 if (isEditing) {
                   return (
@@ -706,24 +710,26 @@ export default function HotelDetailsModal({
                     <div className="flex items-center gap-1.5 shrink-0">
                       <CheckCircle2 className="w-4 h-4 text-[#00c48c] shrink-0 stroke-[2.3]" />
                       
-                      <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity border-l border-slate-200 pl-1.5 rtl:border-l-0 rtl:border-r rtl:border-slate-200 rtl:pl-0 rtl:pr-1.5">
-                        <button
-                          type="button"
-                          onClick={() => handleStartEditAmenity(idx, amenity)}
-                          className="p-1 text-slate-400 hover:text-slate-800 hover:bg-slate-200/60 rounded-md transition cursor-pointer"
-                          title={isRTL ? 'تعديل المرفق' : 'Edit Amenity'}
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteAmenity(idx)}
-                          className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition cursor-pointer"
-                          title={isRTL ? 'حذف المرفق' : 'Delete Amenity'}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                      {!isReadOnly && (
+                        <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity border-l border-slate-200 pl-1.5 rtl:border-l-0 rtl:border-r rtl:border-slate-200 rtl:pl-0 rtl:pr-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleStartEditAmenity(idx, amenity)}
+                            className="p-1 text-slate-400 hover:text-slate-800 hover:bg-slate-200/60 rounded-md transition cursor-pointer"
+                            title={isRTL ? 'تعديل المرفق' : 'Edit Amenity'}
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteAmenity(idx)}
+                            className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition cursor-pointer"
+                            title={isRTL ? 'حذف المرفق' : 'Delete Amenity'}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -733,17 +739,19 @@ export default function HotelDetailsModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 sm:px-8 py-4 border-t border-slate-200/80 flex items-center justify-between bg-[#f8fafc] shrink-0">
-          <button
-            onClick={() => {
-              if (onEdit) onEdit(hotel);
-              onClose();
-            }}
-            className="bg-[#009688] hover:bg-[#00897b] text-white px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition shadow-xs cursor-pointer active:scale-[0.99]"
-          >
-            <SquarePen className="w-4 h-4 stroke-[2.5]" />
-            <span>{t('common.edit', 'تعديل بيانات الفندق')}</span>
-          </button>
+        <div className={`px-6 sm:px-8 py-4 border-t border-slate-200/80 flex items-center ${isReadOnly ? 'justify-end' : 'justify-between'} bg-[#f8fafc] shrink-0`}>
+          {!isReadOnly && (
+            <button
+              onClick={() => {
+                if (onEdit) onEdit(hotel);
+                onClose();
+              }}
+              className="bg-[#009688] hover:bg-[#00897b] text-white px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition shadow-xs cursor-pointer active:scale-[0.99]"
+            >
+              <SquarePen className="w-4 h-4 stroke-[2.5]" />
+              <span>{t('common.edit', 'تعديل بيانات الفندق')}</span>
+            </button>
+          )}
 
           <button
             onClick={onClose}

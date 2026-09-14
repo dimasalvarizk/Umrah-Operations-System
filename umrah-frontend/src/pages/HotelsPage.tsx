@@ -16,6 +16,7 @@ import {
 import AddHotelModal, { type NewHotelData } from '../components/hotels/AddHotelModal';
 import HotelDetailsModal from '../components/hotels/HotelDetailsModal';
 import { useLanguage } from '../context/LanguageContext';
+import { usePermissions } from '../hooks/usePermissions';
 import {
   type HotelItem,
   type RoomTypeRow,
@@ -31,6 +32,7 @@ export type { HotelItem, RoomTypeRow };
 
 export default function HotelsPage() {
   const { t, isRTL, direction } = useLanguage();
+  const { isReadOnly } = usePermissions();
   const [searchParams] = useSearchParams();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -325,16 +327,18 @@ export default function HotelsPage() {
               </button>
 
               {/* Add New Hotel Button */}
-              <button
-                onClick={() => {
-                  setEditingHotel(null);
-                  setIsAddHotelOpen(true);
-                }}
-                className="bg-[#10b981] hover:bg-[#059669] text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] whitespace-nowrap"
-              >
-                <Plus className="w-4 h-4 shrink-0 stroke-[2.5]" />
-                <span>{t('hotels.add_hotel', 'إضافة فندق جديد')}</span>
-              </button>
+              {!isReadOnly && (
+                <button
+                  onClick={() => {
+                    setEditingHotel(null);
+                    setIsAddHotelOpen(true);
+                  }}
+                  className="bg-[#10b981] hover:bg-[#059669] text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] whitespace-nowrap"
+                >
+                  <Plus className="w-4 h-4 shrink-0 stroke-[2.5]" />
+                  <span>{t('hotels.add_hotel', 'إضافة فندق جديد')}</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -370,38 +374,40 @@ export default function HotelsPage() {
                   />
 
                   {/* Card Action Buttons (Edit & Delete) */}
-                  <div
-                    className={`absolute top-3 ${
-                      isRTL ? 'left-3' : 'right-3'
-                    }`}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div className="flex items-center gap-1.5 z-10">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingHotel(hotel);
-                          setIsAddHotelOpen(true);
-                        }}
-                        className="w-8 h-8 rounded-lg bg-white/95 hover:bg-white text-slate-700 hover:text-[#00c48c] flex items-center justify-center backdrop-blur-xs transition shadow-md border border-slate-200/90 cursor-pointer active:scale-95"
-                        title={isRTL ? 'تعديل الفندق' : 'Edit Hotel'}
-                      >
-                        <Pencil className="w-3.5 h-3.5 stroke-[2.2]" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setHotelToDelete(hotel);
-                        }}
-                        className="w-8 h-8 rounded-lg bg-white/95 hover:bg-rose-50 text-slate-700 hover:text-rose-600 flex items-center justify-center backdrop-blur-xs transition shadow-md border border-slate-200/90 cursor-pointer active:scale-95"
-                        title={isRTL ? 'حذف الفندق' : 'Delete Hotel'}
-                      >
-                        <Trash2 className="w-3.5 h-3.5 stroke-[2.2]" />
-                      </button>
+                  {!isReadOnly && (
+                    <div
+                      className={`absolute top-3 ${
+                        isRTL ? 'left-3' : 'right-3'
+                      }`}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex items-center gap-1.5 z-10">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingHotel(hotel);
+                            setIsAddHotelOpen(true);
+                          }}
+                          className="w-8 h-8 rounded-lg bg-white/95 hover:bg-white text-slate-700 hover:text-[#00c48c] flex items-center justify-center backdrop-blur-xs transition shadow-md border border-slate-200/90 cursor-pointer active:scale-95"
+                          title={isRTL ? 'تعديل الفندق' : 'Edit Hotel'}
+                        >
+                          <Pencil className="w-3.5 h-3.5 stroke-[2.2]" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setHotelToDelete(hotel);
+                          }}
+                          className="w-8 h-8 rounded-lg bg-white/95 hover:bg-rose-50 text-slate-700 hover:text-rose-600 flex items-center justify-center backdrop-blur-xs transition shadow-md border border-slate-200/90 cursor-pointer active:scale-95"
+                          title={isRTL ? 'حذف الفندق' : 'Delete Hotel'}
+                        >
+                          <Trash2 className="w-3.5 h-3.5 stroke-[2.2]" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* Card Body */}

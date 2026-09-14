@@ -17,6 +17,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { usePermissions } from '../hooks/usePermissions';
 import {
   getGroupsApi,
   createGroupApi,
@@ -166,6 +167,7 @@ const DEFAULT_GROUPS: GroupData[] = [
 
 export default function GroupsPage() {
   const { t, isRTL, direction } = useLanguage();
+  const { isReadOnly, canCreateOperations } = usePermissions();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<any>(null);
@@ -479,16 +481,18 @@ export default function GroupsPage() {
               </button>
 
               {/* Add New Group Button */}
-              <button
-                onClick={() => {
-                  setEditingGroup(null);
-                  setIsAddModalOpen(true);
-                }}
-                className="bg-[#10b981] hover:bg-[#059669] text-white px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] whitespace-nowrap"
-              >
-                <Plus className="w-4 h-4 shrink-0" />
-                <span>{t('groups.add_new', 'إضافة مجموعة جديدة')}</span>
-              </button>
+              {canCreateOperations && (
+                <button
+                  onClick={() => {
+                    setEditingGroup(null);
+                    setIsAddModalOpen(true);
+                  }}
+                  className="bg-[#10b981] hover:bg-[#059669] text-white px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] whitespace-nowrap"
+                >
+                  <Plus className="w-4 h-4 shrink-0" />
+                  <span>{t('groups.add_new', 'إضافة مجموعة جديدة')}</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -506,7 +510,7 @@ export default function GroupsPage() {
                     <th className="py-4 px-6 whitespace-nowrap">{t('groups.col_nationality', 'الجنسية')}</th>
                     <th className="py-4 px-6 text-center whitespace-nowrap">{t('groups.col_pilgrims', 'عدد الحجاج')}</th>
                     <th className="py-4 px-6 text-center whitespace-nowrap">{t('groups.col_status', 'الحالة')}</th>
-                    <th className="py-4 px-6 text-center whitespace-nowrap">{t('common.actions', 'إجراءات')}</th>
+                    {!isReadOnly && <th className="py-4 px-6 text-center whitespace-nowrap">{t('common.actions', 'إجراءات')}</th>}
                   </tr>
                 </thead>
 
@@ -635,34 +639,50 @@ export default function GroupsPage() {
 
                         {/* Status */}
                         <td className="py-4 px-6 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                          <GroupStatusSelector
-                            value={group.status as GroupStatusType}
-                            onChange={(newStatus) => handleStatusChange(group.id, newStatus)}
-                          />
+                          {isReadOnly ? (
+                            <span
+                              className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
+                                group.status === 'مكتمل' || group.status === 'Completed'
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : group.status === 'ناقص' || group.status === 'Missing Requirements'
+                                    ? 'bg-rose-100 text-rose-800'
+                                    : 'bg-amber-100 text-amber-800'
+                              }`}
+                            >
+                              {group.status}
+                            </span>
+                          ) : (
+                            <GroupStatusSelector
+                              value={group.status as GroupStatusType}
+                              onChange={(newStatus) => handleStatusChange(group.id, newStatus)}
+                            />
+                          )}
                         </td>
 
                         {/* Actions (Delete Button) */}
-                        <td className="py-4 px-6 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center justify-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setGroupToDelete(group);
-                              }}
-                              className="w-8 h-8 rounded-lg border border-rose-200/80 bg-white hover:bg-rose-50 text-rose-500 hover:text-rose-600 flex items-center justify-center transition cursor-pointer active:scale-95 shadow-2xs"
-                              title={isRTL ? 'حذف المجموعة' : 'Delete Group'}
-                            >
-                              <Trash2 className="w-3.5 h-3.5 stroke-[2]" />
-                            </button>
-                          </div>
-                        </td>
+                        {!isReadOnly && (
+                          <td className="py-4 px-6 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setGroupToDelete(group);
+                                }}
+                                className="w-8 h-8 rounded-lg border border-rose-200/80 bg-white hover:bg-rose-50 text-rose-500 hover:text-rose-600 flex items-center justify-center transition cursor-pointer active:scale-95 shadow-2xs"
+                                title={isRTL ? 'حذف المجموعة' : 'Delete Group'}
+                              >
+                                <Trash2 className="w-3.5 h-3.5 stroke-[2]" />
+                              </button>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     ))
                   ) : (
                     <tr>
                       <td
-                        colSpan={8}
+                        colSpan={isReadOnly ? 7 : 8}
                         className="py-12 text-center text-slate-400 text-sm"
                       >
                         {t('groups.no_results', 'لا توجد نتائج مطابقة لخيارات البحث')}

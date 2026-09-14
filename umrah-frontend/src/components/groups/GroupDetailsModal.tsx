@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Info, Calendar, Plane, ShieldCheck, SquarePen, Eye, Paperclip, Image as ImageIcon, FileText, Copy, Check } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { usePermissions } from '../../hooks/usePermissions';
 import FilePreviewModal, { type FilePreviewData } from '../common/FilePreviewModal';
 
 export interface GroupDetailsModalData {
@@ -82,6 +83,7 @@ export default function GroupDetailsModal({
   onEdit,
 }: GroupDetailsModalProps) {
   const { t, isRTL, direction } = useLanguage();
+  const { isReadOnly } = usePermissions();
   const [previewFile, setPreviewFile] = useState<FilePreviewData | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -762,17 +764,19 @@ export default function GroupDetailsModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 sm:px-8 py-4 border-t border-slate-200/80 flex items-center justify-between bg-[#f8fafc] shrink-0">
-          <button
-            onClick={() => {
-              if (onEdit) onEdit(data);
-              onClose();
-            }}
-            className="bg-[#009688] hover:bg-[#00897b] text-white px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition shadow-xs cursor-pointer active:scale-[0.99]"
-          >
-            <SquarePen className="w-4 h-4 stroke-[2.5]" />
-            <span>{t('common.edit', 'تعديل التفاصيل')}</span>
-          </button>
+        <div className={`px-6 sm:px-8 py-4 border-t border-slate-200/80 flex items-center ${isReadOnly ? 'justify-end' : 'justify-between'} bg-[#f8fafc] shrink-0`}>
+          {!isReadOnly && (
+            <button
+              onClick={() => {
+                if (onEdit) onEdit(data);
+                onClose();
+              }}
+              className="bg-[#009688] hover:bg-[#00897b] text-white px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition shadow-xs cursor-pointer active:scale-[0.99]"
+            >
+              <SquarePen className="w-4 h-4 stroke-[2.5]" />
+              <span>{t('common.edit', 'تعديل التفاصيل')}</span>
+            </button>
+          )}
 
           <button
             onClick={onClose}

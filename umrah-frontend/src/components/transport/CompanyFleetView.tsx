@@ -5,6 +5,7 @@ import type { TransportCompany } from './TransportDetailsModal';
 import AddVehicleModal from './AddVehicleModal';
 import EditCompanyModal from './EditCompanyModal';
 import { useLanguage } from '../../context/LanguageContext';
+import { usePermissions } from '../../hooks/usePermissions';
 import { updateTransportApi } from '../../services/transportApi';
 
 export interface VehicleItem {
@@ -77,6 +78,7 @@ function mapPricingRowsToVehicles(pricingRows?: any[], photos?: string[]): Vehic
 
 export default function CompanyFleetView({ company }: CompanyFleetViewProps) {
   const { t, isRTL, direction } = useLanguage();
+  const { isReadOnly } = usePermissions();
   const [currentCompany, setCurrentCompany] = useState<TransportCompany>(company);
   const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
   const [selectedVehicleForEdit, setSelectedVehicleForEdit] = useState<VehicleItem | null>(null);
@@ -221,27 +223,29 @@ export default function CompanyFleetView({ company }: CompanyFleetViewProps) {
   return (
     <div className="space-y-6 animate-fadeIn" dir={direction}>
       {/* Top Action Row */}
-      <div className="flex items-center justify-start gap-2.5">
-        {/* Edit Company */}
-        <button
-          onClick={() => setIsEditCompanyOpen(true)}
-          className="border border-[#1e293b] bg-white hover:bg-slate-50 text-[#1e293b] px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition shadow-2xs cursor-pointer active:scale-95"
-        >
-          {t('transport.edit_company', 'تعديل الشركة')}
-        </button>
+      {!isReadOnly && (
+        <div className="flex items-center justify-start gap-2.5">
+          {/* Edit Company */}
+          <button
+            onClick={() => setIsEditCompanyOpen(true)}
+            className="border border-[#1e293b] bg-white hover:bg-slate-50 text-[#1e293b] px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition shadow-2xs cursor-pointer active:scale-95"
+          >
+            {t('transport.edit_company', 'تعديل الشركة')}
+          </button>
 
-        {/* Add Vehicle Button */}
-        <button
-          onClick={() => {
-            setSelectedVehicleForEdit(null);
-            setIsAddVehicleOpen(true);
-          }}
-          className="bg-[#16a34a] hover:bg-[#15803d] text-white px-4 py-2 rounded-lg text-xs sm:text-sm font-bold flex items-center gap-1.5 transition shadow-2xs cursor-pointer active:scale-95"
-        >
-          <Plus className="w-4 h-4 stroke-[2.5]" />
-          <span>{t('transport.add_vehicle', 'إضافة مركبة')}</span>
-        </button>
-      </div>
+          {/* Add Vehicle Button */}
+          <button
+            onClick={() => {
+              setSelectedVehicleForEdit(null);
+              setIsAddVehicleOpen(true);
+            }}
+            className="bg-[#16a34a] hover:bg-[#15803d] text-white px-4 py-2 rounded-lg text-xs sm:text-sm font-bold flex items-center gap-1.5 transition shadow-2xs cursor-pointer active:scale-95"
+          >
+            <Plus className="w-4 h-4 stroke-[2.5]" />
+            <span>{t('transport.add_vehicle', 'إضافة مركبة')}</span>
+          </button>
+        </div>
+      )}
 
       {/* 1. Top Company Summary Card */}
       <div
@@ -352,16 +356,18 @@ export default function CompanyFleetView({ company }: CompanyFleetViewProps) {
                 : 'You can add new vehicles and set their trip rates by clicking "+ Add Vehicle" above.'}
             </p>
           </div>
-          <button
-            onClick={() => {
-              setSelectedVehicleForEdit(null);
-              setIsAddVehicleOpen(true);
-            }}
-            className="inline-flex items-center gap-2 bg-[#16a34a] hover:bg-[#15803d] text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shadow-2xs cursor-pointer active:scale-95"
-          >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>{t('transport.add_vehicle', 'إضافة مركبة')}</span>
-          </button>
+          {!isReadOnly && (
+            <button
+              onClick={() => {
+                setSelectedVehicleForEdit(null);
+                setIsAddVehicleOpen(true);
+              }}
+              className="inline-flex items-center gap-2 bg-[#16a34a] hover:bg-[#15803d] text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shadow-2xs cursor-pointer active:scale-95"
+            >
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <span>{t('transport.add_vehicle', 'إضافة مركبة')}</span>
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
@@ -422,29 +428,31 @@ export default function CompanyFleetView({ company }: CompanyFleetViewProps) {
                 </div>
 
                 {/* Actions Row: Edit & Delete Buttons */}
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedVehicleForEdit(vehicle);
-                      setIsAddVehicleOpen(true);
-                    }}
-                    className="flex-1 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/90 py-1.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs active:scale-95"
-                  >
-                    <SquarePen className="w-3.5 h-3.5 text-slate-500" />
-                    <span>{t('common.edit', 'تعديل')}</span>
-                  </button>
+                {!isReadOnly && (
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedVehicleForEdit(vehicle);
+                        setIsAddVehicleOpen(true);
+                      }}
+                      className="flex-1 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/90 py-1.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs active:scale-95"
+                    >
+                      <SquarePen className="w-3.5 h-3.5 text-slate-500" />
+                      <span>{t('common.edit', 'تعديل')}</span>
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setVehicleToDelete(vehicle)}
-                    className="border border-rose-200/80 bg-rose-50 hover:bg-rose-100 text-rose-600 py-1.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs active:scale-95"
-                    title={isRTL ? 'حذف المركبة' : 'Delete Vehicle'}
-                  >
-                    <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                    <span>{t('common.delete', 'حذف')}</span>
-                  </button>
-                </div>
+                    <button
+                      type="button"
+                      onClick={() => setVehicleToDelete(vehicle)}
+                      className="border border-rose-200/80 bg-rose-50 hover:bg-rose-100 text-rose-600 py-1.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs active:scale-95"
+                      title={isRTL ? 'حذف المركبة' : 'Delete Vehicle'}
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                      <span>{t('common.delete', 'حذف')}</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ))}

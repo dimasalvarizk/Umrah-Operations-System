@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import Sidebar from '../components/layout/Sidebar';
 import Navbar from '../components/layout/Navbar';
 import { useLanguage } from '../context/LanguageContext';
+import { usePermissions } from '../hooks/usePermissions';
 import {
   Search,
   Plus,
@@ -50,6 +51,7 @@ export interface NoteItem {
 
 export default function NotesPage() {
   const { direction, t, isRTL } = useLanguage();
+  const { isReadOnly } = usePermissions();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('الكل');
@@ -576,14 +578,16 @@ export default function NotesPage() {
                 </div>
 
                 {/* Add New Note Button */}
-                <button
-                  type="button"
-                  onClick={handleOpenAdd}
-                  className="inline-flex items-center gap-2 bg-[#00dc82] hover:bg-[#00c574] text-[#0d0f14] font-bold text-xs sm:text-sm px-4 py-2.5 rounded-xl transition shadow-xs cursor-pointer active:scale-95"
-                >
-                  <Plus className="w-4 h-4 stroke-[2.5]" />
-                  <span>{t('notes.add_note', 'إضافة ملاحظة')}</span>
-                </button>
+                {!isReadOnly && (
+                  <button
+                    type="button"
+                    onClick={handleOpenAdd}
+                    className="inline-flex items-center gap-2 bg-[#00dc82] hover:bg-[#00c574] text-[#0d0f14] font-bold text-xs sm:text-sm px-4 py-2.5 rounded-xl transition shadow-xs cursor-pointer active:scale-95"
+                  >
+                    <Plus className="w-4 h-4 stroke-[2.5]" />
+                    <span>{t('notes.add_note', 'إضافة ملاحظة')}</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -623,14 +627,16 @@ export default function NotesPage() {
               <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto mb-6">
                 {t('notes.no_notes_desc', 'لم نتمكن من العثور على أي ملاحظة تطابق معايير البحث والفلترة المحددة.')}
               </p>
-              <button
-                type="button"
-                onClick={handleOpenAdd}
-                className="inline-flex items-center gap-2 bg-[#0f172a] text-white font-bold text-xs px-5 py-2.5 rounded-xl hover:bg-slate-800 transition cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                <span>{t('notes.add_first_note', 'إضافة ملاحظة جديدة الآن')}</span>
-              </button>
+              {!isReadOnly && (
+                <button
+                  type="button"
+                  onClick={handleOpenAdd}
+                  className="inline-flex items-center gap-2 bg-[#0f172a] text-white font-bold text-xs px-5 py-2.5 rounded-xl hover:bg-slate-800 transition cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>{t('notes.add_first_note', 'إضافة ملاحظة جديدة الآن')}</span>
+                </button>
+              )}
             </div>
           ) : viewMode === 'grid' ? (
             /* GRID VIEW */
@@ -658,40 +664,52 @@ export default function NotesPage() {
 
                         <div className="flex items-center gap-1">
                           {/* Pin Button */}
-                          <button
-                            type="button"
-                            onClick={() => handleTogglePin(note.id)}
-                            className={`p-1.5 rounded-lg transition cursor-pointer ${
-                              note.isPinned
-                                ? 'text-amber-500 bg-amber-50 hover:bg-amber-100'
-                                : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
-                            }`}
-                            title={note.isPinned ? t('notes.unpin_note', 'إلغاء التثبيت') : t('notes.pin_note', 'تثبيت في الأعلى')}
-                          >
-                            <Pin
-                              className={`w-3.5 h-3.5 ${
-                                note.isPinned ? 'fill-amber-500' : ''
+                          {!isReadOnly ? (
+                            <button
+                              type="button"
+                              onClick={() => handleTogglePin(note.id)}
+                              className={`p-1.5 rounded-lg transition cursor-pointer ${
+                                note.isPinned
+                                  ? 'text-amber-500 bg-amber-50 hover:bg-amber-100'
+                                  : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
                               }`}
-                            />
-                          </button>
+                              title={note.isPinned ? t('notes.unpin_note', 'إلغاء التثبيت') : t('notes.pin_note', 'تثبيت في الأعلى')}
+                            >
+                              <Pin
+                                className={`w-3.5 h-3.5 ${
+                                  note.isPinned ? 'fill-amber-500' : ''
+                                }`}
+                              />
+                            </button>
+                          ) : note.isPinned ? (
+                            <span className="p-1.5 text-amber-500 bg-amber-50 rounded-lg">
+                              <Pin className="w-3.5 h-3.5 fill-amber-500" />
+                            </span>
+                          ) : null}
 
                           {/* Complete Status Checkbox */}
-                          <button
-                            type="button"
-                            onClick={() => handleToggleStatus(note.id)}
-                            className={`p-1.5 rounded-lg transition cursor-pointer ${
-                              isCompleted
-                                ? 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100'
-                                : 'text-slate-400 hover:text-emerald-600 hover:bg-slate-100'
-                            }`}
-                            title={isCompleted ? t('notes.mark_active', 'إعادة كملاحظة نشطة') : t('notes.mark_resolved', 'تعيين كمكتمل')}
-                          >
-                            <CheckCircle2
-                              className={`w-4 h-4 ${
-                                isCompleted ? 'fill-emerald-100 stroke-emerald-600' : ''
+                          {!isReadOnly ? (
+                            <button
+                              type="button"
+                              onClick={() => handleToggleStatus(note.id)}
+                              className={`p-1.5 rounded-lg transition cursor-pointer ${
+                                isCompleted
+                                  ? 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100'
+                                  : 'text-slate-400 hover:text-emerald-600 hover:bg-slate-100'
                               }`}
-                            />
-                          </button>
+                              title={isCompleted ? t('notes.mark_active', 'إعادة كملاحظة نشطة') : t('notes.mark_resolved', 'تعيين كمكتمل')}
+                            >
+                              <CheckCircle2
+                                className={`w-4 h-4 ${
+                                  isCompleted ? 'fill-emerald-100 stroke-emerald-600' : ''
+                                }`}
+                              />
+                            </button>
+                          ) : isCompleted ? (
+                            <span className="p-1.5 text-emerald-600">
+                              <CheckCircle2 className="w-4 h-4 fill-emerald-100 stroke-emerald-600" />
+                            </span>
+                          ) : null}
                         </div>
                       </div>
 
@@ -778,25 +796,29 @@ export default function NotesPage() {
                           )}
                         </button>
 
-                        {/* Edit Button */}
-                        <button
-                          type="button"
-                          onClick={() => handleOpenEdit(note)}
-                          className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer"
-                          title={t('common.edit', 'تعديل')}
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
+                        {!isReadOnly && (
+                          <>
+                            {/* Edit Button */}
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEdit(note)}
+                              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer"
+                              title={t('common.edit', 'تعديل')}
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
 
-                        {/* Delete Button */}
-                        <button
-                          type="button"
-                          onClick={() => setDeleteNoteId(note.id)}
-                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
-                          title={t('common.delete', 'حذف')}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                            {/* Delete Button */}
+                            <button
+                              type="button"
+                              onClick={() => setDeleteNoteId(note.id)}
+                              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
+                              title={t('common.delete', 'حذف')}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -831,17 +853,23 @@ export default function NotesPage() {
                         >
                           {/* Checkbox Column */}
                           <td className="py-3.5 px-4 text-center">
-                            <button
-                              type="button"
-                              onClick={() => handleToggleStatus(note.id)}
-                              className="cursor-pointer text-slate-400 hover:text-emerald-600 transition"
-                            >
-                              <CheckCircle2
-                                className={`w-4 h-4 mx-auto ${
-                                  isCompleted ? 'text-emerald-600 fill-emerald-100' : ''
-                                }`}
-                              />
-                            </button>
+                            {!isReadOnly ? (
+                              <button
+                                type="button"
+                                onClick={() => handleToggleStatus(note.id)}
+                                className="cursor-pointer text-slate-400 hover:text-emerald-600 transition"
+                              >
+                                <CheckCircle2
+                                  className={`w-4 h-4 mx-auto ${
+                                    isCompleted ? 'text-emerald-600 fill-emerald-100' : ''
+                                  }`}
+                                />
+                              </button>
+                            ) : isCompleted ? (
+                              <CheckCircle2 className="w-4 h-4 mx-auto text-emerald-600 fill-emerald-100" />
+                            ) : (
+                              <span className="w-4 h-4 mx-auto block rounded-full border border-slate-300" />
+                            )}
                           </td>
 
                           {/* Title & Preview */}
@@ -890,34 +918,46 @@ export default function NotesPage() {
                           {/* Action Buttons */}
                           <td className="py-3.5 px-4 text-center">
                             <div className="flex items-center justify-center gap-1">
-                              <button
-                                type="button"
-                                onClick={() => handleTogglePin(note.id)}
-                                className="p-1.5 text-slate-400 hover:text-amber-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
-                                title={t('notes.pin_note', 'تثبيت')}
-                              >
-                                <Pin
-                                  className={`w-3.5 h-3.5 ${
-                                    note.isPinned ? 'fill-amber-500 text-amber-500' : ''
-                                  }`}
-                                />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleOpenEdit(note)}
-                                className="p-1.5 text-slate-400 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition cursor-pointer"
-                                title={t('common.edit', 'تعديل')}
-                              >
-                                <Edit3 className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setDeleteNoteId(note.id)}
-                                className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition cursor-pointer"
-                                title={t('common.delete', 'حذف')}
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              {!isReadOnly ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleTogglePin(note.id)}
+                                    className="p-1.5 text-slate-400 hover:text-amber-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                                    title={t('notes.pin_note', 'تثبيت')}
+                                  >
+                                    <Pin
+                                      className={`w-3.5 h-3.5 ${
+                                        note.isPinned ? 'fill-amber-500 text-amber-500' : ''
+                                      }`}
+                                    />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenEdit(note)}
+                                    className="p-1.5 text-slate-400 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                                    title={t('common.edit', 'تعديل')}
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDeleteNoteId(note.id)}
+                                    className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition cursor-pointer"
+                                    title={t('common.delete', 'حذف')}
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setViewingNote(note)}
+                                  className="px-2 py-1 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition cursor-pointer"
+                                >
+                                  {t('common.view', 'عرض')}
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -1243,17 +1283,19 @@ export default function NotesPage() {
               </button>
 
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const n = viewingNote;
-                    setViewingNote(null);
-                    handleOpenEdit(n);
-                  }}
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition cursor-pointer"
-                >
-                  {t('common.edit', 'تعديل')}
-                </button>
+                {!isReadOnly && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const n = viewingNote;
+                      setViewingNote(null);
+                      handleOpenEdit(n);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition cursor-pointer"
+                  >
+                    {t('common.edit', 'تعديل')}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setViewingNote(null)}

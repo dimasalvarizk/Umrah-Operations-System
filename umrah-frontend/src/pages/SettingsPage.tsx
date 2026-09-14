@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import Sidebar from '../components/layout/Sidebar';
 import Navbar from '../components/layout/Navbar';
 import { useLanguage } from '../context/LanguageContext';
+import { usePermissions } from '../hooks/usePermissions';
 
 import ManageTeamTab from '../components/settings/ManageTeamTab';
 import EditProfileTab from '../components/settings/EditProfileTab';
@@ -19,33 +20,44 @@ export type SettingsTabId =
 
 export default function SettingsPage() {
   const { direction, t, isRTL } = useLanguage();
+  const { isSuperAdmin } = usePermissions();
   const [searchParams, setSearchParams] = useSearchParams();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const initialTab = (searchParams.get('tab') as SettingsTabId) || 'team';
+  const rawTab = searchParams.get('tab') as SettingsTabId;
+  const initialTab: SettingsTabId = (!isSuperAdmin && (rawTab === 'team' || rawTab === 'lists' || !rawTab))
+    ? 'profile'
+    : (rawTab || 'team');
+
   const [activeTab, setActiveTab] = useState<SettingsTabId>(initialTab);
 
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab') as SettingsTabId;
     if (tabFromUrl && ['team', 'profile', 'security', 'notifications', 'lists'].includes(tabFromUrl)) {
-      setActiveTab(tabFromUrl);
+      if (!isSuperAdmin && (tabFromUrl === 'team' || tabFromUrl === 'lists')) {
+        setActiveTab('profile');
+      } else {
+        setActiveTab(tabFromUrl);
+      }
     }
-  }, [searchParams]);
+  }, [searchParams, isSuperAdmin]);
 
   const handleTabChange = (tabId: SettingsTabId) => {
     setActiveTab(tabId);
     setSearchParams({ tab: tabId });
   };
 
-  const tabs: Array<{
+  const allTabs: Array<{
     id: SettingsTabId;
     labelEn: string;
     labelAr: string;
+    requiresAdmin?: boolean;
   }> = [
     {
       id: 'team',
       labelEn: 'Manage Team',
       labelAr: 'فريق العمل والصلاحيات',
+      requiresAdmin: true,
     },
     {
       id: 'profile',
@@ -66,8 +78,11 @@ export default function SettingsPage() {
       id: 'lists',
       labelEn: 'System Lists',
       labelAr: 'قوائم وبيانات النظام',
+      requiresAdmin: true,
     },
   ];
+
+  const tabs = allTabs.filter((tab) => !tab.requiresAdmin || isSuperAdmin);
 
   return (
     <div

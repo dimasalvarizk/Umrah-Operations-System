@@ -1,6 +1,7 @@
 import { X, SquarePen, Info, Building2, Plane } from 'lucide-react';
 import busBadge from '../../assets/bus-badge.png';
 import { useLanguage } from '../../context/LanguageContext';
+import { usePermissions } from '../../hooks/usePermissions';
 
 export interface TripItem {
   id: string;
@@ -47,6 +48,7 @@ export default function TripDetailsModal({
   onEdit,
 }: TripDetailsModalProps) {
   const { t, isRTL, direction } = useLanguage();
+  const { isReadOnly } = usePermissions();
 
   if (!isOpen || !trip) return null;
 
@@ -288,17 +290,19 @@ export default function TripDetailsModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 sm:px-8 py-4 border-t border-slate-200/80 flex items-center justify-between bg-white shrink-0">
-          <button
-            onClick={() => {
-              if (onEdit) onEdit(trip);
-              onClose();
-            }}
-            className="bg-[#00c48c] hover:bg-[#00b07d] text-white px-7 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer shadow-xs active:scale-95"
-          >
-            <SquarePen className="w-4 h-4 stroke-[2.2]" />
-            <span>{t('common.edit', 'تعديل التفاصيل')}</span>
-          </button>
+        <div className={`px-6 sm:px-8 py-4 border-t border-slate-200/80 flex items-center ${isReadOnly ? 'justify-end' : 'justify-between'} bg-white shrink-0`}>
+          {!isReadOnly && (
+            <button
+              onClick={() => {
+                if (onEdit) onEdit(trip);
+                onClose();
+              }}
+              className="bg-[#00c48c] hover:bg-[#00b07d] text-white px-7 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer shadow-xs active:scale-95"
+            >
+              <SquarePen className="w-4 h-4 stroke-[2.2]" />
+              <span>{t('common.edit', 'تعديل التفاصيل')}</span>
+            </button>
+          )}
 
           <button
             onClick={onClose}

@@ -16,6 +16,7 @@ import TransportDetailsModal, {
 import AddTransportModal from '../components/transport/AddTransportModal';
 import CompanyFleetView from '../components/transport/CompanyFleetView';
 import { useLanguage } from '../context/LanguageContext';
+import { usePermissions } from '../hooks/usePermissions';
 
 import {
   getTransportsApi,
@@ -24,6 +25,7 @@ import {
 
 export default function TransportPage() {
   const { t, isRTL, direction } = useLanguage();
+  const { isReadOnly } = usePermissions();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [regionFilter, setRegionFilter] = useState('الكل');
@@ -253,13 +255,15 @@ export default function TransportPage() {
                   </div>
 
                   {/* Add Company Button */}
-                  <button
-                    onClick={() => setIsAddCompanyOpen(true)}
-                    className="bg-[#10b981] hover:bg-[#059669] text-white px-5 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer active:scale-95 shrink-0"
-                  >
-                    <Plus className="w-4 h-4 stroke-[2.5]" />
-                    <span>{t('transport.add_company', 'Add Company')}</span>
-                  </button>
+                  {!isReadOnly && (
+                    <button
+                      onClick={() => setIsAddCompanyOpen(true)}
+                      className="bg-[#10b981] hover:bg-[#059669] text-white px-5 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer active:scale-95 shrink-0"
+                    >
+                      <Plus className="w-4 h-4 stroke-[2.5]" />
+                      <span>{t('transport.add_company', 'Add Company')}</span>
+                    </button>
+                  )}
                 </div>
               </div>
 

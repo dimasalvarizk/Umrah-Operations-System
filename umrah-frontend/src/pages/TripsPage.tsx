@@ -11,6 +11,7 @@ import TripDetailsModal, { type TripItem } from '../components/trips/TripDetails
 import AddTripModal from '../components/trips/AddTripModal';
 import TripStatusSelector, { type TripStatusType } from '../components/trips/TripStatusSelector';
 import { useLanguage } from '../context/LanguageContext';
+import { usePermissions } from '../hooks/usePermissions';
 
 import {
   getTripsApi,
@@ -22,6 +23,7 @@ import {
 
 export default function TripsPage() {
   const { t, isRTL, direction } = useLanguage();
+  const { isReadOnly } = usePermissions();
   const [searchParams] = useSearchParams();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -282,16 +284,18 @@ export default function TripsPage() {
               </h2>
 
               <div className="flex flex-wrap items-center gap-3">
-                <button
-                  onClick={() => {
-                    setEditingTrip(null);
-                    setIsAddTripOpen(true);
-                  }}
-                  className="bg-[#0f172a] hover:bg-slate-800 text-white px-5 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition shadow-xs cursor-pointer active:scale-[0.99] whitespace-nowrap order-2 sm:order-1"
-                >
-                  <Plus className="w-4 h-4 shrink-0 stroke-[2.5]" />
-                  <span>{t('trips.add_trip', 'Add Trip')}</span>
-                </button>
+                {!isReadOnly && (
+                  <button
+                    onClick={() => {
+                      setEditingTrip(null);
+                      setIsAddTripOpen(true);
+                    }}
+                    className="bg-[#0f172a] hover:bg-slate-800 text-white px-5 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition shadow-xs cursor-pointer active:scale-[0.99] whitespace-nowrap order-2 sm:order-1"
+                  >
+                    <Plus className="w-4 h-4 shrink-0 stroke-[2.5]" />
+                    <span>{t('trips.add_trip', 'Add Trip')}</span>
+                  </button>
+                )}
 
                 <div className="relative flex-1 sm:flex-initial order-1 sm:order-2">
                   <input
@@ -367,6 +371,7 @@ export default function TripsPage() {
                           <td className="py-3.5 px-4 text-center whitespace-nowrap">
                             <TripStatusSelector
                               value={trip.status}
+                              disabled={isReadOnly}
                               onChange={(newStatus) => handleStatusChange(trip.id, newStatus)}
                             />
                           </td>
@@ -383,22 +388,26 @@ export default function TripsPage() {
                                 {t('common.view', 'View')}
                               </button>
 
-                              <button
-                                onClick={() => {
-                                  setEditingTrip(trip);
-                                  setIsAddTripOpen(true);
-                                }}
-                                className="bg-[#fef3c7] hover:bg-amber-100 text-[#d97706] px-3 py-1 rounded-md text-xs font-bold transition cursor-pointer active:scale-95 shadow-2xs"
-                              >
-                                {t('common.edit', 'Edit')}
-                              </button>
+                              {!isReadOnly && (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      setEditingTrip(trip);
+                                      setIsAddTripOpen(true);
+                                    }}
+                                    className="bg-[#fef3c7] hover:bg-amber-100 text-[#d97706] px-3 py-1 rounded-md text-xs font-bold transition cursor-pointer active:scale-95 shadow-2xs"
+                                  >
+                                    {t('common.edit', 'Edit')}
+                                  </button>
 
-                              <button
-                                onClick={() => setTripToDelete(trip.id)}
-                                className="bg-[#fee2e2] hover:bg-rose-100 text-[#e11d48] px-3 py-1 rounded-md text-xs font-bold transition cursor-pointer active:scale-95 shadow-2xs"
-                              >
-                                {t('common.delete', 'Delete')}
-                              </button>
+                                  <button
+                                    onClick={() => setTripToDelete(trip.id)}
+                                    className="bg-[#fee2e2] hover:bg-rose-100 text-[#e11d48] px-3 py-1 rounded-md text-xs font-bold transition cursor-pointer active:scale-95 shadow-2xs"
+                                  >
+                                    {t('common.delete', 'Delete')}
+                                  </button>
+                                </>
+                              )}
                             </div>
                           </td>
                         </tr>

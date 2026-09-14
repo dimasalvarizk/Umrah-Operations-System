@@ -41,6 +41,7 @@ import {
 import { createPortal } from 'react-dom';
 import AgreementPdfModal from '../components/contracts/AgreementPdfModal';
 import { useLanguage } from '../context/LanguageContext';
+import { usePermissions } from '../hooks/usePermissions';
 import { getContractByIdApi, updateContractApi } from '../services/contractsApi';
 import { getHotelsApi } from '../services/hotelsApi';
 import { getSystemListsApi, type BaseListItem } from '../services/settingsApi';
@@ -149,6 +150,7 @@ export default function AgreementDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id?: string }>();
   const { t, isRTL, direction } = useLanguage();
+  const { isReadOnly } = usePermissions();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Active tab state
@@ -1200,14 +1202,16 @@ export default function AgreementDetailPage() {
                 <Printer className="w-3.5 h-3.5 text-slate-600" />
                 <span>{t('contracts.print_contract', 'طباعة الاتفاقية')}</span>
               </button>
-              <button
-                type="button"
-                onClick={() => setIsEditBasicOpen(true)}
-                className="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition shadow-2xs cursor-pointer flex items-center gap-1.5"
-              >
-                <Edit3 className="w-3.5 h-3.5" />
-                <span>{t('contracts.edit_basic_info', 'تعديل البيانات')}</span>
-              </button>
+              {!isReadOnly && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditBasicOpen(true)}
+                  className="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition shadow-2xs cursor-pointer flex items-center gap-1.5"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>{t('contracts.edit_basic_info', 'تعديل البيانات')}</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -1340,12 +1344,14 @@ export default function AgreementDetailPage() {
                     <h3 className="text-sm sm:text-base font-bold text-[#0f172a]">
                       {t('contracts.tab_agreement_details', 'بيانات الاتفاقية')}
                     </h3>
-                    <button
-                      onClick={() => setIsEditAgreementOpen(true)}
-                      className="px-3 py-1 rounded-lg text-xs font-bold bg-[#eff6ff] text-[#2563eb] hover:bg-[#dbeafe] transition cursor-pointer"
-                    >
-                      {t('common.edit', 'تعديل')}
-                    </button>
+                    {!isReadOnly && (
+                      <button
+                        onClick={() => setIsEditAgreementOpen(true)}
+                        className="px-3 py-1 rounded-lg text-xs font-bold bg-[#eff6ff] text-[#2563eb] hover:bg-[#dbeafe] transition cursor-pointer"
+                      >
+                        {t('common.edit', 'تعديل')}
+                      </button>
+                    )}
                   </div>
 
                   <div className="space-y-3 text-xs sm:text-sm">
@@ -1381,21 +1387,23 @@ export default function AgreementDetailPage() {
                     {t('contracts.room_details_title', 'تفاصيل الغرف')}
                   </h3>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleOpenEditRooms}
-                      className="px-3 py-1 rounded-lg text-xs font-bold bg-[#eff6ff] text-[#2563eb] hover:bg-[#dbeafe] transition cursor-pointer"
-                    >
-                      {t('common.edit', 'تعديل')}
-                    </button>
-                    <button
-                      onClick={() => setIsAddRoomOpen(true)}
-                      className="px-3.5 py-1 rounded-lg text-xs font-bold bg-[#2563eb] hover:bg-blue-700 text-white flex items-center gap-1 transition cursor-pointer shadow-xs active:scale-95"
-                    >
-                      <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                      <span>{t('common.add', 'إضافة')}</span>
-                    </button>
-                  </div>
+                  {!isReadOnly && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleOpenEditRooms}
+                        className="px-3 py-1 rounded-lg text-xs font-bold bg-[#eff6ff] text-[#2563eb] hover:bg-[#dbeafe] transition cursor-pointer"
+                      >
+                        {t('common.edit', 'تعديل')}
+                      </button>
+                      <button
+                        onClick={() => setIsAddRoomOpen(true)}
+                        className="px-3.5 py-1 rounded-lg text-xs font-bold bg-[#2563eb] hover:bg-blue-700 text-white flex items-center gap-1 transition cursor-pointer shadow-xs active:scale-95"
+                      >
+                        <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                        <span>{t('common.add', 'إضافة')}</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Rooms Table */}
@@ -1461,14 +1469,16 @@ export default function AgreementDetailPage() {
                       : 'Manage and review amendment requests for dates, room quota, and rates with service partners.'}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsAddAmendmentOpen(true)}
-                  className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-2 shadow-xs transition cursor-pointer active:scale-95 shrink-0"
-                >
-                  <Plus className="w-4 h-4 stroke-[2.5]" />
-                  <span>{isRTL ? '+ طلب تعديل جديد' : 'New Amendment Request'}</span>
-                </button>
+                {!isReadOnly && (
+                  <button
+                    type="button"
+                    onClick={() => setIsAddAmendmentOpen(true)}
+                    className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-2 shadow-xs transition cursor-pointer active:scale-95 shrink-0"
+                  >
+                    <Plus className="w-4 h-4 stroke-[2.5]" />
+                    <span>{isRTL ? '+ طلب تعديل جديد' : 'New Amendment Request'}</span>
+                  </button>
+                )}
               </div>
 
               {/* Amendments List Table */}
@@ -1547,7 +1557,7 @@ export default function AgreementDetailPage() {
                               </span>
                             </td>
                             <td className="py-4 px-5 whitespace-nowrap text-center">
-                              {amnd.status === 'Pending' ? (
+                              {!isReadOnly && amnd.status === 'Pending' ? (
                                 <div className="flex items-center justify-center gap-1.5">
                                   <button
                                     type="button"

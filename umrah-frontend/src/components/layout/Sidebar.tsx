@@ -37,17 +37,13 @@ export default function Sidebar({
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  const displayRole = user?.role
-    ? user.role === 'admin'
-      ? (isRTL ? 'مسؤول النظام' : 'System Admin')
-      : user.role === 'operator'
-        ? (isRTL ? 'مشرف العمليات' : 'Operations Supervisor')
-        : user.role === 'agent'
-          ? (isRTL ? 'وكيل سياحي' : 'Travel Agent')
-          : user.role === 'supervisor'
-            ? (isRTL ? 'مشرف' : 'Supervisor')
-            : user.role
-    : t('nav.user_role', 'مشرف العمليات');
+  const rawRole = (user?.role || '').toLowerCase().trim();
+  const displayRole =
+    rawRole === 'super admin' || rawRole === 'admin'
+      ? (isRTL ? 'مسؤول النظام (Super Admin)' : 'Super Admin')
+      : rawRole === 'viewer'
+        ? (isRTL ? 'مشاهد (Viewer)' : 'Viewer')
+        : (isRTL ? 'موظف عمليات (Staff)' : 'Staff');
 
   const avatarInitial = user?.name
     ? user.name.trim().charAt(0).toUpperCase()

@@ -17,6 +17,7 @@ import AgreementDetailsModal from '../components/contracts/AgreementDetailsModal
 import DeleteAgreementModal from '../components/contracts/DeleteAgreementModal';
 import AgreementStatusSelector, { type AgreementStatusType } from '../components/contracts/AgreementStatusSelector';
 import { useLanguage } from '../context/LanguageContext';
+import { usePermissions } from '../hooks/usePermissions';
 import {
   getContractsApi,
   createContractApi,
@@ -27,6 +28,7 @@ import {
 export default function ContractsPage() {
   const navigate = useNavigate();
   const { t, isRTL, direction } = useLanguage();
+  const { isReadOnly } = usePermissions();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('الكل');
@@ -265,13 +267,15 @@ export default function ContractsPage() {
               </div>
 
               {/* Add Agreement Button */}
-              <button
-                onClick={() => setIsAddModalOpen(true)}
-                className="bg-[#0f172a] hover:bg-slate-800 text-white font-bold px-5 py-2.5 rounded-xl text-xs sm:text-sm flex items-center gap-2 shadow-xs transition cursor-pointer active:scale-95"
-              >
-                <Plus className="w-4 h-4 stroke-[2.5]" />
-                <span>{t('contracts.add_agreement_btn', 'إضافة اتفاقية جديدة')}</span>
-              </button>
+              {!isReadOnly && (
+                <button
+                  onClick={() => setIsAddModalOpen(true)}
+                  className="bg-[#0f172a] hover:bg-slate-800 text-white font-bold px-5 py-2.5 rounded-xl text-xs sm:text-sm flex items-center gap-2 shadow-xs transition cursor-pointer active:scale-95"
+                >
+                  <Plus className="w-4 h-4 stroke-[2.5]" />
+                  <span>{t('contracts.add_agreement_btn', 'إضافة اتفاقية جديدة')}</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -432,6 +436,7 @@ export default function ContractsPage() {
                         <td className="py-3 px-2.5 text-center whitespace-nowrap">
                           <AgreementStatusSelector
                             value={agreement.status}
+                            disabled={isReadOnly}
                             onChange={(newStatus) => handleStatusChange(agreement.id, newStatus)}
                           />
                         </td>
@@ -440,13 +445,15 @@ export default function ContractsPage() {
                         <td className="py-3 px-3 whitespace-nowrap text-center">
                           <div className="flex items-center justify-center gap-1.5">
                             {/* حذف */}
-                            <button
-                              type="button"
-                              onClick={() => handleOpenDelete(agreement)}
-                              className="px-2.5 py-0.5 rounded-md text-[11px] font-bold border border-[#ffe3e3] bg-[#fff5f5] text-[#e03131] hover:bg-[#ffe3e3] transition cursor-pointer active:scale-95"
-                            >
-                              {t('common.delete', 'حذف')}
-                            </button>
+                            {!isReadOnly && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenDelete(agreement)}
+                                className="px-2.5 py-0.5 rounded-md text-[11px] font-bold border border-[#ffe3e3] bg-[#fff5f5] text-[#e03131] hover:bg-[#ffe3e3] transition cursor-pointer active:scale-95"
+                              >
+                                {t('common.delete', 'حذف')}
+                              </button>
+                            )}
 
                             {/* عرض */}
                             <button
