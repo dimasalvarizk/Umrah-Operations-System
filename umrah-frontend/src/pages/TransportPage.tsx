@@ -27,6 +27,7 @@ export default function TransportPage() {
   const { t, isRTL, direction } = useLanguage();
   const { isReadOnly } = usePermissions();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [regionFilter, setRegionFilter] = useState('الكل');
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
@@ -62,6 +63,13 @@ export default function TransportPage() {
   useEffect(() => {
     fetchTransports();
   }, [searchQuery, regionFilter]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoaded(true);
+    }, 60);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const handleRefresh = () => {
@@ -183,7 +191,11 @@ export default function TransportPage() {
           ) : (
             <>
               {/* Action Row & Breadcrumb */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+              <div
+                className={`flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 transition-all duration-400 transform ${
+                  isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+                }`}
+              >
                 {/* Breadcrumb on Left */}
                 <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold">
                   <span className="text-slate-500 font-normal">
@@ -217,7 +229,7 @@ export default function TransportPage() {
                     <button
                       type="button"
                       onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
-                      className="bg-white border border-slate-200/90 hover:bg-slate-50 px-4 py-2 rounded-xl text-xs sm:text-sm text-slate-700 font-medium flex items-center gap-2 shadow-2xs cursor-pointer transition"
+                      className="bg-white border border-slate-200/90 hover:bg-slate-50 px-4 py-2 rounded-xl text-xs sm:text-sm text-slate-700 font-medium flex items-center gap-2 shadow-2xs cursor-pointer transition active:scale-[0.98]"
                     >
                       <span>{regionFilter === 'الكل' ? (isRTL ? 'جميع المناطق' : 'All Regions') : regionFilter}</span>
                       <ChevronDown className="w-4 h-4 text-slate-400" />
@@ -274,10 +286,13 @@ export default function TransportPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-                  {paginatedCompanies.map((company) => (
+                  {paginatedCompanies.map((company, idx) => (
                     <div
                       key={company.id}
-                      className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between group"
+                      className={`bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all duration-300 transform flex flex-col justify-between group ${
+                        isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+                      }`}
+                      style={{ transitionDelay: `${Math.min(idx * 60 + 100, 600)}ms` }}
                     >
                       <div className="relative h-44 sm:h-48 w-full overflow-hidden bg-slate-100 flex items-center justify-center">
                         {company.image ? (

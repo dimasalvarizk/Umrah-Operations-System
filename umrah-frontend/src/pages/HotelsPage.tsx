@@ -36,6 +36,7 @@ export default function HotelsPage() {
   const [searchParams] = useSearchParams();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [locationFilter, setLocationFilter] = useState('الكل');
   const [statusFilter, setStatusFilter] = useState('الكل');
@@ -79,6 +80,13 @@ export default function HotelsPage() {
   useEffect(() => {
     fetchHotels();
   }, [fetchHotels]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoaded(true);
+    }, 60);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('umrah_hotels_list', JSON.stringify(hotelsList));
@@ -235,7 +243,11 @@ export default function HotelsPage() {
           )}
 
           {/* Action / Filter Bar Card */}
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+          <div
+            className={`bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 transition-all duration-400 transform ${
+              isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+            }`}
+          >
             {/* Search Input */}
             <div className="relative flex-1 min-w-[280px]">
               <input
@@ -321,7 +333,7 @@ export default function HotelsPage() {
               <button
                 type="button"
                 onClick={fetchHotels}
-                className="bg-[#1c2844] hover:bg-[#152037] text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shadow-xs flex items-center justify-center cursor-pointer active:scale-[0.99] whitespace-nowrap"
+                className="bg-[#1c2844] hover:bg-[#152037] text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shadow-xs flex items-center justify-center cursor-pointer active:scale-[0.98] whitespace-nowrap"
               >
                 <span>{t('hotels.apply_filter', 'تطبيق التصفية')}</span>
               </button>
@@ -333,7 +345,7 @@ export default function HotelsPage() {
                     setEditingHotel(null);
                     setIsAddHotelOpen(true);
                   }}
-                  className="bg-[#10b981] hover:bg-[#059669] text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] whitespace-nowrap"
+                  className="bg-[#10b981] hover:bg-[#059669] text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] whitespace-nowrap"
                 >
                   <Plus className="w-4 h-4 shrink-0 stroke-[2.5]" />
                   <span>{t('hotels.add_hotel', 'إضافة فندق جديد')}</span>
@@ -344,14 +356,17 @@ export default function HotelsPage() {
 
           {/* Hotels Grid: 3 columns */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredHotels.map((hotel) => (
+            {filteredHotels.map((hotel, idx) => (
               <div
                 key={hotel.id}
                 onClick={() => {
                   setSelectedHotel(hotel);
                   setIsDetailsModalOpen(true);
                 }}
-                className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-2xs hover:shadow-md hover:border-slate-300 transition-all duration-300 flex flex-col justify-between group cursor-pointer active:scale-[0.99] relative"
+                className={`bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-2xs hover:shadow-md hover:border-slate-300 transition-all duration-300 transform flex flex-col justify-between group cursor-pointer active:scale-[0.99] relative ${
+                  isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+                }`}
+                style={{ transitionDelay: `${Math.min(idx * 60 + 100, 600)}ms` }}
               >
                 {/* Image */}
                 <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-slate-100">
@@ -363,14 +378,14 @@ export default function HotelsPage() {
                         : 'https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?auto=format&fit=crop&w=800&q=80')
                     }
                     alt={hotel.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    loading="lazy"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src =
                         hotel.location?.includes('المدينة') || hotel.locationEn === 'Madinah'
                           ? 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=800&q=80'
                           : 'https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?auto=format&fit=crop&w=800&q=80';
                     }}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    loading="lazy"
                   />
 
                   {/* Card Action Buttons (Edit & Delete) */}

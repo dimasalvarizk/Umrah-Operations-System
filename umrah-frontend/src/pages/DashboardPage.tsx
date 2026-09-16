@@ -15,38 +15,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { fetchDashboardSummary, type DashboardStats } from '../services/dashboardApi';
-
-// Custom Count-Up Animation Hook for numbers
-function useCountUp(target: number, duration: number = 1000, isStarted: boolean = true) {
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    if (!isStarted) {
-      setCount(0);
-      return;
-    }
-    let startTimestamp: number | null = null;
-    let animationFrameId: number;
-
-    const step = (timestamp: number) => {
-      if (!startTimestamp) startTimestamp = timestamp;
-      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-      // easeOutCubic
-      const easeProgress = 1 - Math.pow(1 - progress, 3);
-      setCount(Math.floor(easeProgress * target));
-      if (progress < 1) {
-        animationFrameId = requestAnimationFrame(step);
-      } else {
-        setCount(target);
-      }
-    };
-
-    animationFrameId = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(animationFrameId);
-  }, [target, duration, isStarted]);
-
-  return count;
-}
+import useCountUp from '../hooks/useCountUp';
 
 export default function DashboardPage() {
   const navigate = useNavigate();

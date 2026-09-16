@@ -18,6 +18,7 @@ import DeleteAgreementModal from '../components/contracts/DeleteAgreementModal';
 import AgreementStatusSelector, { type AgreementStatusType } from '../components/contracts/AgreementStatusSelector';
 import { useLanguage } from '../context/LanguageContext';
 import { usePermissions } from '../hooks/usePermissions';
+import useCountUp from '../hooks/useCountUp';
 import {
   getContractsApi,
   createContractApi,
@@ -33,6 +34,7 @@ export default function ContractsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('الكل');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -123,6 +125,13 @@ export default function ContractsPage() {
     }
   }, [agreementsList]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoaded(true);
+    }, 60);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Handlers
   const handleStatusChange = async (agreementId: string, newStatus: AgreementStatusType) => {
     setAgreementsList((prev) =>
@@ -146,17 +155,24 @@ export default function ContractsPage() {
     return { expired, pending, active, total };
   }, [agreementsList]);
 
+  // Animated stat values
+  const animatedExpired = useCountUp(stats.expired, 800, isLoaded);
+  const animatedPending = useCountUp(stats.pending, 900, isLoaded);
+  const animatedActive = useCountUp(stats.active, 1000, isLoaded);
+  const animatedTotal = useCountUp(stats.total, 1100, isLoaded);
+
   const handleAddSuccess = async (newAgreement: AgreementItem) => {
     try {
       const created = await createContractApi(newAgreement as any);
       const toAdd = created || newAgreement;
       setAgreementsList((prev) => [toAdd, ...prev.filter((x) => x.id !== toAdd.id && x.agreementNo !== toAdd.agreementNo)]);
+      setIsAddModalOpen(false);
       window.dispatchEvent(new CustomEvent('umrah_notification_refresh'));
       window.dispatchEvent(new CustomEvent('umrah_contracts_updated'));
-    } catch (err) {
-      console.error('Failed to save contract to database:', err);
-      setAgreementsList((prev) => [newAgreement, ...prev]);
-      window.dispatchEvent(new CustomEvent('umrah_notification_refresh'));
+    } catch (e) {
+      console.error('Failed to save agreement on server:', e);
+      setAgreementsList((prev) => [newAgreement, ...prev.filter((x) => x.id !== newAgreement.id && x.agreementNo !== newAgreement.agreementNo)]);
+      setIsAddModalOpen(false);
     }
   };
 
@@ -208,7 +224,11 @@ export default function ContractsPage() {
         {/* Page Body */}
         <main className="p-4 sm:p-8 space-y-6 flex-1 max-w-7xl mx-auto w-full">
           {/* Controls Bar: Search & Action Buttons */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div
+            className={`flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 transition-all duration-400 transform ${
+              isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+            }`}
+          >
             {/* Search Input */}
             <div className="relative flex-1 max-w-md">
               <input
@@ -228,7 +248,7 @@ export default function ContractsPage() {
                 <button
                   type="button"
                   onClick={() => setIsFilterOpen(!isFilterOpen)}
-                  className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold px-4 py-2.5 rounded-xl text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer shadow-2xs"
+                  className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold px-4 py-2.5 rounded-xl text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer shadow-2xs active:scale-[0.98]"
                 >
                   <Filter className="w-3.5 h-3.5 text-slate-500" />
                   <span>
@@ -270,7 +290,7 @@ export default function ContractsPage() {
               {!isReadOnly && (
                 <button
                   onClick={() => setIsAddModalOpen(true)}
-                  className="bg-[#0f172a] hover:bg-slate-800 text-white font-bold px-5 py-2.5 rounded-xl text-xs sm:text-sm flex items-center gap-2 shadow-xs transition cursor-pointer active:scale-95"
+                  className="bg-[#0f172a] hover:bg-slate-800 text-white font-bold px-5 py-2.5 rounded-xl text-xs sm:text-sm flex items-center gap-2 shadow-xs transition cursor-pointer active:scale-[0.98]"
                 >
                   <Plus className="w-4 h-4 stroke-[2.5]" />
                   <span>{t('contracts.add_agreement_btn', 'إضافة اتفاقية جديدة')}</span>
@@ -282,68 +302,88 @@ export default function ContractsPage() {
           {/* 4 Stat Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Card 1: Expired Agreements */}
-            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs flex justify-between items-stretch min-h-[105px]">
+            <div
+              className={`bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs hover:shadow-md transition-all duration-300 transform flex justify-between items-stretch min-h-[105px] ${
+                isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+              }`}
+              style={{ transitionDelay: '50ms' }}
+            >
               <div className="flex flex-col justify-end">
-                <span className="text-3xl sm:text-4xl font-bold text-[#0f172a] leading-none">
-                  {stats.expired}
+                <span className="text-3xl sm:text-4xl font-bold text-[#0f172a] leading-none tracking-tight">
+                  {animatedExpired}
                 </span>
               </div>
               <div className="flex flex-col justify-between items-end text-end">
                 <span className="text-xs text-slate-500 font-medium">
                   {t('contracts.expired_stat', 'اتفاقيات منتهية')}
                 </span>
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#ffe3e3]/80 flex items-center justify-center shrink-0 self-end">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#ffe3e3]/80 flex items-center justify-center shrink-0 self-end transition-transform hover:scale-110">
                   <AlertTriangle className="w-5 h-5 text-[#f03e3e] stroke-[2]" />
                 </div>
               </div>
             </div>
 
             {/* Card 2: Pending Agreements */}
-            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs flex justify-between items-stretch min-h-[105px]">
+            <div
+              className={`bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs hover:shadow-md transition-all duration-300 transform flex justify-between items-stretch min-h-[105px] ${
+                isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+              }`}
+              style={{ transitionDelay: '150ms' }}
+            >
               <div className="flex flex-col justify-end">
-                <span className="text-3xl sm:text-4xl font-bold text-[#0f172a] leading-none">
-                  {stats.pending}
+                <span className="text-3xl sm:text-4xl font-bold text-[#0f172a] leading-none tracking-tight">
+                  {animatedPending}
                 </span>
               </div>
               <div className="flex flex-col justify-between items-end text-end">
                 <span className="text-xs text-slate-500 font-medium">
                   {t('contracts.pending_stat', 'اتفاقيات معلقة')}
                 </span>
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#fff3bf]/80 flex items-center justify-center shrink-0 self-end">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#fff3bf]/80 flex items-center justify-center shrink-0 self-end transition-transform hover:scale-110">
                   <Clock className="w-5 h-5 text-[#f59f00] stroke-[2]" />
                 </div>
               </div>
             </div>
 
             {/* Card 3: Active Agreements */}
-            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs flex justify-between items-stretch min-h-[105px]">
+            <div
+              className={`bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs hover:shadow-md transition-all duration-300 transform flex justify-between items-stretch min-h-[105px] ${
+                isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+              }`}
+              style={{ transitionDelay: '250ms' }}
+            >
               <div className="flex flex-col justify-end">
-                <span className="text-3xl sm:text-4xl font-bold text-[#0f172a] leading-none">
-                  {stats.active}
+                <span className="text-3xl sm:text-4xl font-bold text-[#0f172a] leading-none tracking-tight">
+                  {animatedActive}
                 </span>
               </div>
               <div className="flex flex-col justify-between items-end text-end">
                 <span className="text-xs text-slate-500 font-medium">
                   {t('contracts.active_stat', 'الاتفاقيات النشطة')}
                 </span>
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#d3f9d8]/80 flex items-center justify-center shrink-0 self-end">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#d3f9d8]/80 flex items-center justify-center shrink-0 self-end transition-transform hover:scale-110">
                   <CheckCircle2 className="w-5 h-5 text-[#2b8a3e] stroke-[2]" />
                 </div>
               </div>
             </div>
 
             {/* Card 4: Total Agreements */}
-            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs flex justify-between items-stretch min-h-[105px]">
+            <div
+              className={`bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs hover:shadow-md transition-all duration-300 transform flex justify-between items-stretch min-h-[105px] ${
+                isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+              }`}
+              style={{ transitionDelay: '350ms' }}
+            >
               <div className="flex flex-col justify-end">
-                <span className="text-3xl sm:text-4xl font-bold text-[#0f172a] leading-none">
-                  {stats.total}
+                <span className="text-3xl sm:text-4xl font-bold text-[#0f172a] leading-none tracking-tight">
+                  {animatedTotal}
                 </span>
               </div>
               <div className="flex flex-col justify-between items-end text-end">
                 <span className="text-xs text-slate-500 font-medium">
                   {t('contracts.total_stat', 'إجمالي الاتفاقيات')}
                 </span>
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#d0ebff]/80 flex items-center justify-center shrink-0 self-end">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#d0ebff]/80 flex items-center justify-center shrink-0 self-end transition-transform hover:scale-110">
                   <FileText className="w-5 h-5 text-[#1c7ed6] stroke-[2]" />
                 </div>
               </div>
@@ -351,7 +391,12 @@ export default function ContractsPage() {
           </div>
 
           {/* Table Container */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+          <div
+            className={`bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden transition-all duration-500 transform ${
+              isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+            }`}
+            style={{ transitionDelay: '400ms' }}
+          >
             <div className="overflow-x-auto">
               <table className="w-full text-xs sm:text-sm border-collapse">
                 {/* Table Header */}

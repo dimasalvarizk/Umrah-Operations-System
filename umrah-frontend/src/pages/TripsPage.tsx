@@ -12,6 +12,7 @@ import AddTripModal from '../components/trips/AddTripModal';
 import TripStatusSelector, { type TripStatusType } from '../components/trips/TripStatusSelector';
 import { useLanguage } from '../context/LanguageContext';
 import { usePermissions } from '../hooks/usePermissions';
+import useCountUp from '../hooks/useCountUp';
 
 import {
   getTripsApi,
@@ -27,6 +28,7 @@ export default function TripsPage() {
   const [searchParams] = useSearchParams();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTrip, setSelectedTrip] = useState<TripItem | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
@@ -120,6 +122,13 @@ export default function TripsPage() {
     } catch {}
   };
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoaded(true);
+    }, 60);
+    return () => clearTimeout(timer);
+  }, []);
+
   const stats = useMemo(() => {
     const inProgress = tripsList.filter((t) => t.status === 'قيد التنفيذ').length;
     const completed = tripsList.filter((t) => t.status === 'مكتمل').length;
@@ -130,6 +139,12 @@ export default function TripsPage() {
 
     return { inProgress, completed, pending, total, completionRate, inProgressRate };
   }, [tripsList]);
+
+  // Animated stat values
+  const animatedInProgress = useCountUp(stats.inProgress, 800, isLoaded);
+  const animatedCompleted = useCountUp(stats.completed, 1000, isLoaded);
+  const animatedTotal = useCountUp(stats.total, 1200, isLoaded);
+  const animatedCompletionRate = useCountUp(stats.completionRate, 1000, isLoaded);
 
   const filteredTrips = useMemo(() => {
     return tripsList.filter((trip) => {
@@ -183,30 +198,46 @@ export default function TripsPage() {
           {/* 3 Top Summary Stat Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {/* Card 1: Trips In Progress */}
-            <div className="bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-2xs flex flex-col justify-between space-y-4">
+            <div
+              className={`bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-2xs hover:shadow-md transition-all duration-300 transform flex flex-col justify-between space-y-4 ${
+                isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+              }`}
+              style={{ transitionDelay: '50ms' }}
+            >
               <div className="flex items-center justify-between">
                 <span className="text-sm sm:text-base font-bold text-[#0f172a]">
                   {t('trips.in_progress_title', 'رحلات قيد التنفيذ')}
                 </span>
-                <span className="text-xs font-bold px-2.5 py-0.5 rounded-md bg-[#fef9c3] text-[#a16207]">
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-md bg-[#fef9c3] text-[#a16207] animate-pulse">
                   {t('trips.active_now_badge', 'Active Now')}
                 </span>
               </div>
 
               <div className="flex items-baseline justify-between pt-1">
                 <div className="text-3xl sm:text-4xl font-extrabold text-[#f59e0b] tracking-tight">
-                  {stats.inProgress} {isRTL ? 'رحلات' : 'Trips'}
+                  {animatedInProgress} {isRTL ? 'رحلات' : 'Trips'}
                 </div>
                 <div className="text-xs sm:text-sm text-slate-500 font-normal">
                   {t('trips.buses_trains_sub', 'Haramain Buses & Trains')}
                 </div>
               </div>
 
-              <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden flex">
+              <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden flex relative shadow-inner">
                 <div
-                  className="bg-[#f59e0b] h-full rounded-full transition-all duration-300"
-                  style={{ width: `${Math.max(stats.inProgressRate, stats.inProgress > 0 ? 15 : 0)}%` }}
-                />
+                  className="bg-[#f59e0b] h-full rounded-full transition-all duration-1000 ease-out relative overflow-hidden"
+                  style={{
+                    width: isLoaded ? `${Math.max(stats.inProgressRate, stats.inProgress > 0 ? 15 : 0)}%` : '0%',
+                    transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
+                  }}
+                >
+                  <div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-full h-full opacity-60"
+                    style={{
+                      transform: isLoaded ? 'translateX(100%)' : 'translateX(-100%)',
+                      transition: 'transform 1.2s ease-out 300ms',
+                    }}
+                  />
+                </div>
               </div>
 
               <div className="text-xs text-slate-400 font-normal">
@@ -215,7 +246,12 @@ export default function TripsPage() {
             </div>
 
             {/* Card 2: Completed Trips */}
-            <div className="bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-2xs flex flex-col justify-between space-y-4">
+            <div
+              className={`bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-2xs hover:shadow-md transition-all duration-300 transform flex flex-col justify-between space-y-4 ${
+                isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+              }`}
+              style={{ transitionDelay: '150ms' }}
+            >
               <div className="flex items-center justify-between">
                 <span className="text-sm sm:text-base font-bold text-[#0f172a]">
                   {t('trips.completed_title', 'رحلات منتهية بنجاح')}
@@ -227,18 +263,29 @@ export default function TripsPage() {
 
               <div className="flex items-baseline justify-between pt-1">
                 <div className="text-3xl sm:text-4xl font-extrabold text-[#10b981] tracking-tight">
-                  {stats.completed} {isRTL ? 'رحلة' : 'Trips'}
+                  {animatedCompleted} {isRTL ? 'رحلة' : 'Trips'}
                 </div>
                 <div className="text-xs sm:text-sm text-slate-500 font-normal">
-                  {stats.completionRate}% {isRTL ? 'نسبة الإنجاز' : 'Daily Completion Rate'}
+                  {animatedCompletionRate}% {isRTL ? 'نسبة الإنجاز' : 'Daily Completion Rate'}
                 </div>
               </div>
 
-              <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden flex">
+              <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden flex relative shadow-inner">
                 <div
-                  className="bg-[#10b981] h-full rounded-full transition-all duration-300"
-                  style={{ width: `${Math.max(stats.completionRate, stats.completed > 0 ? 15 : 0)}%` }}
-                />
+                  className="bg-[#10b981] h-full rounded-full transition-all duration-1000 ease-out relative overflow-hidden"
+                  style={{
+                    width: isLoaded ? `${Math.max(stats.completionRate, stats.completed > 0 ? 15 : 0)}%` : '0%',
+                    transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
+                  }}
+                >
+                  <div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-full h-full opacity-60"
+                    style={{
+                      transform: isLoaded ? 'translateX(100%)' : 'translateX(-100%)',
+                      transition: 'transform 1.2s ease-out 400ms',
+                    }}
+                  />
+                </div>
               </div>
 
               <div className="text-xs text-slate-400 font-normal">
@@ -247,7 +294,12 @@ export default function TripsPage() {
             </div>
 
             {/* Card 3: Total Programs */}
-            <div className="bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-2xs flex flex-col justify-between space-y-4">
+            <div
+              className={`bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-2xs hover:shadow-md transition-all duration-300 transform flex flex-col justify-between space-y-4 ${
+                isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+              }`}
+              style={{ transitionDelay: '250ms' }}
+            >
               <div className="flex items-center justify-between">
                 <span className="text-sm sm:text-base font-bold text-[#0f172a]">
                   {t('trips.total_programs_title', 'إجمالي البرامج والرحلات')}
@@ -259,15 +311,29 @@ export default function TripsPage() {
 
               <div className="flex items-baseline justify-between pt-1">
                 <div className="text-3xl sm:text-4xl font-extrabold text-[#0f172a] tracking-tight">
-                  {stats.total} {isRTL ? 'برنامجاً' : 'Programs'}
+                  {animatedTotal} {isRTL ? 'برنامجاً' : 'Programs'}
                 </div>
                 <div className="text-xs sm:text-sm text-slate-500 font-normal">
                   {t('trips.active_operation_prog', 'Active Operation Program')}
                 </div>
               </div>
 
-              <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden flex">
-                <div className="bg-[#2563eb] h-full w-full rounded-full" />
+              <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden flex relative shadow-inner">
+                <div
+                  className="bg-[#2563eb] h-full rounded-full transition-all duration-1000 ease-out relative overflow-hidden"
+                  style={{
+                    width: isLoaded ? '100%' : '0%',
+                    transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
+                  }}
+                >
+                  <div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-full h-full opacity-60"
+                    style={{
+                      transform: isLoaded ? 'translateX(100%)' : 'translateX(-100%)',
+                      transition: 'transform 1.2s ease-out 500ms',
+                    }}
+                  />
+                </div>
               </div>
 
               <div className="text-xs text-slate-400 font-normal">
@@ -277,7 +343,12 @@ export default function TripsPage() {
           </div>
 
           {/* Table Card Section */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-2xs space-y-5">
+          <div
+            className={`bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-2xs space-y-5 transition-all duration-500 transform ${
+              isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+            }`}
+            style={{ transitionDelay: '350ms' }}
+          >
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
               <h2 className="text-base sm:text-lg font-bold text-[#0f172a]">
                 {t('trips.current_schedule', 'Current Trip Operation Schedule')}

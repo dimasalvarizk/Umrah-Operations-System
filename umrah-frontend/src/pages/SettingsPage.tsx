@@ -23,6 +23,7 @@ export default function SettingsPage() {
   const { isSuperAdmin } = usePermissions();
   const [searchParams, setSearchParams] = useSearchParams();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   const rawTab = searchParams.get('tab') as SettingsTabId;
   const initialTab: SettingsTabId = (!isSuperAdmin && (rawTab === 'team' || rawTab === 'lists' || !rawTab))
@@ -30,6 +31,13 @@ export default function SettingsPage() {
     : (rawTab || 'team');
 
   const [activeTab, setActiveTab] = useState<SettingsTabId>(initialTab);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoaded(true);
+    }, 60);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab') as SettingsTabId;
@@ -107,7 +115,12 @@ export default function SettingsPage() {
         {/* Page Main Body */}
         <main className="flex-1 p-4 sm:p-7 space-y-6 max-w-7xl w-full mx-auto">
           {/* Clean Horizontal Navigation Tabs */}
-          <div className="border-b border-slate-200">
+          <div
+            className={`border-b border-slate-200 transition-all duration-400 transform ${
+              isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+            }`}
+            style={{ transitionDelay: '100ms' }}
+          >
             <nav className="flex items-center gap-1 sm:gap-2 overflow-x-auto no-scrollbar -mb-px">
               {tabs.map((tab) => {
                 const isActive = activeTab === tab.id;
@@ -116,7 +129,7 @@ export default function SettingsPage() {
                     key={tab.id}
                     type="button"
                     onClick={() => handleTabChange(tab.id)}
-                    className={`px-3.5 sm:px-4 py-2.5 text-xs sm:text-sm font-semibold transition-all shrink-0 cursor-pointer border-b-2 ${
+                    className={`px-3.5 sm:px-4 py-2.5 text-xs sm:text-sm font-semibold transition-all shrink-0 cursor-pointer border-b-2 active:scale-[0.98] ${
                       isActive
                         ? 'border-amber-500 text-slate-900 font-bold'
                         : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
@@ -130,7 +143,13 @@ export default function SettingsPage() {
           </div>
 
           {/* Tab Content Panels */}
-          <div className="w-full">
+          <div
+            key={activeTab}
+            className={`w-full transition-all duration-500 transform animate-fadeIn ${
+              isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+            }`}
+            style={{ transitionDelay: '200ms' }}
+          >
             {activeTab === 'team' && <ManageTeamTab />}
             {activeTab === 'profile' && <EditProfileTab />}
             {activeTab === 'security' && <SecurityTab />}

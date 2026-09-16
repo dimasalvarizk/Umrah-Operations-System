@@ -152,6 +152,14 @@ export default function AgreementDetailPage() {
   const { t, isRTL, direction } = useLanguage();
   const { isReadOnly } = usePermissions();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoaded(true);
+    }, 60);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Active tab state
   const [activeTab, setActiveTab] = useState(isRTL ? 'تفاصيل الاتفاقية' : 'Agreement Details');
@@ -1183,7 +1191,11 @@ export default function AgreementDetailPage() {
         {/* Page Body */}
         <main className="p-4 sm:p-8 space-y-6 flex-1 max-w-7xl mx-auto w-full print:p-0 print:m-0 print:max-w-none">
           {/* Breadcrumb & Top Actions Bar */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 print:hidden">
+          <div
+            className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 print:hidden transition-all duration-400 transform ${
+              isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+            }`}
+          >
             {/* Breadcrumb */}
             <div className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
               <span
@@ -1210,7 +1222,7 @@ export default function AgreementDetailPage() {
                 <button
                   type="button"
                   onClick={() => setIsEditBasicOpen(true)}
-                  className="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition shadow-2xs cursor-pointer flex items-center gap-1.5"
+                  className="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition shadow-2xs cursor-pointer flex items-center gap-1.5 active:scale-95"
                 >
                   <Edit3 className="w-3.5 h-3.5" />
                   <span>{t('contracts.edit_basic_info', 'تعديل البيانات')}</span>
@@ -1220,9 +1232,14 @@ export default function AgreementDetailPage() {
           </div>
 
           {/* Top Banner Card */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-2xs flex items-center justify-between">
+          <div
+            className={`bg-white rounded-2xl p-6 border border-slate-100 shadow-2xs hover:shadow-md transition-all duration-500 transform flex items-center justify-between ${
+              isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+            }`}
+            style={{ transitionDelay: '100ms' }}
+          >
             <div className="flex items-center gap-4">
-              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[#d0ebff]/90 text-[#1c7ed6] flex items-center justify-center shrink-0 shadow-2xs print:border print:border-slate-300">
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[#d0ebff]/90 text-[#1c7ed6] flex items-center justify-center shrink-0 shadow-2xs print:border print:border-slate-300 transition-transform hover:scale-110">
                 <FileText className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2]" />
               </div>
               <div className="space-y-1">
@@ -1251,7 +1268,12 @@ export default function AgreementDetailPage() {
           </div>
 
           {/* Tabs Navigation */}
-          <div className="border-b border-slate-200/80 flex items-center gap-6 overflow-x-auto text-xs sm:text-sm font-semibold text-slate-500 print:hidden">
+          <div
+            className={`border-b border-slate-200/80 flex items-center gap-6 overflow-x-auto text-xs sm:text-sm font-semibold text-slate-500 print:hidden transition-all duration-400 transform ${
+              isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+            }`}
+            style={{ transitionDelay: '150ms' }}
+          >
             {tabs.map((tab) => {
               const isActive = activeTab === tab.label;
               return (
@@ -1269,6 +1291,14 @@ export default function AgreementDetailPage() {
             })}
           </div>
 
+          {/* Tab Content Wrapper */}
+          <div
+            key={activeTab}
+            className={`transition-all duration-500 transform animate-fadeIn ${
+              isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+            }`}
+            style={{ transitionDelay: '250ms' }}
+          >
           {/* Tab 1 Content: Agreement Details */}
           {(activeTab === 'تفاصيل الاتفاقية' || activeTab === 'Agreement Details') && (
             <div className="space-y-6">
@@ -2202,6 +2232,7 @@ export default function AgreementDetailPage() {
               </div>
             </div>
           )}
+          </div>
         </main>
       </div>
 

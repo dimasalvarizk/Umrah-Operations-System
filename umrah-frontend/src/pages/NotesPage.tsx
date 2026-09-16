@@ -3,6 +3,7 @@ import Sidebar from '../components/layout/Sidebar';
 import Navbar from '../components/layout/Navbar';
 import { useLanguage } from '../context/LanguageContext';
 import { usePermissions } from '../hooks/usePermissions';
+import useCountUp from '../hooks/useCountUp';
 import {
   Search,
   Plus,
@@ -53,6 +54,7 @@ export default function NotesPage() {
   const { direction, t, isRTL } = useLanguage();
   const { isReadOnly } = usePermissions();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('الكل');
   const [selectedPriority, setSelectedPriority] = useState<string>('الكل');
@@ -155,6 +157,13 @@ export default function NotesPage() {
     });
   }, [notes, searchQuery, selectedCategory, selectedPriority, selectedStatus]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoaded(true);
+    }, 60);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Statistics Calculation
   const stats = useMemo(() => {
     return {
@@ -164,6 +173,12 @@ export default function NotesPage() {
       completed: notes.filter((n) => n.status === 'مكتمل').length,
     };
   }, [notes]);
+
+  // Animated stat values
+  const animatedTotal = useCountUp(stats.total, 1000, isLoaded);
+  const animatedPinned = useCountUp(stats.pinned, 800, isLoaded);
+  const animatedUrgent = useCountUp(stats.urgent, 800, isLoaded);
+  const animatedCompleted = useCountUp(stats.completed, 1000, isLoaded);
 
   // Actions
   const handleTogglePin = async (id: string, e?: React.MouseEvent) => {
@@ -436,68 +451,93 @@ export default function NotesPage() {
           {/* Top 4 Stat Metric Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Card 1: Total */}
-            <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center justify-between">
+            <div
+              className={`bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs hover:shadow-md transition-all duration-300 transform flex items-center justify-between ${
+                isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+              }`}
+              style={{ transitionDelay: '50ms' }}
+            >
               <div>
                 <div className="text-xs font-semibold text-slate-500 mb-1">
                   {t('notes.total_notes_stat', 'إجمالي الملاحظات')}
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[#0f172a] tracking-tight">
-                  {stats.total}
+                  {animatedTotal}
                 </div>
               </div>
-              <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700">
+              <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 transition-transform hover:scale-110">
                 <Tag className="w-5 h-5" />
               </div>
             </div>
 
             {/* Card 2: Pinned */}
-            <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center justify-between">
+            <div
+              className={`bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs hover:shadow-md transition-all duration-300 transform flex items-center justify-between ${
+                isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+              }`}
+              style={{ transitionDelay: '150ms' }}
+            >
               <div>
                 <div className="text-xs font-semibold text-slate-500 mb-1">
                   {t('notes.pinned_notes_stat', 'المثبتة في الأعلى')}
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-amber-600 tracking-tight">
-                  {stats.pinned}
+                  {animatedPinned}
                 </div>
               </div>
-              <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+              <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center transition-transform hover:scale-110">
                 <Pin className="w-5 h-5 fill-amber-500" />
               </div>
             </div>
 
             {/* Card 3: Urgent */}
-            <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center justify-between">
+            <div
+              className={`bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs hover:shadow-md transition-all duration-300 transform flex items-center justify-between ${
+                isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+              }`}
+              style={{ transitionDelay: '250ms' }}
+            >
               <div>
                 <div className="text-xs font-semibold text-slate-500 mb-1">
                   {t('notes.urgent_notes_stat', 'تنبيهات عاجلة نشطة')}
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-red-600 tracking-tight">
-                  {stats.urgent}
+                  {animatedUrgent}
                 </div>
               </div>
-              <div className="w-11 h-11 rounded-xl bg-red-50 text-red-600 flex items-center justify-center">
-                <AlertCircle className="w-5 h-5" />
+              <div className="w-11 h-11 rounded-xl bg-red-50 text-red-600 flex items-center justify-center transition-transform hover:scale-110">
+                <AlertCircle className="w-5 h-5 animate-pulse" />
               </div>
             </div>
 
             {/* Card 4: Completed */}
-            <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center justify-between">
+            <div
+              className={`bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs hover:shadow-md transition-all duration-300 transform flex items-center justify-between ${
+                isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+              }`}
+              style={{ transitionDelay: '350ms' }}
+            >
               <div>
                 <div className="text-xs font-semibold text-slate-500 mb-1">
                   {t('notes.completed_notes_stat', 'تمت معالجتها')}
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-emerald-600 tracking-tight">
-                  {stats.completed}
+                  {animatedCompleted}
                 </div>
               </div>
-              <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center transition-transform hover:scale-110">
                 <CheckCircle2 className="w-5 h-5" />
               </div>
             </div>
           </div>
 
           {/* Action / Search / Filters Bar */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs space-y-4">
+          <div
+            className={`bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs space-y-4 transition-all duration-400 transform ${
+              isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+            }`}
+            style={{ transitionDelay: '300ms' }}
+          >
             <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
               {/* Search Box */}
               <div className="relative flex-1 min-w-[260px]">
@@ -616,7 +656,13 @@ export default function NotesPage() {
           </div>
 
           {/* Notes Content Display */}
-          {filteredNotes.length === 0 ? (
+          <div
+            className={`transition-all duration-500 transform ${
+              isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+            }`}
+            style={{ transitionDelay: '400ms' }}
+          >
+            {filteredNotes.length === 0 ? (
             <div className="bg-white border border-slate-200/80 rounded-2xl p-12 text-center shadow-2xs">
               <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mx-auto mb-4">
                 <Tag className="w-8 h-8" />
@@ -968,6 +1014,7 @@ export default function NotesPage() {
               </div>
             </div>
           )}
+          </div>
         </main>
       </div>
 

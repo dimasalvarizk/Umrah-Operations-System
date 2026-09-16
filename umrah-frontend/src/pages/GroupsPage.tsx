@@ -169,6 +169,7 @@ export default function GroupsPage() {
   const { t, isRTL, direction } = useLanguage();
   const { isReadOnly, canCreateOperations } = usePermissions();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<any>(null);
   const [selectedGroup, setSelectedGroup] = useState<GroupDetailsModalData | null>(null);
@@ -299,6 +300,13 @@ export default function GroupsPage() {
     fetchGroups();
   }, [searchQuery, agentFilter, statusFilter]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoaded(true);
+    }, 60);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Persist backup to localStorage safely
   useEffect(() => {
     try {
@@ -392,7 +400,12 @@ export default function GroupsPage() {
         {/* Groups Main Content */}
         <main className="flex-1 p-6 sm:p-8 space-y-6 max-w-[1600px] w-full mx-auto">
           {/* Action / Filter Bar Card Container */}
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+          <div
+            className={`bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 transition-all duration-400 transform ${
+              isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+            }`}
+            style={{ transitionDelay: '100ms' }}
+          >
             {/* Search Input */}
             <div className="relative flex-1 min-w-[280px]">
               <input
@@ -475,7 +488,7 @@ export default function GroupsPage() {
               <button
                 type="button"
                 onClick={() => {}}
-                className="bg-[#1c2844] hover:bg-[#152037] text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shadow-xs flex items-center justify-center cursor-pointer active:scale-[0.99] whitespace-nowrap"
+                className="bg-[#1c2844] hover:bg-[#152037] text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shadow-xs flex items-center justify-center cursor-pointer active:scale-[0.98] whitespace-nowrap"
               >
                 <span>{t('groups.apply_sort', 'تطبيق الترتيب')}</span>
               </button>
@@ -487,7 +500,7 @@ export default function GroupsPage() {
                     setEditingGroup(null);
                     setIsAddModalOpen(true);
                   }}
-                  className="bg-[#10b981] hover:bg-[#059669] text-white px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] whitespace-nowrap"
+                  className="bg-[#10b981] hover:bg-[#059669] text-white px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] whitespace-nowrap"
                 >
                   <Plus className="w-4 h-4 shrink-0" />
                   <span>{t('groups.add_new', 'إضافة مجموعة جديدة')}</span>
@@ -497,7 +510,12 @@ export default function GroupsPage() {
           </div>
 
           {/* Groups Table Card Container */}
-          <div className="bg-white border border-slate-200/90 rounded-2xl shadow-xs">
+          <div
+            className={`bg-white border border-slate-200/90 rounded-2xl shadow-xs transition-all duration-500 transform ${
+              isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+            }`}
+            style={{ transitionDelay: '250ms' }}
+          >
             <div className="overflow-x-auto min-h-[280px] pb-10">
               <table className={`w-full border-collapse ${isRTL ? 'text-right' : 'text-left'}`}>
                 {/* Table Header */}
