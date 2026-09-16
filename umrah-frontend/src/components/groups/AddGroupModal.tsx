@@ -292,8 +292,8 @@ export default function AddGroupModal({ isOpen, onClose, onSuccess, initialData 
         dir={direction}
       >
         {/* Modal Header */}
-        <div className="px-6 sm:px-8 py-4 border-b border-slate-200/80 flex items-center justify-between bg-white shrink-0">
-          <h2 className="text-lg sm:text-xl font-bold text-slate-800 tracking-tight">
+        <div className="px-4 sm:px-8 py-3.5 sm:py-4 border-b border-slate-200/80 flex items-center justify-between bg-white shrink-0">
+          <h2 className="text-base sm:text-xl font-bold text-slate-800 tracking-tight">
             {initialData ? (isRTL ? 'تعديل بيانات المجموعة' : 'Edit Group Details') : t('groups.add_new', 'إضافة مجموعة جديدة')}
           </h2>
 
@@ -309,7 +309,7 @@ export default function AddGroupModal({ isOpen, onClose, onSuccess, initialData 
         <StepperHeader currentStep={currentStep} />
 
         {/* Modal Form Body */}
-        <div className="px-6 sm:px-8 py-5 space-y-4 overflow-y-auto flex-1 bg-[#f8fafc]">
+        <div className="px-4 sm:px-8 py-4 sm:py-5 space-y-4 overflow-y-auto flex-1 bg-[#f8fafc]">
           {currentStep === 1 && (
             <Step1BasicInfo
               groupName={groupName}
@@ -422,25 +422,25 @@ export default function AddGroupModal({ isOpen, onClose, onSuccess, initialData 
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 sm:px-8 py-4 border-t border-slate-200/80 flex items-center justify-between bg-white shrink-0">
+        <div className="px-4 sm:px-8 py-3 sm:py-4 border-t border-slate-200/80 flex items-center justify-between bg-white shrink-0 gap-2">
           {currentStep > 1 ? (
             <button
               onClick={handlePrev}
-              className="border border-slate-200/90 bg-white text-slate-700 hover:bg-slate-50 px-8 py-2 rounded-lg text-xs sm:text-sm font-medium transition cursor-pointer active:scale-[0.99]"
+              className="border border-slate-200/90 bg-white text-slate-700 hover:bg-slate-50 px-4 sm:px-8 py-2 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer active:scale-[0.99]"
             >
-              {t('common.previous', 'السابق')}
+              {t('common.previous', 'Previous')}
             </button>
           ) : (
             <button
               onClick={onClose}
-              className="border border-slate-200/90 bg-white text-slate-700 hover:bg-slate-50 px-8 py-2 rounded-lg text-xs sm:text-sm font-medium transition cursor-pointer active:scale-[0.99]"
+              className="border border-slate-200/90 bg-white text-slate-700 hover:bg-slate-50 px-4 sm:px-8 py-2 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer active:scale-[0.99]"
             >
-              {t('common.cancel', 'إلغاء')}
+              {t('common.cancel', 'Cancel')}
             </button>
           )}
 
           {/* Step Number Indicator */}
-          <div className="text-xs sm:text-sm text-slate-400 font-normal">
+          <div className="text-xs sm:text-sm text-slate-500 font-medium">
             {isRTL
               ? `الخطوة ${currentStep === 1 ? '١' : currentStep === 2 ? '٢' : currentStep === 3 ? '٣' : '٤'} من ٤`
               : `Step ${currentStep} of 4`}
@@ -449,7 +449,7 @@ export default function AddGroupModal({ isOpen, onClose, onSuccess, initialData 
           {currentStep === 4 ? (
             <button
               onClick={handleNext}
-              className="bg-[#00c48c] hover:bg-[#00b07d] text-white px-7 py-2.5 rounded-xl text-xs sm:text-sm font-medium flex items-center gap-1.5 transition shadow-2xs cursor-pointer active:scale-[0.99]"
+              className="bg-[#00c48c] hover:bg-[#00b07d] text-white px-5 sm:px-7 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition shadow-2xs cursor-pointer active:scale-[0.99]"
             >
               <Check className="w-4 h-4 stroke-[2.5]" />
               <span>{isRTL ? 'انشاء المجموعة' : 'Create Group'}</span>
@@ -457,9 +457,9 @@ export default function AddGroupModal({ isOpen, onClose, onSuccess, initialData 
           ) : (
             <button
               onClick={handleNext}
-              className="bg-[#00c48c] hover:bg-[#00b07d] text-white px-8 py-2 rounded-lg text-xs sm:text-sm font-medium transition shadow-2xs cursor-pointer active:scale-[0.99]"
+              className="bg-[#00c48c] hover:bg-[#00b07d] text-white px-5 sm:px-8 py-2 rounded-xl text-xs sm:text-sm font-bold transition shadow-2xs cursor-pointer active:scale-[0.99]"
             >
-              {t('common.next', 'التالي')}
+              {t('common.next', 'Next')}
             </button>
           )}
         </div>

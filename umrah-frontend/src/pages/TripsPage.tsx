@@ -190,23 +190,23 @@ export default function TripsPage() {
       {/* Main Page Content */}
       <div className="flex-1 flex flex-col min-w-0">
         <Navbar
-          title={t('trips.title', 'إدارة الرحلات والتفويج')}
+          title={t('trips.title', 'Trip & Tour Program Management')}
           onMenuClick={() => setIsMobileMenuOpen(true)}
         />
 
-        <main className="p-4 sm:p-6 lg:p-8 space-y-6 overflow-y-auto flex-1">
+        <main className="p-3.5 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 overflow-y-auto flex-1 max-w-[1600px] w-full mx-auto">
           {/* 3 Top Summary Stat Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-5">
             {/* Card 1: Trips In Progress */}
             <div
-              className={`bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-2xs hover:shadow-md transition-all duration-300 transform flex flex-col justify-between space-y-4 ${
+              className={`bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-6 shadow-2xs hover:shadow-md transition-all duration-300 transform flex flex-col justify-between space-y-3 sm:space-y-4 ${
                 isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
               }`}
               style={{ transitionDelay: '50ms' }}
             >
               <div className="flex items-center justify-between">
                 <span className="text-sm sm:text-base font-bold text-[#0f172a]">
-                  {t('trips.in_progress_title', 'رحلات قيد التنفيذ')}
+                  {t('trips.in_progress_title', 'Trips In Progress')}
                 </span>
                 <span className="text-xs font-bold px-2.5 py-0.5 rounded-md bg-[#fef9c3] text-[#a16207] animate-pulse">
                   {t('trips.active_now_badge', 'Active Now')}
@@ -214,8 +214,8 @@ export default function TripsPage() {
               </div>
 
               <div className="flex items-baseline justify-between pt-1">
-                <div className="text-3xl sm:text-4xl font-extrabold text-[#f59e0b] tracking-tight">
-                  {animatedInProgress} {isRTL ? 'رحلات' : 'Trips'}
+                <div className="text-2xl sm:text-4xl font-extrabold text-[#f59e0b] tracking-tight">
+                  {animatedInProgress} <span className="text-sm sm:text-lg font-bold">{t('trips.unit_trips', 'Trips')}</span>
                 </div>
                 <div className="text-xs sm:text-sm text-slate-500 font-normal">
                   {t('trips.buses_trains_sub', 'Haramain Buses & Trains')}
@@ -247,14 +247,14 @@ export default function TripsPage() {
 
             {/* Card 2: Completed Trips */}
             <div
-              className={`bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-2xs hover:shadow-md transition-all duration-300 transform flex flex-col justify-between space-y-4 ${
+              className={`bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-6 shadow-2xs hover:shadow-md transition-all duration-300 transform flex flex-col justify-between space-y-3 sm:space-y-4 ${
                 isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
               }`}
               style={{ transitionDelay: '150ms' }}
             >
               <div className="flex items-center justify-between">
                 <span className="text-sm sm:text-base font-bold text-[#0f172a]">
-                  {t('trips.completed_title', 'رحلات منتهية بنجاح')}
+                  {t('trips.completed_title', 'Successfully Completed Trips')}
                 </span>
                 <span className="text-xs font-bold px-2.5 py-0.5 rounded-md bg-[#dcfce7] text-[#15803d]">
                   {t('common.completed', 'Completed')}
@@ -262,11 +262,11 @@ export default function TripsPage() {
               </div>
 
               <div className="flex items-baseline justify-between pt-1">
-                <div className="text-3xl sm:text-4xl font-extrabold text-[#10b981] tracking-tight">
-                  {animatedCompleted} {isRTL ? 'رحلة' : 'Trips'}
+                <div className="text-2xl sm:text-4xl font-extrabold text-[#10b981] tracking-tight">
+                  {animatedCompleted} <span className="text-sm sm:text-lg font-bold">{t('trips.unit_trips', 'Trips')}</span>
                 </div>
                 <div className="text-xs sm:text-sm text-slate-500 font-normal">
-                  {animatedCompletionRate}% {isRTL ? 'نسبة الإنجاز' : 'Daily Completion Rate'}
+                  {animatedCompletionRate}% {t('trips.daily_completion_rate', 'Daily Completion Rate')}
                 </div>
               </div>
 
@@ -289,32 +289,32 @@ export default function TripsPage() {
               </div>
 
               <div className="text-xs text-slate-400 font-normal">
-                {t('trips.dispatch_rate_sub', 'Excellent dispatch rate with no issues')}
+                {t('trips.completed_notice_sub', 'Final departure and arrival confirmations recorded')}
               </div>
             </div>
 
-            {/* Card 3: Total Programs */}
+            {/* Card 3: Scheduled / Total Trips */}
             <div
-              className={`bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-2xs hover:shadow-md transition-all duration-300 transform flex flex-col justify-between space-y-4 ${
+              className={`bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-6 shadow-2xs hover:shadow-md transition-all duration-300 transform flex flex-col justify-between space-y-3 sm:space-y-4 sm:col-span-2 lg:col-span-1 ${
                 isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
               }`}
               style={{ transitionDelay: '250ms' }}
             >
               <div className="flex items-center justify-between">
                 <span className="text-sm sm:text-base font-bold text-[#0f172a]">
-                  {t('trips.total_programs_title', 'إجمالي البرامج والرحلات')}
+                  {t('trips.total_scheduled_title', 'Total Scheduled Trips')}
                 </span>
-                <span className="text-xs font-bold px-2.5 py-0.5 rounded-md bg-[#e0f2fe] text-[#0284c7]">
-                  {t('common.all', 'All')}
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-md bg-[#dbeafe] text-[#1d4ed8]">
+                  {t('trips.scheduled_badge', 'Scheduled')}
                 </span>
               </div>
 
               <div className="flex items-baseline justify-between pt-1">
-                <div className="text-3xl sm:text-4xl font-extrabold text-[#0f172a] tracking-tight">
-                  {animatedTotal} {isRTL ? 'برنامجاً' : 'Programs'}
+                <div className="text-2xl sm:text-4xl font-extrabold text-[#2563eb] tracking-tight">
+                  {animatedTotal} <span className="text-sm sm:text-lg font-bold">{t('trips.unit_trips', 'Trips')}</span>
                 </div>
                 <div className="text-xs sm:text-sm text-slate-500 font-normal">
-                  {t('trips.active_operation_prog', 'Active Operation Program')}
+                  {t('trips.active_schedule_sub', 'Active Seasonal Schedule')}
                 </div>
               </div>
 
@@ -344,31 +344,31 @@ export default function TripsPage() {
 
           {/* Table Card Section */}
           <div
-            className={`bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-2xs space-y-5 transition-all duration-500 transform ${
+            className={`bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-6 shadow-2xs space-y-4 sm:space-y-5 transition-all duration-500 transform overflow-hidden ${
               isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
             }`}
             style={{ transitionDelay: '350ms' }}
           >
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-              <h2 className="text-base sm:text-lg font-bold text-[#0f172a]">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
+              <h2 className="text-sm sm:text-lg font-bold text-[#0f172a]">
                 {t('trips.current_schedule', 'Current Trip Operation Schedule')}
               </h2>
 
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
                 {!isReadOnly && (
                   <button
                     onClick={() => {
                       setEditingTrip(null);
                       setIsAddTripOpen(true);
                     }}
-                    className="bg-[#0f172a] hover:bg-slate-800 text-white px-5 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition shadow-xs cursor-pointer active:scale-[0.99] whitespace-nowrap order-2 sm:order-1"
+                    className="bg-[#0f172a] hover:bg-slate-800 text-white px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition shadow-xs cursor-pointer active:scale-[0.99] whitespace-nowrap order-2 sm:order-1"
                   >
                     <Plus className="w-4 h-4 shrink-0 stroke-[2.5]" />
                     <span>{t('trips.add_trip', 'Add Trip')}</span>
                   </button>
                 )}
 
-                <div className="relative flex-1 sm:flex-initial order-1 sm:order-2">
+                <div className="relative flex-1 sm:flex-initial order-1 sm:order-2 min-w-[200px]">
                   <input
                     type="text"
                     value={searchQuery}
@@ -386,18 +386,18 @@ export default function TripsPage() {
             </div>
 
             {/* Trips Table */}
-            <div className="overflow-x-auto">
-              <table className={`w-full border-collapse text-xs sm:text-sm ${isRTL ? 'text-right' : 'text-left'}`}>
+            <div className="overflow-x-auto touch-scroll min-h-[240px]">
+              <table className={`w-full min-w-[760px] border-collapse text-xs sm:text-sm ${isRTL ? 'text-right' : 'text-left'}`}>
                 <thead>
                   <tr className="border-b border-slate-200/80 text-xs font-bold text-slate-600 bg-[#f8fafc]">
-                    <th className="py-3 px-4 whitespace-nowrap">{t('trips.trip_number', 'رقم الرحلة')}</th>
-                    <th className="py-3 px-4 whitespace-nowrap">{t('trips.program_route', 'اسم البرنامج / المسار')}</th>
-                    <th className="py-3 px-4 whitespace-nowrap">{t('trips.start_date', 'تاريخ البدء')}</th>
-                    <th className="py-3 px-4 whitespace-nowrap">{t('trips.end_date', 'تاريخ الانتهاء')}</th>
-                    <th className="py-3 px-4 whitespace-nowrap">{t('trips.number_of_pilgrims', 'عدد المعتمرين')}</th>
-                    <th className="py-3 px-4 whitespace-nowrap">{t('trips.trip_guide', 'مرشد الرحلة')}</th>
-                    <th className="py-3 px-4 text-center whitespace-nowrap">{t('common.status', 'الحالة')}</th>
-                    <th className="py-3 px-4 text-center whitespace-nowrap">{t('common.actions', 'إجراءات')}</th>
+                    <th className="py-3 px-4 whitespace-nowrap">{t('trips.trip_number', 'Trip Number')}</th>
+                    <th className="py-3 px-4 whitespace-nowrap">{t('trips.program_route', 'Program / Route')}</th>
+                    <th className="py-3 px-4 whitespace-nowrap">{t('trips.start_date', 'Start Date')}</th>
+                    <th className="py-3 px-4 whitespace-nowrap">{t('trips.end_date', 'End Date')}</th>
+                    <th className="py-3 px-4 whitespace-nowrap">{t('trips.number_of_pilgrims', 'Number of Pilgrims')}</th>
+                    <th className="py-3 px-4 whitespace-nowrap">{t('trips.trip_guide', 'Trip Guide')}</th>
+                    <th className="py-3 px-4 text-center whitespace-nowrap">{t('common.status', 'Status')}</th>
+                    <th className="py-3 px-4 text-center whitespace-nowrap">{t('common.actions', 'Actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -591,7 +591,7 @@ export default function TripsPage() {
                 onClick={() => setTripToDelete(null)}
                 className="flex-1 border border-slate-200/90 bg-white hover:bg-slate-50 text-slate-700 font-bold py-2.5 sm:py-3 px-5 rounded-xl transition shadow-2xs text-xs sm:text-sm cursor-pointer active:scale-95"
               >
-                {t('common.cancel', 'إلغاء')}
+                {t('common.cancel', 'Cancel')}
               </button>
             </div>
           </div>
@@ -624,7 +624,7 @@ export default function TripsPage() {
                 onClick={() => setIsDeleteSuccessOpen(false)}
                 className="border border-slate-200/90 bg-white hover:bg-slate-50 text-slate-700 font-bold py-2.5 px-12 rounded-xl transition shadow-2xs text-sm cursor-pointer active:scale-95"
               >
-                {t('common.close', 'إغلاق')}
+                {t('common.close', 'Close')}
               </button>
             </div>
           </div>

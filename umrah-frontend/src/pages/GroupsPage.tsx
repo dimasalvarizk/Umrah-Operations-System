@@ -398,16 +398,16 @@ export default function GroupsPage() {
         />
 
         {/* Groups Main Content */}
-        <main className="flex-1 p-6 sm:p-8 space-y-6 max-w-[1600px] w-full mx-auto">
+        <main className="flex-1 p-3.5 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 max-w-[1600px] w-full mx-auto">
           {/* Action / Filter Bar Card Container */}
           <div
-            className={`bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 transition-all duration-400 transform ${
+            className={`bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-5 shadow-xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 transition-all duration-400 transform ${
               isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
             }`}
             style={{ transitionDelay: '100ms' }}
           >
             {/* Search Input */}
-            <div className="relative flex-1 min-w-[280px]">
+            <div className="relative flex-1 min-w-0">
               <input
                 type="text"
                 placeholder={t('groups.search_placeholder', 'ابحث برقم المجموعة، الاسم، الوكيل أو الجنسية...')}
@@ -423,14 +423,14 @@ export default function GroupsPage() {
             </div>
 
             {/* Filters and Action Buttons */}
-            <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
               {/* Agent Filter Dropdown */}
-              <div className="relative">
+              <div className="relative flex-1 sm:flex-none min-w-[130px]">
                 <select
                   value={agentFilter}
                   onChange={(e) => setAgentFilter(e.target.value)}
-                  className={`appearance-none bg-[#f8fafc] hover:bg-slate-100/80 border border-slate-200/80 rounded-xl py-2.5 text-xs sm:text-sm text-slate-700 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-300 focus:bg-white transition shadow-xs ${
-                    isRTL ? 'pr-4 pl-9 text-right' : 'pl-4 pr-9 text-left'
+                  className={`w-full appearance-none bg-[#f8fafc] hover:bg-slate-100/80 border border-slate-200/80 rounded-xl py-2.5 text-xs sm:text-sm text-slate-700 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-300 focus:bg-white transition shadow-xs ${
+                    isRTL ? 'pr-3.5 pl-8 text-right' : 'pl-3.5 pr-8 text-left'
                   }`}
                 >
                   <option value="الكل">{isRTL ? 'الوكيل: جميع الوكلاء' : 'Agent: All Agents'}</option>
@@ -461,17 +461,17 @@ export default function GroupsPage() {
                   })()}
                 </select>
                 <ChevronDown className={`w-4 h-4 text-slate-500 absolute top-1/2 -translate-y-1/2 pointer-events-none ${
-                  isRTL ? 'left-3' : 'right-3'
+                  isRTL ? 'left-2.5' : 'right-2.5'
                 }`} />
               </div>
 
               {/* Status Filter Dropdown */}
-              <div className="relative">
+              <div className="relative flex-1 sm:flex-none min-w-[110px]">
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className={`appearance-none bg-[#f8fafc] hover:bg-slate-100/80 border border-slate-200/80 rounded-xl py-2.5 text-xs sm:text-sm text-slate-700 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-300 focus:bg-white transition shadow-xs ${
-                    isRTL ? 'pr-4 pl-9 text-right' : 'pl-4 pr-9 text-left'
+                  className={`w-full appearance-none bg-[#f8fafc] hover:bg-slate-100/80 border border-slate-200/80 rounded-xl py-2.5 text-xs sm:text-sm text-slate-700 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-300 focus:bg-white transition shadow-xs ${
+                    isRTL ? 'pr-3.5 pl-8 text-right' : 'pl-3.5 pr-8 text-left'
                   }`}
                 >
                   <option value="الكل">{isRTL ? 'الحالة: الكل' : 'Status: All'}</option>
@@ -480,7 +480,7 @@ export default function GroupsPage() {
                   <option value="ناقص">{t('common.incomplete', 'ناقص')}</option>
                 </select>
                 <ChevronDown className={`w-4 h-4 text-slate-500 absolute top-1/2 -translate-y-1/2 pointer-events-none ${
-                  isRTL ? 'left-3' : 'right-3'
+                  isRTL ? 'left-2.5' : 'right-2.5'
                 }`} />
               </div>
 
@@ -488,7 +488,7 @@ export default function GroupsPage() {
               <button
                 type="button"
                 onClick={() => {}}
-                className="bg-[#1c2844] hover:bg-[#152037] text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shadow-xs flex items-center justify-center cursor-pointer active:scale-[0.98] whitespace-nowrap"
+                className="bg-[#1c2844] hover:bg-[#152037] text-white px-3.5 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shadow-xs flex items-center justify-center cursor-pointer active:scale-[0.98] whitespace-nowrap"
               >
                 <span>{t('groups.apply_sort', 'تطبيق الترتيب')}</span>
               </button>
@@ -500,7 +500,7 @@ export default function GroupsPage() {
                     setEditingGroup(null);
                     setIsAddModalOpen(true);
                   }}
-                  className="bg-[#10b981] hover:bg-[#059669] text-white px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] whitespace-nowrap"
+                  className="bg-[#10b981] hover:bg-[#059669] text-white px-3.5 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] whitespace-nowrap"
                 >
                   <Plus className="w-4 h-4 shrink-0" />
                   <span>{t('groups.add_new', 'إضافة مجموعة جديدة')}</span>
@@ -511,18 +511,18 @@ export default function GroupsPage() {
 
           {/* Groups Table Card Container */}
           <div
-            className={`bg-white border border-slate-200/90 rounded-2xl shadow-xs transition-all duration-500 transform ${
+            className={`bg-white border border-slate-200/90 rounded-2xl shadow-xs transition-all duration-500 transform overflow-hidden ${
               isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
             }`}
             style={{ transitionDelay: '250ms' }}
           >
-            <div className="overflow-x-auto min-h-[280px] pb-10">
-              <table className={`w-full border-collapse ${isRTL ? 'text-right' : 'text-left'}`}>
+            <div className="overflow-x-auto touch-scroll min-h-[280px] pb-6 sm:pb-10">
+              <table className={`w-full min-w-[720px] border-collapse ${isRTL ? 'text-right' : 'text-left'}`}>
                 {/* Table Header */}
                 <thead>
                   <tr className="border-b border-slate-200/80 text-xs sm:text-sm text-slate-700 font-bold bg-[#fafbfc]">
-                    <th className="py-4 px-6 whitespace-nowrap">{t('groups.col_code', 'رقم المجموعة')}</th>
-                    <th className="py-4 px-6 whitespace-nowrap">{t('groups.col_name', 'اسم المجموعة')}</th>
+                    <th className="py-3.5 sm:py-4 px-4 sm:px-6 whitespace-nowrap">{t('groups.col_code', 'رقم المجموعة')}</th>
+                    <th className="py-3.5 sm:py-4 px-4 sm:px-6 whitespace-nowrap">{t('groups.col_name', 'اسم المجموعة')}</th>
                     <th className="py-4 px-6 whitespace-nowrap">{t('groups.col_main_agent', 'الوكيل الرئيسي')}</th>
                     <th className="py-4 px-6 whitespace-nowrap">{t('groups.col_sub_agent', 'الوكيل الفرعي')}</th>
                     <th className="py-4 px-6 whitespace-nowrap">{t('groups.col_nationality', 'الجنسية')}</th>

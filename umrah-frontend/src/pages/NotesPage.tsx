@@ -447,100 +447,100 @@ export default function NotesPage() {
         />
 
         {/* Main Content Area */}
-        <main className="p-4 sm:p-6 lg:p-8 space-y-6 overflow-y-auto flex-1 max-w-[1600px] w-full mx-auto">
-          {/* Top 4 Stat Metric Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <main className="p-3.5 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 overflow-y-auto flex-1 max-w-[1600px] w-full mx-auto">
+          {/* Top 4 Stat Metric Cards (2x2 on Mobile, 4 Columns on Large Screens) */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {/* Card 1: Total */}
             <div
-              className={`bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs hover:shadow-md transition-all duration-300 transform flex items-center justify-between ${
+              className={`bg-white border border-slate-200/80 rounded-2xl p-3.5 sm:p-5 shadow-2xs hover:shadow-md transition-all duration-300 transform flex items-center justify-between min-h-[85px] sm:min-h-[100px] ${
                 isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
               }`}
               style={{ transitionDelay: '50ms' }}
             >
               <div>
-                <div className="text-xs font-semibold text-slate-500 mb-1">
+                <div className="text-[11px] sm:text-xs font-semibold text-slate-500 mb-1 truncate">
                   {t('notes.total_notes_stat', 'إجمالي الملاحظات')}
                 </div>
-                <div className="text-2xl sm:text-3xl font-bold text-[#0f172a] tracking-tight">
+                <div className="text-xl sm:text-3xl font-bold text-[#0f172a] tracking-tight">
                   {animatedTotal}
                 </div>
               </div>
-              <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 transition-transform hover:scale-110">
-                <Tag className="w-5 h-5" />
+              <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 transition-transform hover:scale-110 shrink-0">
+                <Tag className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             </div>
 
             {/* Card 2: Pinned */}
             <div
-              className={`bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs hover:shadow-md transition-all duration-300 transform flex items-center justify-between ${
+              className={`bg-white border border-slate-200/80 rounded-2xl p-3.5 sm:p-5 shadow-2xs hover:shadow-md transition-all duration-300 transform flex items-center justify-between min-h-[85px] sm:min-h-[100px] ${
                 isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
               }`}
               style={{ transitionDelay: '150ms' }}
             >
               <div>
-                <div className="text-xs font-semibold text-slate-500 mb-1">
+                <div className="text-[11px] sm:text-xs font-semibold text-slate-500 mb-1 truncate">
                   {t('notes.pinned_notes_stat', 'المثبتة في الأعلى')}
                 </div>
-                <div className="text-2xl sm:text-3xl font-bold text-amber-600 tracking-tight">
+                <div className="text-xl sm:text-3xl font-bold text-amber-600 tracking-tight">
                   {animatedPinned}
                 </div>
               </div>
-              <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center transition-transform hover:scale-110">
-                <Pin className="w-5 h-5 fill-amber-500" />
+              <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center transition-transform hover:scale-110 shrink-0">
+                <Pin className="w-4 h-4 sm:w-5 sm:h-5 fill-amber-500" />
               </div>
             </div>
 
             {/* Card 3: Urgent */}
             <div
-              className={`bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs hover:shadow-md transition-all duration-300 transform flex items-center justify-between ${
+              className={`bg-white border border-slate-200/80 rounded-2xl p-3.5 sm:p-5 shadow-2xs hover:shadow-md transition-all duration-300 transform flex items-center justify-between min-h-[85px] sm:min-h-[100px] ${
                 isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
               }`}
               style={{ transitionDelay: '250ms' }}
             >
               <div>
-                <div className="text-xs font-semibold text-slate-500 mb-1">
+                <div className="text-[11px] sm:text-xs font-semibold text-slate-500 mb-1 truncate">
                   {t('notes.urgent_notes_stat', 'تنبيهات عاجلة نشطة')}
                 </div>
-                <div className="text-2xl sm:text-3xl font-bold text-red-600 tracking-tight">
+                <div className="text-xl sm:text-3xl font-bold text-red-600 tracking-tight">
                   {animatedUrgent}
                 </div>
               </div>
-              <div className="w-11 h-11 rounded-xl bg-red-50 text-red-600 flex items-center justify-center transition-transform hover:scale-110">
-                <AlertCircle className="w-5 h-5 animate-pulse" />
+              <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-xl bg-red-50 text-red-600 flex items-center justify-center transition-transform hover:scale-110 shrink-0">
+                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
               </div>
             </div>
 
             {/* Card 4: Completed */}
             <div
-              className={`bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs hover:shadow-md transition-all duration-300 transform flex items-center justify-between ${
+              className={`bg-white border border-slate-200/80 rounded-2xl p-3.5 sm:p-5 shadow-2xs hover:shadow-md transition-all duration-300 transform flex items-center justify-between min-h-[85px] sm:min-h-[100px] ${
                 isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
               }`}
               style={{ transitionDelay: '350ms' }}
             >
               <div>
-                <div className="text-xs font-semibold text-slate-500 mb-1">
+                <div className="text-[11px] sm:text-xs font-semibold text-slate-500 mb-1 truncate">
                   {t('notes.completed_notes_stat', 'تمت معالجتها')}
                 </div>
-                <div className="text-2xl sm:text-3xl font-bold text-emerald-600 tracking-tight">
+                <div className="text-xl sm:text-3xl font-bold text-emerald-600 tracking-tight">
                   {animatedCompleted}
                 </div>
               </div>
-              <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center transition-transform hover:scale-110">
-                <CheckCircle2 className="w-5 h-5" />
+              <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center transition-transform hover:scale-110 shrink-0">
+                <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             </div>
           </div>
 
           {/* Action / Search / Filters Bar */}
           <div
-            className={`bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs space-y-4 transition-all duration-400 transform ${
+            className={`bg-white border border-slate-200/80 rounded-2xl p-3.5 sm:p-5 shadow-2xs space-y-3 sm:space-y-4 transition-all duration-400 transform ${
               isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
             }`}
             style={{ transitionDelay: '300ms' }}
           >
             <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
               {/* Search Box */}
-              <div className="relative flex-1 min-w-[260px]">
+              <div className="relative flex-1 min-w-0">
                 <input
                   type="text"
                   placeholder={t('notes.search_placeholder', 'ابحث في عنوان الملاحظة، المحتوى، الوسوم، أو اسم الفوج...')}

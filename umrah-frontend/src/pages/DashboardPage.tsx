@@ -121,88 +121,88 @@ export default function DashboardPage() {
         )}
 
         {/* Dashboard Main Body */}
-        <main className="flex-1 p-6 sm:p-8 space-y-6 max-w-[1600px] w-full mx-auto">
-          {/* Top Row: 4 Metric Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        <main className="flex-1 p-3.5 sm:p-6 lg:p-8 space-y-5 sm:space-y-6 max-w-[1600px] w-full mx-auto">
+          {/* Top Row: 4 Metric Cards (2x2 on Mobile, 4 Columns on Large Screens) */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
             {/* Card 1: Active Groups */}
             <div
-              className={`bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-xs hover:shadow-md transition-all duration-300 transform flex flex-col justify-between h-36 ${
+              className={`bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-5 lg:p-6 shadow-xs hover:shadow-md transition-all duration-300 transform flex flex-col justify-between min-h-[120px] sm:h-36 ${
                 isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
               }`}
               style={{ transitionDelay: '50ms' }}
             >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500">
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[11px] sm:text-xs font-semibold text-slate-500 truncate">
                   {t('dashboard.active_groups', 'المجموعات النشطة')}
                 </span>
-                <div className="w-9 h-9 rounded-xl bg-[#f1f5f9] flex items-center justify-center text-slate-600 transition-transform hover:scale-110">
-                  <LayoutGrid className="w-4 h-4" />
+                <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-xl bg-[#f1f5f9] flex items-center justify-center text-slate-600 transition-transform hover:scale-110 shrink-0">
+                  <LayoutGrid className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
               </div>
-              <div className={`text-2xl sm:text-[28px] font-bold text-[#10b981] tracking-tight ${isRTL ? 'text-right' : 'text-left'}`}>
-                {animatedActiveGroups} {t('dashboard.active_groups_unit', 'مجموعة')}
+              <div className={`text-lg xs:text-xl sm:text-2xl lg:text-[28px] font-bold text-[#10b981] tracking-tight ${isRTL ? 'text-right' : 'text-left'}`}>
+                {animatedActiveGroups} <span className="text-xs sm:text-sm font-medium">{t('dashboard.active_groups_unit', 'مجموعة')}</span>
               </div>
             </div>
 
             {/* Card 2: Total Pilgrims */}
             <div
-              className={`bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-xs hover:shadow-md transition-all duration-300 transform flex flex-col justify-between h-36 ${
+              className={`bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-5 lg:p-6 shadow-xs hover:shadow-md transition-all duration-300 transform flex flex-col justify-between min-h-[120px] sm:h-36 ${
                 isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
               }`}
               style={{ transitionDelay: '150ms' }}
             >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500">
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[11px] sm:text-xs font-semibold text-slate-500 truncate">
                   {t('dashboard.total_pilgrims', 'إجمالي المعتمرين')}
                 </span>
-                <div className="w-9 h-9 rounded-xl bg-[#f1f5f9] flex items-center justify-center text-slate-600 transition-transform hover:scale-110">
-                  <Users className="w-4 h-4" />
+                <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-xl bg-[#f1f5f9] flex items-center justify-center text-slate-600 transition-transform hover:scale-110 shrink-0">
+                  <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
               </div>
-              <div className={`text-2xl sm:text-[28px] font-bold text-[#1e293b] tracking-tight ${isRTL ? 'text-right' : 'text-left'}`}>
-                {animatedTotalPilgrims.toLocaleString()} {t('dashboard.total_pilgrims_unit', 'معتمر')}
+              <div className={`text-lg xs:text-xl sm:text-2xl lg:text-[28px] font-bold text-[#1e293b] tracking-tight ${isRTL ? 'text-right' : 'text-left'}`}>
+                {animatedTotalPilgrims.toLocaleString()} <span className="text-xs sm:text-sm font-medium">{t('dashboard.total_pilgrims_unit', 'معتمر')}</span>
               </div>
             </div>
 
             {/* Card 3: Incomplete Data Alerts */}
             <div
-              className={`bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-xs hover:shadow-md transition-all duration-300 transform flex flex-col justify-between h-36 ${
+              className={`bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-5 lg:p-6 shadow-xs hover:shadow-md transition-all duration-300 transform flex flex-col justify-between min-h-[120px] sm:h-36 ${
                 isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
               }`}
               style={{ transitionDelay: '250ms' }}
             >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500">
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[11px] sm:text-xs font-semibold text-slate-500 truncate">
                   {t('dashboard.incomplete_alerts', 'تنبيهات البيانات الناقصة')}
                 </span>
                 {incompleteAlertsVal > 0 && (
-                  <span className="px-2.5 py-0.5 text-[11px] font-bold bg-[#fef3c7] text-[#d97706] rounded-md animate-pulse">
+                  <span className="px-1.5 sm:px-2.5 py-0.5 text-[10px] sm:text-[11px] font-bold bg-[#fef3c7] text-[#d97706] rounded-md animate-pulse shrink-0">
                     {t('dashboard.incomplete_alerts_badge', 'مهم')}
                   </span>
                 )}
               </div>
-              <div className={`text-2xl sm:text-[28px] font-bold text-[#ef4444] tracking-tight ${isRTL ? 'text-right' : 'text-left'}`}>
-                {animatedAlerts} {t('dashboard.incomplete_alerts_unit', 'تنبيه')}
+              <div className={`text-lg xs:text-xl sm:text-2xl lg:text-[28px] font-bold text-[#ef4444] tracking-tight ${isRTL ? 'text-right' : 'text-left'}`}>
+                {animatedAlerts} <span className="text-xs sm:text-sm font-medium">{t('dashboard.incomplete_alerts_unit', 'تنبيه')}</span>
               </div>
             </div>
 
             {/* Card 4: Upcoming Flights */}
             <div
-              className={`bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-xs hover:shadow-md transition-all duration-300 transform flex flex-col justify-between h-36 ${
+              className={`bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-5 lg:p-6 shadow-xs hover:shadow-md transition-all duration-300 transform flex flex-col justify-between min-h-[120px] sm:h-36 ${
                 isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
               }`}
               style={{ transitionDelay: '350ms' }}
             >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500">
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[11px] sm:text-xs font-semibold text-slate-500 truncate">
                   {t('dashboard.upcoming_flights', 'الرحلات القادمة')}
                 </span>
-                <div className="w-9 h-9 rounded-xl bg-[#f1f5f9] flex items-center justify-center text-slate-600 transition-transform hover:scale-110">
-                  <Plane className="w-4 h-4" />
+                <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-xl bg-[#f1f5f9] flex items-center justify-center text-slate-600 transition-transform hover:scale-110 shrink-0">
+                  <Plane className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
               </div>
-              <div className={`text-2xl sm:text-[28px] font-bold text-[#1e293b] tracking-tight ${isRTL ? 'text-right' : 'text-left'}`}>
-                {animatedUpcomingTrips} {t('dashboard.upcoming_flights_unit', 'رحلات')}
+              <div className={`text-lg xs:text-xl sm:text-2xl lg:text-[28px] font-bold text-[#1e293b] tracking-tight ${isRTL ? 'text-right' : 'text-left'}`}>
+                {animatedUpcomingTrips} <span className="text-xs sm:text-sm font-medium">{t('dashboard.upcoming_flights_unit', 'رحلات')}</span>
               </div>
             </div>
           </div>

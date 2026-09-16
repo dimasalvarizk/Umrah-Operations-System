@@ -249,35 +249,44 @@ export default function LoginPage() {
     >
       {/* Form Section (Always on the Left) */}
       <div
-        className="w-full md:w-[45%] lg:w-[38%] min-h-screen bg-white flex flex-col justify-between px-6 sm:px-12 lg:px-16 py-10 shadow-2xl z-20"
+        className="w-full md:w-[45%] lg:w-[38%] min-h-screen bg-white flex flex-col justify-between px-4 sm:px-10 lg:px-16 py-6 sm:py-10 shadow-2xl z-20"
         dir={direction}
       >
-        {/* Top bar with Language Switcher (Always on the Right) */}
-        <div className="flex items-center justify-end pb-6 border-b border-slate-100" dir="ltr">
-          <LanguageSwitcher variant="login" />
+        {/* Top bar with Mobile Logo & Language Switcher */}
+        <div className="flex items-center justify-between pb-4 sm:pb-6 border-b border-slate-100" dir="ltr">
+          {/* Mobile-only Logo */}
+          <div className="flex md:hidden items-center gap-2">
+            <img src={logoLogin} alt="Logo" className="w-8 h-8 object-contain" />
+            <span className="text-xs font-bold text-emerald-600 truncate max-w-[170px]">
+              {t('nav.system_title', 'نظام عمليات الحج والعمرة')}
+            </span>
+          </div>
+          <div className="md:ml-auto">
+            <LanguageSwitcher variant="login" />
+          </div>
         </div>
 
-        <div className={`my-auto max-w-md w-full mx-auto py-8 ${isRTL ? 'text-right' : 'text-left'}`}>
+        <div className={`my-auto max-w-md w-full mx-auto py-6 sm:py-8 ${isRTL ? 'text-right' : 'text-left'}`}>
           {/* Welcome Header */}
-          <div className={`mb-8 ${isRTL ? 'text-right' : 'text-left'}`}>
-            <h1 className="text-3xl font-extrabold text-[#111827] tracking-tight">
+          <div className={`mb-6 sm:mb-8 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#111827] tracking-tight">
               {t('login.welcome', 'مرحباً بك')}
             </h1>
-            <p className="text-slate-500 text-sm mt-2">
+            <p className="text-slate-500 text-xs sm:text-sm mt-1.5">
               {t('login.subtitle', 'الرجاء تسجيل الدخول لمتابعة العمليات')}
             </p>
           </div>
 
           {/* Feedback Messages */}
           {errorMessage && (
-            <div className={`mb-6 p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center ${isRTL ? 'justify-end' : 'justify-start'} gap-2.5 animate-fadeIn`}>
+            <div className={`mb-5 p-3 sm:p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center ${isRTL ? 'justify-end' : 'justify-start'} gap-2.5 animate-fadeIn`}>
               <AlertCircle className="w-4 h-4 flex-shrink-0 text-red-500" />
               <span>{errorMessage}</span>
             </div>
           )}
 
           {successMessage && (
-            <div className={`mb-6 p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs flex items-center ${isRTL ? 'justify-end' : 'justify-start'} gap-2.5 animate-fadeIn`}>
+            <div className={`mb-5 p-3 sm:p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs flex items-center ${isRTL ? 'justify-end' : 'justify-start'} gap-2.5 animate-fadeIn`}>
               <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-600" />
               <span>{successMessage}</span>
             </div>
@@ -434,7 +443,7 @@ export default function LoginPage() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4 animate-fadeIn"
           dir={direction}
         >
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden transition-all duration-300">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-2xl max-w-md w-full max-h-[92vh] overflow-y-auto touch-scroll transition-all duration-300">
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div className="flex items-center gap-2.5">

@@ -113,7 +113,7 @@ export default function SettingsPage() {
         />
 
         {/* Page Main Body */}
-        <main className="flex-1 p-4 sm:p-7 space-y-6 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-3.5 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 max-w-7xl w-full mx-auto">
           {/* Clean Horizontal Navigation Tabs */}
           <div
             className={`border-b border-slate-200 transition-all duration-400 transform ${
@@ -121,7 +121,7 @@ export default function SettingsPage() {
             }`}
             style={{ transitionDelay: '100ms' }}
           >
-            <nav className="flex items-center gap-1 sm:gap-2 overflow-x-auto no-scrollbar -mb-px">
+            <nav className="flex items-center gap-1 sm:gap-2 overflow-x-auto touch-scroll no-scrollbar -mb-px pb-1 sm:pb-0">
               {tabs.map((tab) => {
                 const isActive = activeTab === tab.id;
                 return (
@@ -129,7 +129,7 @@ export default function SettingsPage() {
                     key={tab.id}
                     type="button"
                     onClick={() => handleTabChange(tab.id)}
-                    className={`px-3.5 sm:px-4 py-2.5 text-xs sm:text-sm font-semibold transition-all shrink-0 cursor-pointer border-b-2 active:scale-[0.98] ${
+                    className={`px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-semibold transition-all shrink-0 cursor-pointer border-b-2 whitespace-nowrap active:scale-[0.98] ${
                       isActive
                         ? 'border-amber-500 text-slate-900 font-bold'
                         : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'

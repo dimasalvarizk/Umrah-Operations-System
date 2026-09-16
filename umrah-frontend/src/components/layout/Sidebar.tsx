@@ -12,6 +12,7 @@ import {
   LogOut,
   Globe,
   Check,
+  X,
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import logoLogin from '../../assets/logo-login.png';
@@ -108,20 +109,32 @@ export default function Sidebar({
   return (
     <>
       <aside
-        className={`fixed lg:sticky top-0 h-screen w-60 bg-[#0d0f14] text-white flex flex-col justify-between z-40 transition-transform duration-300 shrink-0 select-none ${sidebarPositionClass}`}
+        className={`fixed lg:sticky top-0 h-screen w-64 bg-[#0d0f14] text-white flex flex-col justify-between z-50 transition-transform duration-300 shrink-0 select-none ${sidebarPositionClass}`}
         dir={isRTL ? 'rtl' : 'ltr'}
       >
         {/* Top Sidebar Branding & Menu */}
         <div>
-          <div className="pt-5 pb-5 px-4 flex items-center justify-start gap-3 border-b border-slate-900/60 mb-2">
-            <img
-              src={logoLogin}
-              alt="Logo"
-              className="w-11 h-11 object-contain shrink-0 drop-shadow-md"
-            />
-            <span className="text-[#00dc82] text-xs sm:text-[13px] font-medium tracking-wide leading-tight">
-              {t('nav.system_title', 'نظام عمليات الحج والعمرة')}
-            </span>
+          <div className="pt-5 pb-5 px-4 flex items-center justify-between border-b border-slate-900/60 mb-2">
+            <div className="flex items-center gap-3">
+              <img
+                src={logoLogin}
+                alt="Logo"
+                className="w-10 h-10 object-contain shrink-0 drop-shadow-md"
+              />
+              <span className="text-[#00dc82] text-xs sm:text-[13px] font-medium tracking-wide leading-tight">
+                {t('nav.system_title', 'نظام عمليات الحج والعمرة')}
+              </span>
+            </div>
+
+            {/* Mobile Close X Button */}
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="lg:hidden p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition cursor-pointer"
+              title="Close Menu"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
 
           {/* Navigation Items */}
@@ -136,7 +149,7 @@ export default function Sidebar({
                     setIsMobileMenuOpen(false);
                     navigate(item.path);
                   }}
-                  className={`w-full flex items-center justify-start gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-[13px] transition cursor-pointer ${
+                  className={`w-full flex items-center justify-start gap-3 px-3.5 py-3 sm:py-2.5 rounded-xl text-xs sm:text-[13px] transition cursor-pointer ${
                     isActive
                       ? 'bg-[#161d26] text-white font-medium shadow-2xs'
                       : 'text-slate-400 hover:text-white hover:bg-white/5 font-normal'

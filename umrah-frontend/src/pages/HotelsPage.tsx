@@ -233,10 +233,10 @@ export default function HotelsPage() {
           onMenuClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         />
 
-        <main className="flex-1 p-6 sm:p-8 space-y-6 max-w-[1600px] w-full mx-auto">
+        <main className="flex-1 p-3.5 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 max-w-[1600px] w-full mx-auto">
           {/* Toast Notification */}
           {toastMessage && (
-            <div className="bg-emerald-600 text-white px-5 py-3 rounded-2xl flex items-center gap-3 shadow-lg animate-fadeIn">
+            <div className="bg-emerald-600 text-white px-4 sm:px-5 py-3 rounded-2xl flex items-center gap-3 shadow-lg animate-fadeIn">
               <CheckCircle2 className="w-5 h-5 shrink-0 stroke-[2.5]" />
               <span className="text-xs sm:text-sm font-bold">{toastMessage}</span>
             </div>
@@ -244,12 +244,12 @@ export default function HotelsPage() {
 
           {/* Action / Filter Bar Card */}
           <div
-            className={`bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 transition-all duration-400 transform ${
+            className={`bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-5 shadow-2xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 transition-all duration-400 transform ${
               isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
             }`}
           >
             {/* Search Input */}
-            <div className="relative flex-1 min-w-[280px]">
+            <div className="relative flex-1 min-w-0">
               <input
                 type="text"
                 placeholder={t(
@@ -270,14 +270,14 @@ export default function HotelsPage() {
             </div>
 
             {/* Filters and Actions */}
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               {/* Region Filter */}
-              <div className="relative">
+              <div className="relative flex-1 sm:flex-none min-w-[130px]">
                 <select
                   value={locationFilter}
                   onChange={(e) => setLocationFilter(e.target.value)}
-                  className={`appearance-none bg-[#f8fafc] hover:bg-slate-100/80 border border-slate-200/80 rounded-xl py-2.5 text-xs sm:text-sm text-slate-700 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-emerald-500 transition shadow-2xs ${
-                    isRTL ? 'pr-4 pl-9 text-right' : 'pl-4 pr-9 text-left'
+                  className={`w-full appearance-none bg-[#f8fafc] hover:bg-slate-100/80 border border-slate-200/80 rounded-xl py-2.5 text-xs sm:text-sm text-slate-700 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-emerald-500 transition shadow-2xs ${
+                    isRTL ? 'pr-3.5 pl-8 text-right' : 'pl-3.5 pr-8 text-left'
                   }`}
                 >
                   <option value="الكل">
@@ -292,18 +292,18 @@ export default function HotelsPage() {
                 </select>
                 <ChevronDown
                   className={`w-4 h-4 text-slate-500 absolute top-1/2 -translate-y-1/2 pointer-events-none ${
-                    isRTL ? 'left-3' : 'right-3'
+                    isRTL ? 'left-2.5' : 'right-2.5'
                   }`}
                 />
               </div>
 
               {/* Status Filter */}
-              <div className="relative">
+              <div className="relative flex-1 sm:flex-none min-w-[120px]">
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className={`appearance-none bg-[#f8fafc] hover:bg-slate-100/80 border border-slate-200/80 rounded-xl py-2.5 text-xs sm:text-sm text-slate-700 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-emerald-500 transition shadow-2xs ${
-                    isRTL ? 'pr-4 pl-9 text-right' : 'pl-4 pr-9 text-left'
+                  className={`w-full appearance-none bg-[#f8fafc] hover:bg-slate-100/80 border border-slate-200/80 rounded-xl py-2.5 text-xs sm:text-sm text-slate-700 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-emerald-500 transition shadow-2xs ${
+                    isRTL ? 'pr-3.5 pl-8 text-right' : 'pl-3.5 pr-8 text-left'
                   }`}
                 >
                   <option value="الكل">
@@ -324,7 +324,7 @@ export default function HotelsPage() {
                 </select>
                 <ChevronDown
                   className={`w-4 h-4 text-slate-500 absolute top-1/2 -translate-y-1/2 pointer-events-none ${
-                    isRTL ? 'left-3' : 'right-3'
+                    isRTL ? 'left-2.5' : 'right-2.5'
                   }`}
                 />
               </div>
@@ -333,7 +333,7 @@ export default function HotelsPage() {
               <button
                 type="button"
                 onClick={fetchHotels}
-                className="bg-[#1c2844] hover:bg-[#152037] text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shadow-xs flex items-center justify-center cursor-pointer active:scale-[0.98] whitespace-nowrap"
+                className="bg-[#1c2844] hover:bg-[#152037] text-white px-3.5 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shadow-xs flex items-center justify-center cursor-pointer active:scale-[0.98] whitespace-nowrap"
               >
                 <span>{t('hotels.apply_filter', 'تطبيق التصفية')}</span>
               </button>
@@ -345,7 +345,7 @@ export default function HotelsPage() {
                     setEditingHotel(null);
                     setIsAddHotelOpen(true);
                   }}
-                  className="bg-[#10b981] hover:bg-[#059669] text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] whitespace-nowrap"
+                  className="bg-[#10b981] hover:bg-[#059669] text-white px-3.5 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] whitespace-nowrap"
                 >
                   <Plus className="w-4 h-4 shrink-0 stroke-[2.5]" />
                   <span>{t('hotels.add_hotel', 'إضافة فندق جديد')}</span>
@@ -354,8 +354,8 @@ export default function HotelsPage() {
             </div>
           </div>
 
-          {/* Hotels Grid: 3 columns */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Hotels Grid: Responsive 1 / 2 / 3 columns */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {filteredHotels.map((hotel, idx) => (
               <div
                 key={hotel.id}

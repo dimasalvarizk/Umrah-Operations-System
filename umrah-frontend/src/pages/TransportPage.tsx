@@ -182,7 +182,7 @@ export default function TransportPage() {
           onBackClick={() => setSelectedCompany(null)}
         />
 
-        <main className="p-4 sm:p-8 space-y-6 flex-1 max-w-7xl mx-auto w-full">
+        <main className="p-3.5 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 flex-1 max-w-7xl mx-auto w-full">
           {selectedCompany ? (
             <CompanyFleetView
               company={selectedCompany}
@@ -192,7 +192,7 @@ export default function TransportPage() {
             <>
               {/* Action Row & Breadcrumb */}
               <div
-                className={`flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 transition-all duration-400 transform ${
+                className={`flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 transition-all duration-400 transform ${
                   isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
                 }`}
               >
@@ -207,9 +207,9 @@ export default function TransportPage() {
                 </div>
 
                 {/* Search, Filter & Add Button on Right */}
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                   {/* Search Bar */}
-                  <div className="relative flex-1 sm:w-64">
+                  <div className="relative flex-1 min-w-[180px] sm:w-64">
                     <input
                       type="text"
                       value={searchQuery}
@@ -229,7 +229,7 @@ export default function TransportPage() {
                     <button
                       type="button"
                       onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
-                      className="bg-white border border-slate-200/90 hover:bg-slate-50 px-4 py-2 rounded-xl text-xs sm:text-sm text-slate-700 font-medium flex items-center gap-2 shadow-2xs cursor-pointer transition active:scale-[0.98]"
+                      className="bg-white border border-slate-200/90 hover:bg-slate-50 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm text-slate-700 font-medium flex items-center gap-2 shadow-2xs cursor-pointer transition active:scale-[0.98]"
                     >
                       <span>{regionFilter === 'الكل' ? (isRTL ? 'جميع المناطق' : 'All Regions') : regionFilter}</span>
                       <ChevronDown className="w-4 h-4 text-slate-400" />
@@ -270,7 +270,7 @@ export default function TransportPage() {
                   {!isReadOnly && (
                     <button
                       onClick={() => setIsAddCompanyOpen(true)}
-                      className="bg-[#10b981] hover:bg-[#059669] text-white px-5 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer active:scale-95 shrink-0"
+                      className="bg-[#10b981] hover:bg-[#059669] text-white px-3.5 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer active:scale-95 shrink-0"
                     >
                       <Plus className="w-4 h-4 stroke-[2.5]" />
                       <span>{t('transport.add_company', 'Add Company')}</span>
@@ -281,11 +281,11 @@ export default function TransportPage() {
 
               {/* Companies Grid */}
               {filteredCompanies.length === 0 ? (
-                <div className="bg-white rounded-2xl border border-slate-200/80 p-12 text-center text-slate-400">
+                <div className="bg-white rounded-2xl border border-slate-200/80 p-8 sm:p-12 text-center text-slate-400">
                   {isRTL ? 'لا توجد شركات نقل مطابقة لبحثك.' : 'No transport companies match your search.'}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   {paginatedCompanies.map((company, idx) => (
                     <div
                       key={company.id}

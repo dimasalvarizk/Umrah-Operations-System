@@ -557,7 +557,7 @@ export default function GroupDetailsModal({
                 <div className="bg-[#f8fafc] border border-slate-200/70 rounded-xl px-4 py-2.5 flex items-center justify-between gap-2">
                   <span className="text-xs text-slate-400 font-normal">{isRTL ? 'مزارات مكة المكرمة' : 'Makkah Ziyarat Places'}</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs sm:text-sm font-bold text-slate-800 truncate max-w-[120px]">{data.makkahZiyarat || '-'}</span>
+                    <span className="text-xs sm:text-sm font-bold text-slate-800">{data.makkahZiyarat || '-'}</span>
                     {data.uploadedFiles?.['makkahZiyarat'] && (
                       <button
                         type="button"
@@ -566,7 +566,7 @@ export default function GroupDetailsModal({
                         title={data.uploadedFiles['makkahZiyarat'].name}
                       >
                         <Eye className="w-3 h-3 text-emerald-600" />
-                        <span className="truncate max-w-[85px]">{data.uploadedFiles['makkahZiyarat'].name}</span>
+                        <span className="truncate max-w-[120px]">{data.uploadedFiles['makkahZiyarat'].name}</span>
                       </button>
                     )}
                   </div>
@@ -578,7 +578,7 @@ export default function GroupDetailsModal({
                 <div className="bg-[#f8fafc] border border-slate-200/70 rounded-xl px-4 py-2.5 flex items-center justify-between gap-2">
                   <span className="text-xs text-slate-400 font-normal">{isRTL ? 'مزارات المدينة المنورة' : 'Madinah Ziyarat Places'}</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs sm:text-sm font-bold text-slate-800 truncate max-w-[120px]">{data.madinahZiyarat || '-'}</span>
+                    <span className="text-xs sm:text-sm font-bold text-slate-800">{data.madinahZiyarat || '-'}</span>
                     {data.uploadedFiles?.['madinahZiyarat'] && (
                       <button
                         type="button"
@@ -587,7 +587,7 @@ export default function GroupDetailsModal({
                         title={data.uploadedFiles['madinahZiyarat'].name}
                       >
                         <Eye className="w-3 h-3 text-emerald-600" />
-                        <span className="truncate max-w-[85px]">{data.uploadedFiles['madinahZiyarat'].name}</span>
+                        <span className="truncate max-w-[120px]">{data.uploadedFiles['madinahZiyarat'].name}</span>
                       </button>
                     )}
                   </div>
@@ -599,7 +599,7 @@ export default function GroupDetailsModal({
                 <div className="bg-[#f8fafc] border border-slate-200/70 rounded-xl px-4 py-2.5 flex items-center justify-between gap-2">
                   <span className="text-xs text-slate-400 font-normal">{isRTL ? 'البرنامج الإثرائي' : 'Enrichment Program'}</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs sm:text-sm font-bold text-slate-800 truncate max-w-[120px]">{data.enrichmentProgram || '-'}</span>
+                    <span className="text-xs sm:text-sm font-bold text-slate-800">{data.enrichmentProgram || '-'}</span>
                     {data.uploadedFiles?.['enrichmentProgram'] && (
                       <button
                         type="button"
@@ -608,7 +608,7 @@ export default function GroupDetailsModal({
                         title={data.uploadedFiles['enrichmentProgram'].name}
                       >
                         <Eye className="w-3 h-3 text-emerald-600" />
-                        <span className="truncate max-w-[85px]">{data.uploadedFiles['enrichmentProgram'].name}</span>
+                        <span className="truncate max-w-[120px]">{data.uploadedFiles['enrichmentProgram'].name}</span>
                       </button>
                     )}
                   </div>
@@ -620,7 +620,7 @@ export default function GroupDetailsModal({
                 <div className="bg-[#f8fafc] border border-slate-200/70 rounded-xl px-4 py-2.5 flex items-center justify-between gap-2">
                   <span className="text-xs text-slate-400 font-normal">{isRTL ? 'النواقص والطلبات' : 'Missing Requirements'}</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs sm:text-sm font-bold text-slate-800 truncate max-w-[120px]">{data.missingRequirements || '-'}</span>
+                    <span className="text-xs sm:text-sm font-bold text-slate-800">{data.missingRequirements || '-'}</span>
                     {data.uploadedFiles?.['missingRequirements'] && (
                       <button
                         type="button"
@@ -629,7 +629,7 @@ export default function GroupDetailsModal({
                         title={data.uploadedFiles['missingRequirements'].name}
                       >
                         <Eye className="w-3 h-3 text-emerald-600" />
-                        <span className="truncate max-w-[85px]">{data.uploadedFiles['missingRequirements'].name}</span>
+                        <span className="truncate max-w-[120px]">{data.uploadedFiles['missingRequirements'].name}</span>
                       </button>
                     )}
                   </div>

@@ -199,7 +199,7 @@ export const translations = {
     'hotels.price_per_night': 'متوسط السعر / ليلة',
 
     // Trips Module
-    'trips.title': 'إدارة البرامج والرحلات والتفويج',
+    'trips.title': 'إدارة الرحلات والتفويج',
     'trips.add_trip': 'إضافة رحلة',
     'trips.search_placeholder': 'البحث عن رحلة...',
     'trips.current_schedule': 'جدول تشغيل الرحلات الحالي',
@@ -208,11 +208,17 @@ export const translations = {
     'trips.buses_trains_sub': 'حافلات وقطارات الحرمين',
     'trips.supervisor_monitored': 'تحت مراقبة مشرفي العمليات الميدانية',
     'trips.completed_title': 'رحلات منتهية بنجاح',
-    'trips.daily_completion_rate': 'نسبة الإنجاز اليومي %75',
+    'trips.completed_notice_sub': 'تم تسجيل وتأكيد المغادرة والوصول',
+    'trips.daily_completion_rate': 'نسبة الإنجاز اليومي',
     'trips.dispatch_rate_sub': 'معدل تفويج ممتاز وخالي من المشاكل',
     'trips.total_programs_title': 'إجمالي البرامج والرحلات',
+    'trips.total_scheduled_title': 'إجمالي الرحلات المجدولة',
+    'trips.scheduled_badge': 'مجدول',
+    'trips.active_schedule_sub': 'جدول الرحلات الموسمي الفعّال',
     'trips.active_operation_prog': 'برنامج تشغيل مفعل',
     'trips.realtime_update_sub': 'تحديث فوري للرحلات المخصصة',
+    'trips.unit_trips': 'رحلات',
+    'trips.pilgrims_unit': 'معتمراً',
     'trips.trip_number': 'رقم الرحلة',
     'trips.program_route': 'اسم البرنامج / المسار',
     'trips.start_date': 'تاريخ البدء',
@@ -601,7 +607,7 @@ export const translations = {
     'dashboard.badge_sync': 'Sync',
 
     // Groups Module
-    'groups.title': 'Group Management & Preparation',
+    'groups.title': 'Group Management',
     'groups.add_new': 'Add New Group',
     'groups.search_placeholder': 'Search by group number or name...',
     'groups.filter_all_agents': 'All Agents',
@@ -651,7 +657,7 @@ export const translations = {
     'groups.success_desc': 'The group details, permits, and transportation schedules have been saved to the system.',
 
     // Hotels Module
-    'hotels.title': 'Hotel & Accommodation Management',
+    'hotels.title': 'Hotels & Accommodation',
     'hotels.add_hotel': 'Add New Hotel',
     'hotels.search_placeholder': 'Search by hotel name, city, or room number...',
     'hotels.filter_city': 'All Regions',
@@ -686,7 +692,7 @@ export const translations = {
     'hotels.price_per_night': 'Avg. Price / Night',
 
     // Trips Module
-    'trips.title': 'Trip & Tour Program Management',
+    'trips.title': 'Trip Management',
     'trips.add_trip': 'Add Trip',
     'trips.search_placeholder': 'Search for a trip...',
     'trips.current_schedule': 'Current Trip Operation Schedule',
@@ -695,11 +701,17 @@ export const translations = {
     'trips.buses_trains_sub': 'Haramain Buses & Trains',
     'trips.supervisor_monitored': 'Under field operations supervisor monitoring',
     'trips.completed_title': 'Successfully Completed Trips',
-    'trips.daily_completion_rate': '75% Daily Completion Rate',
+    'trips.completed_notice_sub': 'Final departure and arrival confirmations recorded',
+    'trips.daily_completion_rate': 'Daily Completion Rate',
     'trips.dispatch_rate_sub': 'Excellent dispatch rate with no issues',
     'trips.total_programs_title': 'Total Programs & Trips',
+    'trips.total_scheduled_title': 'Total Scheduled Trips',
+    'trips.scheduled_badge': 'Scheduled',
+    'trips.active_schedule_sub': 'Active Seasonal Schedule',
     'trips.active_operation_prog': 'Active Operation Program',
     'trips.realtime_update_sub': 'Real-time update for assigned trips',
+    'trips.unit_trips': 'Trips',
+    'trips.pilgrims_unit': 'Pilgrims',
     'trips.trip_number': 'Trip Number',
     'trips.program_route': 'Program Name / Route',
     'trips.start_date': 'Start Date',
@@ -895,7 +907,7 @@ export const translations = {
     'contracts.official_certified': 'Official / Certified',
 
     // Notes Module
-    'notes.title': 'Operations Notes & Tasks',
+    'notes.title': 'Operational Notes',
     'notes.add_note': 'Add Note',
     'notes.add_new_note': 'Add New Note',
     'notes.edit_note': 'Edit Operational Note',
