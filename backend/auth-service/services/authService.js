@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const UserModel = require('../models/userModel');
 const { pool } = require('../config/db');
 const { generateToken } = require('../utils/jwt');
-const { getGeolocation } = require('../utils/geoIpHelper');
+const { getGeolocation, sanitizeIp } = require('../utils/geoIpHelper');
 const EmailService = require('./emailService');
 
 class AuthService {
@@ -311,26 +311,38 @@ class AuthService {
       [userId]
     );
 
+    const cleanReqIp = sanitizeIp(reqIp);
+
     if (rows.length > 0) {
-      return rows.map((r, i) => ({
-        id: r.id,
-        device: r.device,
-        ip: r.ip,
-        location: r.location || 'Makkah, Saudi Arabia',
-        active: i === 0 ? 'Current session (Active)' : (r.last_active || 'Recent'),
-        isCurrent: i === 0,
-        type: r.type || 'desktop',
-      }));
+      return rows.map((r, i) => {
+        const cleanIp = sanitizeIp(r.ip || cleanReqIp);
+        let loc = r.location;
+        // If legacy location is empty, placeholder "Makkah, Saudi Arabia" with non-Saudi IP, or Unknown
+        if (!loc || loc === 'Makkah, Saudi Arabia' || loc === 'Unknown' || loc.includes('Saudi Arabia')) {
+          const resolvedGeo = getGeolocation(cleanIp);
+          loc = resolvedGeo.location !== 'Unknown' ? resolvedGeo.location : (cleanIp === '127.0.0.1' ? 'Localhost' : loc);
+        }
+        return {
+          id: r.id,
+          device: r.device || 'Web Browser',
+          ip: cleanIp,
+          location: loc || (cleanIp === '127.0.0.1' ? 'Localhost' : 'Unknown'),
+          active: i === 0 ? 'Current session (Active)' : (r.last_active || 'Recent'),
+          isCurrent: i === 0,
+          type: r.type || 'desktop',
+        };
+      });
     }
 
-    // If none in DB, create initial active session
+    // If none in DB, create initial active session with real GeoIP
     const friendlyAgent = this.parseUserAgent(reqAgent);
     const isMobile = reqAgent.includes('Mobile') || reqAgent.includes('iPhone') || reqAgent.includes('Android');
+    const geo = getGeolocation(cleanReqIp);
     const defaultSess = {
-      id: 'sess-current',
+      id: `sess-${Date.now()}`,
       device: friendlyAgent,
-      ip: reqIp,
-      location: 'Makkah, Saudi Arabia',
+      ip: cleanReqIp,
+      location: geo.location,
       active: 'Current session (Active)',
       isCurrent: true,
       type: isMobile ? 'mobile' : 'desktop',
@@ -367,21 +379,30 @@ class AuthService {
     );
 
     return rows.map((r) => {
-      const city = r.city || (r.ip === '127.0.0.1' ? 'Local' : 'Unknown');
-      const country = r.country || (r.ip === '127.0.0.1' ? 'Unknown' : 'Unknown');
-      const location = (city === 'Local' || city === 'Localhost')
+      const cleanIp = sanitizeIp(r.ip);
+      let city = r.city;
+      let country = r.country;
+
+      // If legacy log had empty/unknown city/country, resolve it dynamically
+      if ((!city || city === 'Unknown' || !country || country === 'Unknown') && cleanIp !== '127.0.0.1') {
+        const geo = getGeolocation(cleanIp);
+        city = geo.city;
+        country = geo.country;
+      }
+
+      const location = (city === 'Local' || city === 'Localhost' || cleanIp === '127.0.0.1')
         ? 'Localhost'
-        : (city !== 'Unknown' && country !== 'Unknown'
+        : (city && country && city !== 'Unknown' && country !== 'Unknown'
             ? `${city}, ${country}`
-            : (city !== 'Unknown' ? city : (country !== 'Unknown' ? country : 'Unknown')));
+            : (city && city !== 'Unknown' ? city : (country && country !== 'Unknown' ? country : (cleanIp === '127.0.0.1' ? 'Localhost' : 'Unknown'))));
 
       return {
         id: String(r.id),
         timestamp: new Date(r.created_at).toISOString().replace('T', ' ').substring(0, 19),
-        ip: r.ip || '127.0.0.1',
-        agent: r.agent || 'Chrome / Windows',
-        city,
-        country,
+        ip: cleanIp,
+        agent: r.agent || 'Chrome on Windows',
+        city: city || (cleanIp === '127.0.0.1' ? 'Localhost' : 'Unknown'),
+        country: country || (cleanIp === '127.0.0.1' ? 'Localhost' : 'Unknown'),
         location,
         status: r.status || 'Success',
       };

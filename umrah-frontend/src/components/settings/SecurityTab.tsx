@@ -89,8 +89,8 @@ export default function SecurityTab() {
     {
       id: 'sess-current',
       device: getClientDeviceName(),
-      ip: '127.0.0.1 (Localhost)',
-      location: isRTL ? 'مكة المكرمة، السعودية' : 'Makkah, Saudi Arabia',
+      ip: '127.0.0.1',
+      location: isRTL ? 'الجلسة الحالية' : 'Current Session',
       active: isRTL ? 'الجلسة الحالية (نشطة)' : 'Current session (Active)',
       isCurrent: true,
       type: /Mobi|Android|iPhone/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
@@ -336,37 +336,40 @@ export default function SecurityTab() {
         </div>
 
         <div className="space-y-3">
-          {sessions.map((sess) => (
-            <div
-              key={sess.id}
-              className="p-4 rounded-xl border border-slate-100 bg-slate-50/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs"
-            >
-              <div className="flex items-center gap-3">
-                <div className="space-y-0.5">
-                  <div className="font-bold text-slate-900 flex items-center gap-2">
-                    <span>{sess.device}</span>
-                    {sess.isCurrent && (
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                        {isRTL ? 'هذا الجهاز' : 'This Device'}
-                      </span>
-                    )}
+          {sessions.map((sess) => {
+            const cleanSessIp = sess.ip ? sess.ip.split(',')[0].trim().replace(/^::ffff:/, '') : '127.0.0.1';
+            return (
+              <div
+                key={sess.id}
+                className="p-4 rounded-xl border border-slate-100 bg-slate-50/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="space-y-0.5">
+                    <div className="font-bold text-slate-900 flex items-center gap-2">
+                      <span>{sess.device}</span>
+                      {sess.isCurrent && (
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                          {isRTL ? 'هذا الجهاز' : 'This Device'}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-slate-500 font-mono text-[11px]">{cleanSessIp} • {sess.location}</div>
+                    <div className="text-slate-400 text-[11px]">{sess.active}</div>
                   </div>
-                  <div className="text-slate-500 font-mono text-[11px]">{sess.ip} • {sess.location}</div>
-                  <div className="text-slate-400 text-[11px]">{sess.active}</div>
                 </div>
-              </div>
 
-              {!sess.isCurrent && (
-                <button
-                  type="button"
-                  onClick={() => handleRevokeSession(sess.id)}
-                  className="px-3 py-1.5 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition cursor-pointer shrink-0"
-                >
-                  <span>{isRTL ? 'إنهاء الجلسة' : 'Revoke'}</span>
-                </button>
-              )}
-            </div>
-          ))}
+                {!sess.isCurrent && (
+                  <button
+                    type="button"
+                    onClick={() => handleRevokeSession(sess.id)}
+                    className="px-3 py-1.5 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition cursor-pointer shrink-0"
+                  >
+                    <span>{isRTL ? 'إنهاء الجلسة' : 'Revoke'}</span>
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 

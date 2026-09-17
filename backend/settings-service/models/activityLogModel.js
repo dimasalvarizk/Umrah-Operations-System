@@ -1,4 +1,5 @@
 const { pool } = require('../config/db');
+const { getGeolocation, sanitizeIp } = require('../utils/geoIpHelper');
 
 function safeJsonParse(val, fallback = null) {
   if (!val) return fallback;
@@ -13,13 +14,22 @@ function safeJsonParse(val, fallback = null) {
 function formatActivityLog(row) {
   if (!row) return null;
 
-  const city = row.login_city || (row.ip_address === '127.0.0.1' ? 'Local' : null);
-  const country = row.login_country || null;
-  const location = (city === 'Local' || city === 'Localhost')
+  const cleanIp = sanitizeIp(row.ip_address);
+  let city = row.login_city;
+  let country = row.login_country;
+
+  // Dynamically resolve location if missing or legacy
+  if ((!city || city === 'Unknown' || !country || country === 'Unknown') && cleanIp && cleanIp !== '127.0.0.1') {
+    const geo = getGeolocation(cleanIp);
+    if (geo.city !== 'Unknown') city = geo.city;
+    if (geo.country !== 'Unknown') country = geo.country;
+  }
+
+  const location = (city === 'Local' || city === 'Localhost' || cleanIp === '127.0.0.1')
     ? 'Localhost'
     : (city && country && city !== 'Unknown' && country !== 'Unknown'
         ? `${city}, ${country}`
-        : (city && city !== 'Unknown' ? city : (country && country !== 'Unknown' ? country : null)));
+        : (city && city !== 'Unknown' ? city : (country && country !== 'Unknown' ? country : (cleanIp === '127.0.0.1' ? 'Localhost' : cleanIp || 'Unknown'))));
 
   return {
     id: String(row.id),
@@ -34,12 +44,12 @@ function formatActivityLog(row) {
     descriptionEn: row.description_en || '',
     descriptionAr: row.description_ar || row.description_en || '',
     metadata: safeJsonParse(row.metadata, null),
-    ipAddress: row.ip_address || null,
-    loginCity: row.login_city || null,
-    loginCountry: row.login_country || null,
-    city: row.login_city || null,
-    country: row.login_country || null,
-    location: location || (row.ip_address === '127.0.0.1' ? 'Localhost' : (row.ip_address || null)),
+    ipAddress: cleanIp || null,
+    loginCity: city || null,
+    loginCountry: country || null,
+    city: city || null,
+    country: country || null,
+    location: location || (cleanIp === '127.0.0.1' ? 'Localhost' : (cleanIp || null)),
     createdAt: row.created_at || new Date().toISOString(),
   };
 }

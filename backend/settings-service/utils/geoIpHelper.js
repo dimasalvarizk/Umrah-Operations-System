@@ -51,6 +51,41 @@ const COUNTRY_NAMES = {
 };
 
 /**
+ * Clean, sanitize and extract the first non-private public IP from an IP string or comma chain.
+ * Discards IPv6-mapped prefixes, port numbers, and Coolify/Docker proxy IPs (172.16.x.x, 10.x.x.x, 192.168.x.x).
+ * @param {string} rawIp - Raw IP string or comma-separated IP chain
+ * @returns {string} Clean single public client IP (e.g. "180.252.166.187")
+ */
+function sanitizeIp(rawIp) {
+  if (!rawIp || typeof rawIp !== 'string') return '127.0.0.1';
+
+  // Split multiple IPs if comma-separated
+  const parts = rawIp
+    .split(',')
+    .map((p) => {
+      let clean = p.trim();
+      if (clean.startsWith('::ffff:')) clean = clean.replace('::ffff:', '');
+      if (clean.includes('.') && clean.includes(':')) clean = clean.split(':')[0];
+      return clean;
+    })
+    .filter(Boolean);
+
+  if (parts.length === 0) return '127.0.0.1';
+
+  // Find the first public IP (ignoring local/Docker private IPs)
+  for (const p of parts) {
+    if (!isPrivateOrLocalIp(p)) {
+      return p;
+    }
+  }
+
+  // If all are local/private, return the first one
+  const first = parts[0];
+  if (first === '::1' || first === 'localhost') return '127.0.0.1';
+  return first || '127.0.0.1';
+}
+
+/**
  * Clean and extract the first client public IP from request headers or socket,
  * discarding internal Coolify/Docker proxy IPs (172.16.x.x, 10.x.x.x, 192.168.x.x).
  * @param {object} req - Express request object
@@ -63,45 +98,30 @@ function extractClientIp(req) {
 
   // 1. Check Cloudflare connecting IP
   if (req.headers && req.headers['cf-connecting-ip']) {
-    rawIp = String(req.headers['cf-connecting-ip']).trim();
+    rawIp = String(req.headers['cf-connecting-ip']);
   }
-  // 2. Check X-Forwarded-For (Bypass Coolify/Traefik Docker proxies)
-  else if (req.headers && req.headers['x-forwarded-for']) {
-    const forwarded = String(req.headers['x-forwarded-for']);
-    const parts = forwarded.split(',').map((p) => p.trim());
-    rawIp = parts[0] || '';
+  // 2. True-Client-IP
+  else if (req.headers && req.headers['true-client-ip']) {
+    rawIp = String(req.headers['true-client-ip']);
   }
   // 3. Check X-Real-IP
   else if (req.headers && req.headers['x-real-ip']) {
-    rawIp = String(req.headers['x-real-ip']).trim();
+    rawIp = String(req.headers['x-real-ip']);
   }
-  // 4. Fallback to Express req.ip or socket remote address
+  // 4. Check X-Forwarded-For (Bypass Coolify/Traefik Docker proxies)
+  else if (req.headers && req.headers['x-forwarded-for']) {
+    rawIp = String(req.headers['x-forwarded-for']);
+  }
+  // 5. Fallback to Express req.ip or socket remote address
   else if (req.ip) {
-    rawIp = String(req.ip).trim();
+    rawIp = String(req.ip);
   } else if (req.socket && req.socket.remoteAddress) {
-    rawIp = String(req.socket.remoteAddress).trim();
+    rawIp = String(req.socket.remoteAddress);
   } else if (req.connection && req.connection.remoteAddress) {
-    rawIp = String(req.connection.remoteAddress).trim();
+    rawIp = String(req.connection.remoteAddress);
   }
 
-  if (!rawIp) return '127.0.0.1';
-
-  // Strip IPv6 prefix if IPv4-mapped (e.g. "::ffff:180.252.166.187")
-  if (rawIp.startsWith('::ffff:')) {
-    rawIp = rawIp.replace('::ffff:', '');
-  }
-
-  // Handle pure IPv6 localhost
-  if (rawIp === '::1' || rawIp === 'localhost') {
-    return '127.0.0.1';
-  }
-
-  // If port is attached to IPv4 (e.g. 180.252.166.187:54321)
-  if (rawIp.includes('.') && rawIp.includes(':')) {
-    rawIp = rawIp.split(':')[0];
-  }
-
-  return rawIp.trim() || '127.0.0.1';
+  return sanitizeIp(rawIp);
 }
 
 /**
@@ -111,7 +131,7 @@ function extractClientIp(req) {
  */
 function isPrivateOrLocalIp(ip) {
   if (!ip) return true;
-  const clean = ip.trim();
+  const clean = String(ip).trim().replace(/^::ffff:/, '');
 
   // Localhost
   if (clean === '127.0.0.1' || clean === '::1' || clean === 'localhost' || clean.startsWith('127.')) {
@@ -135,12 +155,12 @@ function isPrivateOrLocalIp(ip) {
 /**
  * Resolve client IP to City & Country using in-memory geoip-lite + Cloudflare headers
  * 0ms latency, zero third-party HTTP requests, completely offline.
- * @param {string} ip - Client IP address
+ * @param {string|object} ip - Client IP address or raw string
  * @param {object} [req] - Optional Express request object to read Cloudflare headers
  * @returns {{ ip: string, city: string, country: string, location: string }}
  */
 function getGeolocation(ip, req = null) {
-  const cleanIp = (ip || '127.0.0.1').trim();
+  const cleanIp = sanitizeIp(typeof ip === 'string' ? ip : (req ? extractClientIp(req) : '127.0.0.1'));
 
   // Tier 0: Cloudflare Headers (if running behind Cloudflare)
   if (req && req.headers) {
@@ -201,6 +221,7 @@ function getGeolocation(ip, req = null) {
 }
 
 module.exports = {
+  sanitizeIp,
   extractClientIp,
   isPrivateOrLocalIp,
   getGeolocation,

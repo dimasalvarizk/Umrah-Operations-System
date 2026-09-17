@@ -17,6 +17,9 @@ const TRANSPORT_SERVICE_URL = process.env.TRANSPORT_SERVICE_URL || 'http://local
 const CONTRACTS_SERVICE_URL = process.env.CONTRACTS_SERVICE_URL || 'http://localhost:5007';
 const NOTES_SERVICE_URL = process.env.NOTES_SERVICE_URL || 'http://localhost:5008';
 
+// Enable trust proxy for Coolify / Traefik / Caddy / Cloudflare
+app.set('trust proxy', true);
+
 // Global CORS Middleware
 app.use(cors({
   origin: '*',
@@ -47,7 +50,24 @@ function createServiceProxy(targetUrl, serviceName) {
   return createProxyMiddleware({
     target: targetUrl,
     changeOrigin: true,
+    xfwd: true,
     on: {
+      proxyReq: (proxyReq, req) => {
+        // Forward client real IP and headers downstream
+        const clientIp = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.ip;
+        if (clientIp) {
+          proxyReq.setHeader('x-real-ip', String(clientIp).split(',')[0].trim());
+          if (!req.headers['x-forwarded-for']) {
+            proxyReq.setHeader('x-forwarded-for', String(clientIp));
+          }
+        }
+        if (req.headers['cf-ipcountry']) {
+          proxyReq.setHeader('cf-ipcountry', req.headers['cf-ipcountry']);
+        }
+        if (req.headers['cf-ipcity']) {
+          proxyReq.setHeader('cf-ipcity', req.headers['cf-ipcity']);
+        }
+      },
       error: (err, req, res) => {
         console.error(`❌ Proxy error to ${serviceName}:`, err.message);
         res.status(502).json({
