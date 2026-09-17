@@ -306,19 +306,34 @@ class AuthService {
    * Get Active Sessions for User
    */
   static async getActiveSessions(userId, reqIp = '127.0.0.1', reqAgent = '') {
+    const cleanReqIp = sanitizeIp(reqIp);
+
+    // Auto-update legacy user_sessions rows in the database if cleanReqIp is a real public IP
+    if (cleanReqIp && cleanReqIp !== '127.0.0.1') {
+      const geo = getGeolocation(cleanReqIp);
+      try {
+        await pool.execute(
+          'UPDATE user_sessions SET ip = ?, location = ? WHERE user_id = ? AND (ip = "127.0.0.1" OR ip LIKE "172.%" OR ip LIKE "10.%" OR ip LIKE "%,%" OR location = "Makkah, Saudi Arabia")',
+          [cleanReqIp, geo.location, userId]
+        );
+      } catch {}
+    }
+
     const [rows] = await pool.execute(
       'SELECT id, device, ip, location, type, is_current, last_active, created_at FROM user_sessions WHERE user_id = ? ORDER BY created_at DESC LIMIT 10',
       [userId]
     );
 
-    const cleanReqIp = sanitizeIp(reqIp);
-
     if (rows.length > 0) {
       return rows.map((r, i) => {
-        const cleanIp = sanitizeIp(r.ip || cleanReqIp);
+        let cleanIp = sanitizeIp(r.ip || cleanReqIp);
+        if ((cleanIp === '127.0.0.1' || isPrivateOrLocalIp(cleanIp)) && cleanReqIp !== '127.0.0.1') {
+          cleanIp = cleanReqIp;
+        }
+
         let loc = r.location;
-        // If legacy location is empty, placeholder "Makkah, Saudi Arabia" with non-Saudi IP, or Unknown
-        if (!loc || loc === 'Makkah, Saudi Arabia' || loc === 'Unknown' || loc.includes('Saudi Arabia')) {
+        // If legacy location is empty, placeholder "Makkah, Saudi Arabia" with non-Saudi IP, or Unknown/Localhost
+        if (!loc || loc === 'Makkah, Saudi Arabia' || loc === 'Unknown' || loc.includes('Saudi Arabia') || (loc === 'Localhost' && cleanIp !== '127.0.0.1')) {
           const resolvedGeo = getGeolocation(cleanIp);
           loc = resolvedGeo.location !== 'Unknown' ? resolvedGeo.location : (cleanIp === '127.0.0.1' ? 'Localhost' : loc);
         }
@@ -372,19 +387,36 @@ class AuthService {
   /**
    * Get Login Activity Logs for User
    */
-  static async getLoginLogs(userId, email = '') {
+  static async getLoginLogs(userId, email = '', clientIp = '127.0.0.1') {
+    const safeClientIp = sanitizeIp(clientIp);
+
+    // Auto-update legacy login_logs rows in database if safeClientIp is a real public IP
+    if (safeClientIp && safeClientIp !== '127.0.0.1') {
+      const geo = getGeolocation(safeClientIp);
+      try {
+        await pool.execute(
+          'UPDATE login_logs SET ip = ?, city = ?, country = ? WHERE (user_id = ? OR email = ?) AND (ip = "127.0.0.1" OR ip LIKE "172.%" OR ip LIKE "10.%" OR ip LIKE "%,%" OR city = "Local" OR city = "Localhost")',
+          [safeClientIp, geo.city, geo.country, userId, email]
+        );
+      } catch {}
+    }
+
     const [rows] = await pool.execute(
       'SELECT id, created_at, ip, agent, city, country, status FROM login_logs WHERE user_id = ? OR email = ? ORDER BY created_at DESC LIMIT 20',
       [userId, email]
     );
 
     return rows.map((r) => {
-      const cleanIp = sanitizeIp(r.ip);
+      let cleanIp = sanitizeIp(r.ip);
       let city = r.city;
       let country = r.country;
 
-      // If legacy log had empty/unknown city/country, resolve it dynamically
-      if ((!city || city === 'Unknown' || !country || country === 'Unknown') && cleanIp !== '127.0.0.1') {
+      // If legacy log had local/Docker IP and we have client's real public IP
+      if ((cleanIp === '127.0.0.1' || isPrivateOrLocalIp(cleanIp)) && safeClientIp !== '127.0.0.1') {
+        cleanIp = safeClientIp;
+      }
+
+      if (!city || city === 'Unknown' || city === 'Local' || city === 'Localhost' || !country || country === 'Unknown') {
         const geo = getGeolocation(cleanIp);
         city = geo.city;
         country = geo.country;

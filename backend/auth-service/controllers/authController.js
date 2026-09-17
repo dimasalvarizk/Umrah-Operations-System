@@ -173,7 +173,8 @@ class AuthController {
         return errorResponse(res, 'Unauthorized access', 401);
       }
 
-      const logs = await AuthService.getLoginLogs(userId, email);
+      const clientIp = extractClientIp(req);
+      const logs = await AuthService.getLoginLogs(userId, email, clientIp);
       return successResponse(res, 'Login activity logs fetched', { logs }, 200);
     } catch (error) {
       const statusCode = error.statusCode || 500;
