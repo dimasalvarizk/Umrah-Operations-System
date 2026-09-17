@@ -232,6 +232,20 @@ export async function getLoginLogsApi(token: string): Promise<any[]> {
 }
 
 /**
+ * Notify backend of user logout
+ */
+export async function logoutApi(token: string): Promise<void> {
+  try {
+    await fetch(`${API_BASE_URL}/auth/logout`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  } catch {}
+}
+
+/**
  * Request password reset OTP
  */
 export async function forgotPasswordApi(email: string): Promise<{ success: boolean; message: string; data?: { email: string } }> {

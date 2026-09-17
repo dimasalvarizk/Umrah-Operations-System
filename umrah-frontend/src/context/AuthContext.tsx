@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { loginApi, getMeApi, type UserProfile } from '../services/authApi';
+import { loginApi, getMeApi, logoutApi, type UserProfile } from '../services/authApi';
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -44,8 +44,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           }
         } catch (err: any) {
-          // Only log out if specifically unauthorized (401 or 403)
-          if (err?.status === 401 || err?.status === 403) {
+          // If unauthorized or token invalid, purge and logout
+          if (err?.status === 401 || err?.status === 403 || err?.message?.includes('jwt') || err?.message?.includes('token')) {
             logout();
           } else {
             console.warn('Backend verification unavailable, using persisted session:', err?.message || err);
@@ -57,6 +57,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     verifyUser();
   }, [token]);
+
+  // Sync logout across browser tabs in real time
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'umrah_auth_token' && !e.newValue) {
+        setUser(null);
+        setToken(null);
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   const login = async (email: string, password: string, rememberMe = false) => {
     const res = await loginApi(email, password);
@@ -80,12 +92,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
+    const currentToken = token || localStorage.getItem('umrah_auth_token') || sessionStorage.getItem('umrah_auth_token');
+
+    // 1. Reset in-memory state
     setUser(null);
     setToken(null);
-    localStorage.removeItem('umrah_auth_token');
-    localStorage.removeItem('umrah_auth_user');
-    sessionStorage.removeItem('umrah_auth_token');
-    sessionStorage.removeItem('umrah_auth_user');
+
+    // 2. Clear all authentication keys from all browser storages
+    try {
+      localStorage.removeItem('umrah_auth_token');
+      localStorage.removeItem('umrah_auth_user');
+      sessionStorage.removeItem('umrah_auth_token');
+      sessionStorage.removeItem('umrah_auth_user');
+      sessionStorage.removeItem('client_public_ip');
+
+      // 3. Clear cached operational lists from storage
+      const cachedKeys = [
+        'umrah_groups_list',
+        'umrah_trips_list',
+        'umrah_hotels_list',
+        'umrah_transports_list',
+        'umrah_notes_list',
+        'contracts_agreements_list',
+      ];
+      cachedKeys.forEach((key) => {
+        localStorage.removeItem(key);
+        sessionStorage.removeItem(key);
+      });
+    } catch (e) {
+      console.warn('Storage purge error on logout:', e);
+    }
+
+    // 4. Notify backend of session end
+    if (currentToken) {
+      logoutApi(currentToken).catch(() => {});
+    }
   };
 
   const updateUserProfile = (userData: UserProfile) => {

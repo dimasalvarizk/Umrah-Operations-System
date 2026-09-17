@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { LanguageProvider } from './context/LanguageContext';
 import { AuthProvider } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
+import { ProtectedRoute, PublicOnlyRoute } from './components/auth/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import GroupsPage from './pages/GroupsPage';
@@ -22,26 +23,163 @@ function App() {
         <Router>
           <NotificationProvider>
             <Routes>
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/groups" element={<GroupsPage />} />
-              <Route path="/hotels" element={<HotelsPage />} />
-              <Route path="/trips" element={<TripsPage />} />
-              <Route path="/transport" element={<TransportPage />} />
-              <Route path="/contracts" element={<ContractsPage />} />
-              <Route path="/contracts/:id" element={<AgreementDetailPage />} />
-              <Route path="/contracts/:id/pdf" element={<AgreementPdfPage />} />
-              <Route path="/agreement-detail-view" element={<AgreementDetailPage />} />
-              <Route path="/agreement-pdf-form" element={<AgreementPdfPage />} />
-              <Route path="/agreement-pdf" element={<AgreementPdfPage />} />
-              <Route path="/transportation-companies-listing-ar" element={<ContractsPage />} />
-              <Route path="/agreements" element={<ContractsPage />} />
-              <Route path="/agreements/:id" element={<AgreementDetailPage />} />
-              <Route path="/agreements/:id/pdf" element={<AgreementPdfPage />} />
-              <Route path="/notes" element={<NotesPage />} />
-              <Route path="/activity-logs" element={<ActivityLogsPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              {/* Default route redirects to dashboard */}
+              {/* Public-only Route (redirects to /dashboard if already logged in) */}
+              <Route
+                path="/login"
+                element={
+                  <PublicOnlyRoute>
+                    <LoginPage />
+                  </PublicOnlyRoute>
+                }
+              />
+
+              {/* Protected Routes (strictly require valid authentication) */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <DashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/groups"
+                element={
+                  <ProtectedRoute>
+                    <GroupsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hotels"
+                element={
+                  <ProtectedRoute>
+                    <HotelsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/trips"
+                element={
+                  <ProtectedRoute>
+                    <TripsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/transport"
+                element={
+                  <ProtectedRoute>
+                    <TransportPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/contracts"
+                element={
+                  <ProtectedRoute>
+                    <ContractsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/contracts/:id"
+                element={
+                  <ProtectedRoute>
+                    <AgreementDetailPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/contracts/:id/pdf"
+                element={
+                  <ProtectedRoute>
+                    <AgreementPdfPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/agreement-detail-view"
+                element={
+                  <ProtectedRoute>
+                    <AgreementDetailPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/agreement-pdf-form"
+                element={
+                  <ProtectedRoute>
+                    <AgreementPdfPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/agreement-pdf"
+                element={
+                  <ProtectedRoute>
+                    <AgreementPdfPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/transportation-companies-listing-ar"
+                element={
+                  <ProtectedRoute>
+                    <ContractsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/agreements"
+                element={
+                  <ProtectedRoute>
+                    <ContractsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/agreements/:id"
+                element={
+                  <ProtectedRoute>
+                    <AgreementDetailPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/agreements/:id/pdf"
+                element={
+                  <ProtectedRoute>
+                    <AgreementPdfPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/notes"
+                element={
+                  <ProtectedRoute>
+                    <NotesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/activity-logs"
+                element={
+                  <ProtectedRoute>
+                    <ActivityLogsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <SettingsPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Default fallback route */}
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
