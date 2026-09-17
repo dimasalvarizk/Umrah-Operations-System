@@ -157,22 +157,37 @@ class AuthService {
         [user.id, cleanEmail, geo.ip, friendlyAgent, geo.city, geo.country, 'Success']
       );
 
-      // Create / update current session
+      // Create / update current session (support multi-device tracking)
       const isMobile = userAgent.includes('Mobile') || userAgent.includes('iPhone') || userAgent.includes('Android');
-      const sessionId = `sess-${Date.now()}`;
-      await pool.execute(
-        'INSERT INTO user_sessions (id, user_id, device, ip, location, type, is_current, last_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [
-          sessionId,
-          user.id,
-          friendlyAgent,
-          geo.ip,
-          geo.location || `${geo.city}, ${geo.country}`,
-          isMobile ? 'mobile' : 'desktop',
-          1,
-          'Current session (Active)',
-        ]
+      
+      // Mark other active sessions for this user as past/recent
+      await pool.execute('UPDATE user_sessions SET is_current = 0, last_active = "Recent" WHERE user_id = ?', [user.id]);
+
+      // Check if session for this user, device, and IP already exists
+      const [existingSess] = await pool.execute(
+        'SELECT id FROM user_sessions WHERE user_id = ? AND device = ? AND ip = ? LIMIT 1',
+        [user.id, friendlyAgent, geo.ip]
       );
+
+      if (existingSess.length > 0) {
+        await pool.execute(
+          'UPDATE user_sessions SET is_current = 1, last_active = "Current session (Active)", location = ?, created_at = NOW() WHERE id = ?',
+          [geo.location || `${geo.city}, ${geo.country}`, existingSess[0].id]
+        );
+      } else {
+        const sessionId = `sess-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+        await pool.execute(
+          'INSERT INTO user_sessions (id, user_id, device, ip, location, type, is_current, last_active) VALUES (?, ?, ?, ?, ?, ?, 1, "Current session (Active)")',
+          [
+            sessionId,
+            user.id,
+            friendlyAgent,
+            geo.ip,
+            geo.location || `${geo.city}, ${geo.country}`,
+            isMobile ? 'mobile' : 'desktop',
+          ]
+        );
+      }
 
       // Record Activity Log entry for Super Admin Audit Trail
       const locDisplay = geo.city === 'Local' || geo.city === 'Localhost'
@@ -308,42 +323,31 @@ class AuthService {
   static async getActiveSessions(userId, reqIp = '127.0.0.1', reqAgent = '') {
     const cleanReqIp = sanitizeIp(reqIp);
 
-    // Auto-update legacy user_sessions rows in the database if cleanReqIp is a real public IP
-    if (cleanReqIp && cleanReqIp !== '127.0.0.1') {
-      const geo = getGeolocation(cleanReqIp);
-      try {
-        await pool.execute(
-          'UPDATE user_sessions SET ip = ?, location = ? WHERE user_id = ? AND (ip = "127.0.0.1" OR ip LIKE "172.%" OR ip LIKE "10.%" OR ip LIKE "%,%" OR location = "Makkah, Saudi Arabia")',
-          [cleanReqIp, geo.location, userId]
-        );
-      } catch {}
-    }
-
     const [rows] = await pool.execute(
-      'SELECT id, device, ip, location, type, is_current, last_active, created_at FROM user_sessions WHERE user_id = ? ORDER BY created_at DESC LIMIT 10',
+      'SELECT id, device, ip, location, type, is_current, last_active, created_at FROM user_sessions WHERE user_id = ? ORDER BY is_current DESC, created_at DESC LIMIT 10',
       [userId]
     );
 
     if (rows.length > 0) {
-      return rows.map((r, i) => {
+      return rows.map((r) => {
         let cleanIp = sanitizeIp(r.ip || cleanReqIp);
-        if ((cleanIp === '127.0.0.1' || isPrivateOrLocalIp(cleanIp)) && cleanReqIp !== '127.0.0.1') {
-          cleanIp = cleanReqIp;
-        }
-
         let loc = r.location;
-        // If legacy location is empty, placeholder "Makkah, Saudi Arabia" with non-Saudi IP, or Unknown/Localhost
+
+        // If legacy location is empty, placeholder "Makkah, Saudi Arabia" with non-Saudi IP, or Unknown
         if (!loc || loc === 'Makkah, Saudi Arabia' || loc === 'Unknown' || loc.includes('Saudi Arabia') || (loc === 'Localhost' && cleanIp !== '127.0.0.1')) {
           const resolvedGeo = getGeolocation(cleanIp);
           loc = resolvedGeo.location !== 'Unknown' ? resolvedGeo.location : (cleanIp === '127.0.0.1' ? 'Localhost' : loc);
         }
+
+        const isCurrentDevice = r.is_current === 1 || (cleanIp === cleanReqIp && cleanReqIp !== '127.0.0.1');
+
         return {
           id: r.id,
           device: r.device || 'Web Browser',
           ip: cleanIp,
           location: loc || (cleanIp === '127.0.0.1' ? 'Localhost' : 'Unknown'),
-          active: i === 0 ? 'Current session (Active)' : (r.last_active || 'Recent'),
-          isCurrent: i === 0,
+          active: isCurrentDevice ? 'Current session (Active)' : (r.last_active || 'Recent'),
+          isCurrent: Boolean(isCurrentDevice),
           type: r.type || 'desktop',
         };
       });
@@ -365,8 +369,8 @@ class AuthService {
 
     try {
       await pool.execute(
-        'INSERT INTO user_sessions (id, user_id, device, ip, location, type, is_current, last_active) VALUES (?, ?, ?, ?, ?, ?, 1, ?)',
-        [defaultSess.id, userId, defaultSess.device, defaultSess.ip, defaultSess.location, defaultSess.type, defaultSess.active]
+        'INSERT INTO user_sessions (id, user_id, device, ip, location, type, is_current, last_active) VALUES (?, ?, ?, ?, ?, ?, 1, "Current session (Active)")',
+        [defaultSess.id, userId, defaultSess.device, defaultSess.ip, defaultSess.location, defaultSess.type]
       );
     } catch { }
 
@@ -390,17 +394,6 @@ class AuthService {
   static async getLoginLogs(userId, email = '', clientIp = '127.0.0.1') {
     const safeClientIp = sanitizeIp(clientIp);
 
-    // Auto-update legacy login_logs rows in database if safeClientIp is a real public IP
-    if (safeClientIp && safeClientIp !== '127.0.0.1') {
-      const geo = getGeolocation(safeClientIp);
-      try {
-        await pool.execute(
-          'UPDATE login_logs SET ip = ?, city = ?, country = ? WHERE (user_id = ? OR email = ?) AND (ip = "127.0.0.1" OR ip LIKE "172.%" OR ip LIKE "10.%" OR ip LIKE "%,%" OR city = "Local" OR city = "Localhost")',
-          [safeClientIp, geo.city, geo.country, userId, email]
-        );
-      } catch {}
-    }
-
     const [rows] = await pool.execute(
       'SELECT id, created_at, ip, agent, city, country, status FROM login_logs WHERE user_id = ? OR email = ? ORDER BY created_at DESC LIMIT 20',
       [userId, email]
@@ -410,11 +403,6 @@ class AuthService {
       let cleanIp = sanitizeIp(r.ip);
       let city = r.city;
       let country = r.country;
-
-      // If legacy log had local/Docker IP and we have client's real public IP
-      if ((cleanIp === '127.0.0.1' || isPrivateOrLocalIp(cleanIp)) && safeClientIp !== '127.0.0.1') {
-        cleanIp = safeClientIp;
-      }
 
       if (!city || city === 'Unknown' || city === 'Local' || city === 'Localhost' || !country || country === 'Unknown') {
         const geo = getGeolocation(cleanIp);

@@ -7,6 +7,8 @@ import {
   Loader2,
   ArrowRight,
   ArrowLeft,
+  Laptop,
+  Smartphone,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
@@ -57,74 +59,35 @@ export default function SecurityTab() {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [errorFeedback, setErrorFeedback] = useState<string | null>(null);
 
-  // Helper to detect current browser/device in real-time
-  const getClientDeviceName = () => {
-    const ua = navigator.userAgent;
-    let os = 'Unknown OS';
-    if (/iPhone/i.test(ua)) os = 'iPhone';
-    else if (/iPad/i.test(ua)) os = 'iPad';
-    else if (/Android/i.test(ua)) os = 'Android';
-    else if (/Windows NT 10\.0/i.test(ua)) os = 'Windows 10/11';
-    else if (/Windows/i.test(ua)) os = 'Windows';
-    else if (/Macintosh|Mac OS X/i.test(ua)) os = 'macOS';
-    else if (/Ubuntu/i.test(ua)) os = 'Ubuntu';
-    else if (/Linux/i.test(ua)) os = 'Linux';
-
-    let browser = 'Web Browser';
-    if (/EdgA?|EdgiOS|Edge/i.test(ua)) browser = 'Edge';
-    else if (/OPR|Opera/i.test(ua)) browser = 'Opera';
-    else if (/SamsungBrowser/i.test(ua)) browser = 'Samsung Internet';
-    else if (/Brave/i.test(ua)) browser = 'Brave';
-    else if (/Firefox|FxiOS/i.test(ua)) browser = 'Firefox';
-    else if (/Chrome|CriOS/i.test(ua)) browser = 'Chrome';
-    else if (/Safari/i.test(ua) && !/Android|Chrome|CriOS/i.test(ua)) browser = 'Safari';
-
-    if (os !== 'Unknown OS') {
-      return `${browser} on ${os}`;
-    }
-    return browser;
-  };
-
-  const [sessions, setSessions] = useState<SessionItem[]>([
-    {
-      id: 'sess-current',
-      device: getClientDeviceName(),
-      ip: '127.0.0.1',
-      location: isRTL ? 'الجلسة الحالية' : 'Current Session',
-      active: isRTL ? 'الجلسة الحالية (نشطة)' : 'Current session (Active)',
-      isCurrent: true,
-      type: /Mobi|Android|iPhone/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
-    },
-  ]);
-
-  const [loginLogs, setLoginLogs] = useState<LoginLogItem[]>([
-    {
-      id: 'log-1',
-      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
-      ip: '127.0.0.1',
-      agent: getClientDeviceName(),
-      status: 'Success',
-    },
-  ]);
+  const [sessions, setSessions] = useState<SessionItem[]>([]);
+  const [loginLogs, setLoginLogs] = useState<LoginLogItem[]>([]);
+  const [isLoadingSecurity, setIsLoadingSecurity] = useState(true);
 
   // Load Real-Time Sessions and Logs from MySQL Database
   const fetchSecurityData = async () => {
-    if (!token) return;
+    const activeToken = token || localStorage.getItem('umrah_auth_token') || sessionStorage.getItem('umrah_auth_token');
+    if (!activeToken) {
+      setIsLoadingSecurity(false);
+      return;
+    }
     try {
+      setIsLoadingSecurity(true);
       const [fetchedSessions, fetchedLogs] = await Promise.allSettled([
-        getActiveSessionsApi(token),
-        getLoginLogsApi(token),
+        getActiveSessionsApi(activeToken),
+        getLoginLogsApi(activeToken),
       ]);
 
-      if (fetchedSessions.status === 'fulfilled' && Array.isArray(fetchedSessions.value) && fetchedSessions.value.length > 0) {
+      if (fetchedSessions.status === 'fulfilled' && Array.isArray(fetchedSessions.value)) {
         setSessions(fetchedSessions.value);
       }
 
-      if (fetchedLogs.status === 'fulfilled' && Array.isArray(fetchedLogs.value) && fetchedLogs.value.length > 0) {
+      if (fetchedLogs.status === 'fulfilled' && Array.isArray(fetchedLogs.value)) {
         setLoginLogs(fetchedLogs.value);
       }
     } catch {
-      // Keep real client session fallback
+      // ignore
+    } finally {
+      setIsLoadingSecurity(false);
     }
   };
 
@@ -335,42 +298,64 @@ export default function SecurityTab() {
           </p>
         </div>
 
-        <div className="space-y-3">
-          {sessions.map((sess) => {
-            const cleanSessIp = sess.ip ? sess.ip.split(',')[0].trim().replace(/^::ffff:/, '') : '127.0.0.1';
-            return (
-              <div
-                key={sess.id}
-                className="p-4 rounded-xl border border-slate-100 bg-slate-50/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="space-y-0.5">
-                    <div className="font-bold text-slate-900 flex items-center gap-2">
-                      <span>{sess.device}</span>
-                      {sess.isCurrent && (
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                          {isRTL ? 'هذا الجهاز' : 'This Device'}
-                        </span>
+        {isLoadingSecurity ? (
+          <div className="p-6 flex items-center justify-center gap-3 text-slate-400 text-xs">
+            <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+            <span>{isRTL ? 'جاري تحميل الأجهزة والجلسات النشطة...' : 'Loading active devices & sessions...'}</span>
+          </div>
+        ) : sessions.length === 0 ? (
+          <div className="p-6 text-center text-slate-400 text-xs">
+            {isRTL ? 'لا توجد جلسات أخرى مسجلة' : 'No other active device sessions found.'}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {sessions.map((sess) => {
+              const cleanSessIp = sess.ip ? sess.ip.split(',')[0].trim().replace(/^::ffff:/, '') : '127.0.0.1';
+              const isMobileDevice = sess.type === 'mobile' || /iPhone|Android|iPad|Mobile/i.test(sess.device);
+              return (
+                <div
+                  key={sess.id}
+                  className="p-4 rounded-xl border border-slate-100 bg-slate-50/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white border border-slate-200/80 flex items-center justify-center shrink-0 shadow-2xs">
+                      {isMobileDevice ? (
+                        <Smartphone className="w-5 h-5 text-emerald-600" />
+                      ) : (
+                        <Laptop className="w-5 h-5 text-indigo-600" />
                       )}
                     </div>
-                    <div className="text-slate-500 font-mono text-[11px]">{cleanSessIp} • {sess.location}</div>
-                    <div className="text-slate-400 text-[11px]">{sess.active}</div>
+                    <div className="space-y-0.5">
+                      <div className="font-bold text-slate-900 flex items-center gap-2">
+                        <span>{sess.device}</span>
+                        {sess.isCurrent && (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200/60">
+                            {isRTL ? 'هذا الجهاز' : 'This Device'}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-slate-500 font-mono text-[11px]">{cleanSessIp} • {sess.location}</div>
+                      <div className="text-slate-400 text-[11px] flex items-center gap-1.5">
+                        <span className={`w-1.5 h-1.5 rounded-full ${sess.isCurrent ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
+                        <span>{sess.active}</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                {!sess.isCurrent && (
-                  <button
-                    type="button"
-                    onClick={() => handleRevokeSession(sess.id)}
-                    className="px-3 py-1.5 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition cursor-pointer shrink-0"
-                  >
-                    <span>{isRTL ? 'إنهاء الجلسة' : 'Revoke'}</span>
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                  {!sess.isCurrent && (
+                    <button
+                      type="button"
+                      onClick={() => handleRevokeSession(sess.id)}
+                      className="px-3 py-1.5 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition cursor-pointer shrink-0"
+                    >
+                      <span>{isRTL ? 'إنهاء الجلسة' : 'Revoke'}</span>
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* 3. LOGIN ACTIVITY LOGS */}
@@ -384,43 +369,54 @@ export default function SecurityTab() {
           </p>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-slate-100 text-slate-500 font-bold bg-slate-50/50">
-                <th className="py-2.5 px-4 text-start">{isRTL ? 'التاريخ والوقت' : 'Timestamp'}</th>
-                <th className="py-2.5 px-4 text-start">{isRTL ? 'عنوان IP' : 'IP Address'}</th>
-                <th className="py-2.5 px-4 text-start">{isRTL ? 'الموقع الجغرافي' : 'Location (City, Country)'}</th>
-                <th className="py-2.5 px-4 text-start">{isRTL ? 'المتصفح والنظام' : 'Browser / OS'}</th>
-                <th className="py-2.5 px-4 text-center">{isRTL ? 'الحالة' : 'Status'}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700">
-              {loginLogs.map((log) => {
-                const cleanIp = log.ip ? log.ip.split(',')[0].trim() : '127.0.0.1';
-                const displayLocation = log.location || (log.city && log.country ? (log.city === 'Local' ? 'Localhost' : `${log.city}, ${log.country}`) : (log.city || log.country || (cleanIp === '127.0.0.1' ? 'Localhost' : 'Unknown')));
+        {isLoadingSecurity ? (
+          <div className="p-8 flex items-center justify-center gap-3 text-slate-400 text-xs">
+            <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+            <span>{isRTL ? 'جاري تحميل سجل الدخول...' : 'Loading login history logs...'}</span>
+          </div>
+        ) : loginLogs.length === 0 ? (
+          <div className="p-8 text-center text-slate-400 text-xs">
+            {isRTL ? 'لا توجد سجلات دخول مسجلة' : 'No recent login records found.'}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-slate-100 text-slate-500 font-bold bg-slate-50/50">
+                  <th className="py-2.5 px-4 text-start">{isRTL ? 'التاريخ والوقت' : 'Timestamp'}</th>
+                  <th className="py-2.5 px-4 text-start">{isRTL ? 'عنوان IP' : 'IP Address'}</th>
+                  <th className="py-2.5 px-4 text-start">{isRTL ? 'الموقع الجغراfi' : 'Location (City, Country)'}</th>
+                  <th className="py-2.5 px-4 text-start">{isRTL ? 'المتصفح والنظام' : 'Browser / OS'}</th>
+                  <th className="py-2.5 px-4 text-center">{isRTL ? 'الحالة' : 'Status'}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-700">
+                {loginLogs.map((log) => {
+                  const cleanIp = log.ip ? log.ip.split(',')[0].trim() : '127.0.0.1';
+                  const displayLocation = log.location || (log.city && log.country ? (log.city === 'Local' ? 'Localhost' : `${log.city}, ${log.country}`) : (log.city || log.country || (cleanIp === '127.0.0.1' ? 'Localhost' : 'Unknown')));
 
-                return (
-                  <tr key={log.id} className="hover:bg-slate-50/70 transition">
-                    <td className="py-3 px-4 font-mono">{log.timestamp}</td>
-                    <td className="py-3 px-4 font-mono font-semibold text-slate-800">{cleanIp}</td>
-                    <td className="py-3 px-4 font-semibold text-slate-800">
-                      {displayLocation}
-                    </td>
-                    <td className="py-3 px-4">{log.agent}</td>
-                    <td className="py-3 px-4 text-center">
-                      <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                        log.status === 'Success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
-                      }`}>
-                        {log.status === 'Success' ? (isRTL ? 'ناجح' : 'Success') : (isRTL ? 'فشل الدخول' : 'Failed')}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                  return (
+                    <tr key={log.id} className="hover:bg-slate-50/70 transition">
+                      <td className="py-3 px-4 font-mono">{log.timestamp}</td>
+                      <td className="py-3 px-4 font-mono font-semibold text-slate-800">{cleanIp}</td>
+                      <td className="py-3 px-4 font-semibold text-slate-800">
+                        {displayLocation}
+                      </td>
+                      <td className="py-3 px-4">{log.agent}</td>
+                      <td className="py-3 px-4 text-center">
+                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                          log.status === 'Success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
+                        }`}>
+                          {log.status === 'Success' ? (isRTL ? 'ناجح' : 'Success') : (isRTL ? 'فشل الدخول' : 'Failed')}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
