@@ -456,9 +456,12 @@ class AuthService {
             ? `${city}, ${country}`
             : (city && city !== 'Unknown' ? city : (country && country !== 'Unknown' ? country : (cleanIp === '127.0.0.1' ? 'Localhost' : 'Jakarta, Indonesia'))));
 
+      const isoTimestamp = r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString();
+
       return {
         id: String(r.id),
-        timestamp: new Date(r.created_at).toISOString().replace('T', ' ').substring(0, 19),
+        timestamp: isoTimestamp,
+        createdAt: isoTimestamp,
         ip: cleanIp,
         agent: r.agent || 'Chrome on Windows',
         city: city || (cleanIp === '127.0.0.1' ? 'Localhost' : 'Jakarta'),

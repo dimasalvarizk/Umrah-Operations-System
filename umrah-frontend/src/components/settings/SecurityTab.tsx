@@ -34,12 +34,36 @@ export interface SessionItem {
 export interface LoginLogItem {
   id: string;
   timestamp: string;
+  createdAt?: string;
   ip: string;
   agent: string;
   city?: string | null;
   country?: string | null;
   location?: string | null;
   status: 'Success' | 'Failed';
+}
+
+/**
+ * Format any timestamp or ISO string into the user's local timezone (YYYY-MM-DD HH:mm:ss)
+ */
+export function formatLocalDateTime(raw: string | Date | undefined): string {
+  if (!raw) return '-';
+  try {
+    const d = new Date(raw);
+    if (isNaN(d.getTime())) return String(raw);
+
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const year = d.getFullYear();
+    const month = pad(d.getMonth() + 1);
+    const day = pad(d.getDate());
+    const hours = pad(d.getHours());
+    const minutes = pad(d.getMinutes());
+    const seconds = pad(d.getSeconds());
+
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  } catch {
+    return String(raw);
+  }
 }
 
 export default function SecurityTab() {
@@ -64,14 +88,14 @@ export default function SecurityTab() {
   const [isLoadingSecurity, setIsLoadingSecurity] = useState(true);
 
   // Load Real-Time Sessions and Logs from MySQL Database
-  const fetchSecurityData = async () => {
+  const fetchSecurityData = async (showLoadingState = true) => {
     const activeToken = token || localStorage.getItem('umrah_auth_token') || sessionStorage.getItem('umrah_auth_token');
     if (!activeToken) {
-      setIsLoadingSecurity(false);
+      if (showLoadingState) setIsLoadingSecurity(false);
       return;
     }
     try {
-      setIsLoadingSecurity(true);
+      if (showLoadingState) setIsLoadingSecurity(true);
       const [fetchedSessions, fetchedLogs] = await Promise.allSettled([
         getActiveSessionsApi(activeToken),
         getLoginLogsApi(activeToken),
@@ -87,12 +111,34 @@ export default function SecurityTab() {
     } catch {
       // ignore
     } finally {
-      setIsLoadingSecurity(false);
+      if (showLoadingState) setIsLoadingSecurity(false);
     }
   };
 
   useEffect(() => {
-    fetchSecurityData();
+    fetchSecurityData(true);
+
+    const handleFocus = () => {
+      if (document.visibilityState === 'visible') {
+        fetchSecurityData(false);
+      }
+    };
+
+    window.addEventListener('visibilitychange', handleFocus);
+    window.addEventListener('focus', handleFocus);
+
+    // Real-time background sync every 8 seconds
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchSecurityData(false);
+      }
+    }, 8000);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('visibilitychange', handleFocus);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, [token]);
 
   const handlePasswordUpdate = async (e: React.FormEvent) => {
@@ -397,7 +443,9 @@ export default function SecurityTab() {
 
                   return (
                     <tr key={log.id} className="hover:bg-slate-50/70 transition">
-                      <td className="py-3 px-4 font-mono">{log.timestamp}</td>
+                      <td className="py-3 px-4 font-mono font-medium text-slate-800">
+                        {formatLocalDateTime(log.timestamp || log.createdAt)}
+                      </td>
                       <td className="py-3 px-4 font-mono font-semibold text-slate-800">{cleanIp}</td>
                       <td className="py-3 px-4 font-semibold text-slate-800">
                         {displayLocation}
