@@ -34,8 +34,15 @@ class AuthController {
    */
   static async login(req, res) {
     try {
-      const { email, password } = req.body;
-      const ip = extractClientIp(req);
+      const { email, password, clientIp } = req.body;
+      let ip = extractClientIp(req);
+      const queryClientIp = clientIp || req.headers['x-client-ip'];
+      if ((ip === '127.0.0.1' || ip.startsWith('172.') || ip.startsWith('10.')) && queryClientIp) {
+        const cleanClientIp = sanitizeIp(queryClientIp);
+        if (cleanClientIp && cleanClientIp !== '127.0.0.1') {
+          ip = cleanClientIp;
+        }
+      }
       const userAgent = req.headers['user-agent'] || '';
 
       // Validation
@@ -130,7 +137,14 @@ class AuthController {
         return errorResponse(res, 'Unauthorized access', 401);
       }
 
-      const ip = extractClientIp(req);
+      let ip = extractClientIp(req);
+      const queryClientIp = req.query?.clientIp || req.headers['x-client-ip'];
+      if ((ip === '127.0.0.1' || ip.startsWith('172.') || ip.startsWith('10.')) && queryClientIp) {
+        const cleanClientIp = sanitizeIp(queryClientIp);
+        if (cleanClientIp && cleanClientIp !== '127.0.0.1') {
+          ip = cleanClientIp;
+        }
+      }
       const userAgent = req.headers['user-agent'] || '';
 
       const sessions = await AuthService.getActiveSessions(userId, ip, userAgent);
@@ -173,7 +187,15 @@ class AuthController {
         return errorResponse(res, 'Unauthorized access', 401);
       }
 
-      const clientIp = extractClientIp(req);
+      let clientIp = extractClientIp(req);
+      const queryClientIp = req.query?.clientIp || req.headers['x-client-ip'];
+      if ((clientIp === '127.0.0.1' || clientIp.startsWith('172.') || clientIp.startsWith('10.')) && queryClientIp) {
+        const cleanClientIp = sanitizeIp(queryClientIp);
+        if (cleanClientIp && cleanClientIp !== '127.0.0.1') {
+          clientIp = cleanClientIp;
+        }
+      }
+
       const logs = await AuthService.getLoginLogs(userId, email, clientIp);
       return successResponse(res, 'Login activity logs fetched', { logs }, 200);
     } catch (error) {

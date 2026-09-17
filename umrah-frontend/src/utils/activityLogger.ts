@@ -5,6 +5,8 @@ import {
   type ActivityLogItem,
 } from '../services/activityLogsApi';
 
+import { getClientPublicIp } from './clientIp';
+
 export interface LogActivityParams {
   action: ActivityAction;
   module: ActivityModule;
@@ -49,6 +51,7 @@ export async function recordActivity({
           ? 'Viewer'
           : 'Staff';
     const userId = currentUser?.id ? Number(currentUser.id) : null;
+    const clientIp = await getClientPublicIp();
 
     const payload = {
       userId,
@@ -62,6 +65,7 @@ export async function recordActivity({
       descriptionEn,
       descriptionAr: descriptionAr || descriptionEn,
       metadata,
+      ipAddress: clientIp || null,
     };
 
     const result = await recordActivityLogApi(payload);

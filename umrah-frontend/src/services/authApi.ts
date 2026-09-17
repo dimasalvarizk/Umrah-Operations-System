@@ -1,5 +1,6 @@
 import { API_BASE_URL } from './apiConfig';
 import { recordActivity } from '../utils/activityLogger';
+import { getClientPublicIp } from '../utils/clientIp';
 
 export interface UserProfile {
   id: number;
@@ -28,12 +29,18 @@ export interface AuthResponse {
 }
 
 export async function loginApi(email: string, password: string): Promise<AuthResponse> {
+  const clientIp = await getClientPublicIp();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (clientIp) {
+    headers['X-Client-IP'] = clientIp;
+  }
+
   const res = await fetch(`${API_BASE_URL}/auth/login`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ email, password }),
+    headers,
+    body: JSON.stringify({ email, password, clientIp }),
   });
 
   const data = await res.json();
@@ -156,10 +163,17 @@ export async function changePasswordApi(
 }
 
 export async function getActiveSessionsApi(token: string): Promise<any[]> {
-  const res = await fetch(`${API_BASE_URL}/auth/sessions`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+  const clientIp = await getClientPublicIp();
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+  };
+  if (clientIp) {
+    headers['X-Client-IP'] = clientIp;
+  }
+
+  const query = clientIp ? `?clientIp=${encodeURIComponent(clientIp)}` : '';
+  const res = await fetch(`${API_BASE_URL}/auth/sessions${query}`, {
+    headers,
   });
 
   const data = await res.json();
@@ -196,10 +210,17 @@ export async function revokeSessionApi(token: string, sessionId: string): Promis
 }
 
 export async function getLoginLogsApi(token: string): Promise<any[]> {
-  const res = await fetch(`${API_BASE_URL}/auth/login-logs`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+  const clientIp = await getClientPublicIp();
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+  };
+  if (clientIp) {
+    headers['X-Client-IP'] = clientIp;
+  }
+
+  const query = clientIp ? `?clientIp=${encodeURIComponent(clientIp)}` : '';
+  const res = await fetch(`${API_BASE_URL}/auth/login-logs${query}`, {
+    headers,
   });
 
   const data = await res.json();
