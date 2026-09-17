@@ -88,12 +88,32 @@ async function initDb() {
         \`email\` VARCHAR(150) NOT NULL,
         \`ip\` VARCHAR(50) DEFAULT '127.0.0.1',
         \`agent\` VARCHAR(255) DEFAULT 'Browser',
+        \`city\` VARCHAR(100) DEFAULT NULL,
+        \`country\` VARCHAR(100) DEFAULT NULL,
         \`status\` ENUM('Success', 'Failed') DEFAULT 'Success',
         \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX \`idx_login_user\` (\`user_id\`),
         INDEX \`idx_login_email\` (\`email\`),
         INDEX \`idx_login_created\` (\`created_at\`)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
+
+    // Auto-migrate newly added columns in login_logs
+    try {
+      const [logCols] = await pool.query(`SHOW COLUMNS FROM \`login_logs\``);
+      const logColNames = logCols.map((c) => c.Field);
+      if (!logColNames.includes('city')) {
+        await pool.query(`ALTER TABLE \`login_logs\` ADD COLUMN \`city\` VARCHAR(100) DEFAULT NULL AFTER \`agent\``);
+      }
+      if (!logColNames.includes('country')) {
+        await pool.query(`ALTER TABLE \`login_logs\` ADD COLUMN \`country\` VARCHAR(100) DEFAULT NULL AFTER \`city\``);
+      }
+      if (!logColNames.includes('user_id')) {
+        await pool.query(`ALTER TABLE \`login_logs\` ADD COLUMN \`user_id\` INT DEFAULT NULL AFTER \`id\``);
+      }
+    } catch (migLogErr) {
+      console.warn('login_logs migration notice:', migLogErr.message);
+    }
 
     // Create user_sessions table for active sessions
     await pool.query(`
@@ -107,7 +127,51 @@ async function initDb() {
         \`is_current\` TINYINT(1) DEFAULT 0,
         \`last_active\` VARCHAR(100) DEFAULT 'Active now',
         \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        INDEX \`idx_sess_user\` (\`user_id\`)
+        INDEX \`idx_sess_user\` (\`user_id\`),
+        INDEX \`idx_sess_device\` (\`device\`)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // Auto-migrate newly added columns in user_sessions
+    try {
+      const [sessCols] = await pool.query(`SHOW COLUMNS FROM \`user_sessions\``);
+      const sessColNames = sessCols.map((c) => c.Field);
+      if (!sessColNames.includes('type')) {
+        await pool.query(`ALTER TABLE \`user_sessions\` ADD COLUMN \`type\` ENUM('desktop', 'mobile') DEFAULT 'desktop' AFTER \`location\``);
+      }
+      if (!sessColNames.includes('is_current')) {
+        await pool.query(`ALTER TABLE \`user_sessions\` ADD COLUMN \`is_current\` TINYINT(1) DEFAULT 0 AFTER \`type\``);
+      }
+      if (!sessColNames.includes('last_active')) {
+        await pool.query(`ALTER TABLE \`user_sessions\` ADD COLUMN \`last_active\` VARCHAR(100) DEFAULT 'Active now' AFTER \`is_current\``);
+      }
+    } catch (migSessErr) {
+      console.warn('user_sessions migration notice:', migSessErr.message);
+    }
+
+    // Create activity_logs table for audit trail
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS \`activity_logs\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`user_id\` INT DEFAULT NULL,
+        \`user_name\` VARCHAR(150) NOT NULL,
+        \`user_email\` VARCHAR(150) DEFAULT NULL,
+        \`user_role\` VARCHAR(50) DEFAULT 'Staff',
+        \`action\` VARCHAR(50) NOT NULL,
+        \`module\` VARCHAR(50) NOT NULL,
+        \`entity_id\` VARCHAR(100) DEFAULT NULL,
+        \`entity_name\` VARCHAR(255) DEFAULT NULL,
+        \`description_en\` TEXT NOT NULL,
+        \`description_ar\` TEXT NOT NULL,
+        \`metadata\` JSON DEFAULT NULL,
+        \`ip_address\` VARCHAR(45) DEFAULT NULL,
+        \`login_city\` VARCHAR(100) DEFAULT NULL,
+        \`login_country\` VARCHAR(100) DEFAULT NULL,
+        \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX \`idx_act_user_name\` (\`user_name\`),
+        INDEX \`idx_act_module\` (\`module\`),
+        INDEX \`idx_act_action\` (\`action\`),
+        INDEX \`idx_act_created_at\` (\`created_at\`)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 

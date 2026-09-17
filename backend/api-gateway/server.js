@@ -24,7 +24,7 @@ app.set('trust proxy', true);
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Client-IP', 'x-client-ip', 'cf-connecting-ip', 'x-forwarded-for', 'x-real-ip'],
 }));
 
 // API Gateway Health Check
@@ -54,9 +54,10 @@ function createServiceProxy(targetUrl, serviceName) {
     on: {
       proxyReq: (proxyReq, req) => {
         // Forward client real IP and headers downstream
-        const clientIp = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.ip;
+        const clientIp = req.headers['x-client-ip'] || req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.ip;
         if (clientIp) {
           proxyReq.setHeader('x-real-ip', String(clientIp).split(',')[0].trim());
+          proxyReq.setHeader('x-client-ip', String(clientIp).split(',')[0].trim());
           if (!req.headers['x-forwarded-for']) {
             proxyReq.setHeader('x-forwarded-for', String(clientIp));
           }

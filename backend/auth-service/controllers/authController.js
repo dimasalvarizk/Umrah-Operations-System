@@ -1,6 +1,6 @@
 const AuthService = require('../services/authService');
 const { successResponse, errorResponse } = require('../utils/response');
-const { extractClientIp } = require('../utils/geoIpHelper');
+const { extractClientIp, sanitizeIp } = require('../utils/geoIpHelper');
 
 class AuthController {
   /**

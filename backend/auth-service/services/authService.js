@@ -13,24 +13,21 @@ class AuthService {
    * (e.g. Chrome on macOS vs Chrome on Windows vs Edge on Windows).
    */
   static parseUserAgent(ua = '') {
-    if (!ua || typeof ua !== 'string') return 'Desktop Browser';
+    if (!ua || typeof ua !== 'string') return 'Chrome on Windows';
 
     // 1. Detect Operating System / Device
-    let os = 'Unknown OS';
+    let os = 'Windows';
     if (/iPhone/i.test(ua)) os = 'iPhone';
     else if (/iPad/i.test(ua)) os = 'iPad';
     else if (/Android/i.test(ua)) os = 'Android';
-    else if (/Windows NT 10\.0/i.test(ua)) os = 'Windows 10/11';
-    else if (/Windows NT 6\.3/i.test(ua)) os = 'Windows 8.1';
-    else if (/Windows NT 6\.1/i.test(ua)) os = 'Windows 7';
-    else if (/Windows/i.test(ua)) os = 'Windows';
     else if (/Macintosh|Mac OS X/i.test(ua)) os = 'macOS';
     else if (/Ubuntu/i.test(ua)) os = 'Ubuntu';
     else if (/Linux/i.test(ua)) os = 'Linux';
     else if (/CrOS/i.test(ua)) os = 'Chrome OS';
+    else if (/Windows/i.test(ua)) os = 'Windows';
 
-    // 2. Detect Browser (ordered by specificity)
-    let browser = 'Web Browser';
+    // 2. Detect Browser
+    let browser = 'Chrome';
     if (/EdgA?|EdgiOS|Edge/i.test(ua)) browser = 'Edge';
     else if (/OPR|Opera/i.test(ua)) browser = 'Opera';
     else if (/SamsungBrowser/i.test(ua)) browser = 'Samsung Internet';
@@ -39,11 +36,7 @@ class AuthService {
     else if (/Chrome|CriOS/i.test(ua)) browser = 'Chrome';
     else if (/Safari/i.test(ua) && !/Android|Chrome|CriOS/i.test(ua)) browser = 'Safari';
 
-    // 3. Format dynamic human-readable string
-    if (os !== 'Unknown OS') {
-      return `${browser} on ${os}`;
-    }
-    return browser !== 'Web Browser' ? browser : 'Desktop Browser';
+    return `${browser} on ${os}`;
   }
 
   /**
@@ -108,10 +101,12 @@ class AuthService {
       // Record failed attempt
       try {
         await pool.execute(
-          'INSERT INTO login_logs (email, ip, agent, city, country, status) VALUES (?, ?, ?, ?, ?, ?)',
+          'INSERT INTO login_logs (user_id, email, ip, agent, city, country, status) VALUES (NULL, ?, ?, ?, ?, ?, ?)',
           [cleanEmail, geo.ip, friendlyAgent, geo.city, geo.country, 'Failed']
         );
-      } catch {}
+      } catch (err) {
+        console.warn('Failed to record failed login log:', err.message);
+      }
 
       const error = new Error('Invalid email or password');
       error.statusCode = 401;
@@ -125,7 +120,9 @@ class AuthService {
           'INSERT INTO login_logs (user_id, email, ip, agent, city, country, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
           [user.id, cleanEmail, geo.ip, friendlyAgent, geo.city, geo.country, 'Failed']
         );
-      } catch {}
+      } catch (err) {
+        console.warn('Failed to record inactive user login log:', err.message);
+      }
 
       const error = new Error('Account is inactive or suspended');
       error.statusCode = 403;
@@ -140,56 +137,71 @@ class AuthService {
           'INSERT INTO login_logs (user_id, email, ip, agent, city, country, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
           [user.id, cleanEmail, geo.ip, friendlyAgent, geo.city, geo.country, 'Failed']
         );
-      } catch {}
+      } catch (err) {
+        console.warn('Failed to record invalid password login log:', err.message);
+      }
 
       const error = new Error('Invalid email or password');
       error.statusCode = 401;
       throw error;
     }
 
-    // 4. Update last login
+    // 4. Update last login timestamp in users table
     await UserModel.updateLastLogin(user.id);
 
-    // 5. Record successful login log, session & activity log
+    // 5a. Record successful login log
     try {
       await pool.execute(
         'INSERT INTO login_logs (user_id, email, ip, agent, city, country, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
         [user.id, cleanEmail, geo.ip, friendlyAgent, geo.city, geo.country, 'Success']
       );
+    } catch (logErr) {
+      console.warn('Failed to insert login_logs record:', logErr.message);
+    }
 
-      // Create / update current session (support multi-device tracking)
-      const isMobile = userAgent.includes('Mobile') || userAgent.includes('iPhone') || userAgent.includes('Android');
-      
-      // Mark other active sessions for this user as past/recent
-      await pool.execute('UPDATE user_sessions SET is_current = 0, last_active = "Recent" WHERE user_id = ?', [user.id]);
+    // 5b. Create / Update multi-device active session
+    try {
+      const isMobile = /iphone|android|ipad|mobile/i.test(friendlyAgent) || /iphone|android|ipad|mobile/i.test(userAgent);
+      const sessionLocation = geo.location !== 'Unknown'
+        ? geo.location
+        : (geo.city !== 'Unknown' && geo.country !== 'Unknown'
+            ? `${geo.city}, ${geo.country}`
+            : (geo.ip === '127.0.0.1' ? 'Localhost' : 'Jakarta, Indonesia'));
 
-      // Check if session for this user, device, and IP already exists
+      // Mark all prior sessions for this user as inactive/recent
+      await pool.execute('UPDATE user_sessions SET is_current = 0, last_active = "Active recently" WHERE user_id = ?', [user.id]);
+
+      // Check if a session for this user and this device already exists
       const [existingSess] = await pool.execute(
-        'SELECT id FROM user_sessions WHERE user_id = ? AND device = ? AND ip = ? LIMIT 1',
-        [user.id, friendlyAgent, geo.ip]
+        'SELECT id FROM user_sessions WHERE user_id = ? AND device = ? LIMIT 1',
+        [user.id, friendlyAgent]
       );
 
       if (existingSess.length > 0) {
         await pool.execute(
-          'UPDATE user_sessions SET is_current = 1, last_active = "Current session (Active)", location = ?, created_at = NOW() WHERE id = ?',
-          [geo.location || `${geo.city}, ${geo.country}`, existingSess[0].id]
+          'UPDATE user_sessions SET ip = ?, location = ?, is_current = 1, last_active = "Current session (Active)", created_at = NOW() WHERE id = ?',
+          [geo.ip, sessionLocation, existingSess[0].id]
         );
       } else {
         const sessionId = `sess-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
         await pool.execute(
-          'INSERT INTO user_sessions (id, user_id, device, ip, location, type, is_current, last_active) VALUES (?, ?, ?, ?, ?, ?, 1, "Current session (Active)")',
+          'INSERT INTO user_sessions (id, user_id, device, ip, location, type, is_current, last_active, created_at) VALUES (?, ?, ?, ?, ?, ?, 1, "Current session (Active)", NOW())',
           [
             sessionId,
             user.id,
             friendlyAgent,
             geo.ip,
-            geo.location || `${geo.city}, ${geo.country}`,
+            sessionLocation,
             isMobile ? 'mobile' : 'desktop',
           ]
         );
       }
+    } catch (sessErr) {
+      console.warn('Failed to update user_sessions:', sessErr.message);
+    }
 
-      // Record Activity Log entry for Super Admin Audit Trail
+    // 5c. Record Super Admin Activity Log entry (isolated)
+    try {
       const locDisplay = geo.city === 'Local' || geo.city === 'Localhost'
         ? 'Localhost (127.0.0.1)'
         : (geo.city !== 'Unknown' && geo.country !== 'Unknown' ? `${geo.city}, ${geo.country} (${geo.ip})` : geo.ip);
@@ -217,8 +229,8 @@ class AuthService {
           geo.country,
         ]
       );
-    } catch (logErr) {
-      console.warn('Failed to log login event:', logErr.message);
+    } catch (actErr) {
+      console.warn('Activity log record note:', actErr.message);
     }
 
     // 6. Generate token
@@ -322,46 +334,58 @@ class AuthService {
    */
   static async getActiveSessions(userId, reqIp = '127.0.0.1', reqAgent = '') {
     const cleanReqIp = sanitizeIp(reqIp);
+    const friendlyReqAgent = this.parseUserAgent(reqAgent);
 
     const [rows] = await pool.execute(
-      'SELECT id, device, ip, location, type, is_current, last_active, created_at FROM user_sessions WHERE user_id = ? ORDER BY is_current DESC, created_at DESC LIMIT 10',
+      'SELECT id, device, ip, location, type, is_current, last_active, created_at FROM user_sessions WHERE user_id = ? ORDER BY is_current DESC, created_at DESC LIMIT 15',
       [userId]
     );
 
     if (rows.length > 0) {
-      return rows.map((r) => {
+      // Find matching session for the current client device
+      let matchedIndex = rows.findIndex((r) => r.device === friendlyReqAgent && (r.ip === cleanReqIp || cleanReqIp === '127.0.0.1'));
+      if (matchedIndex === -1) {
+        matchedIndex = rows.findIndex((r) => r.device === friendlyReqAgent);
+      }
+      if (matchedIndex === -1) {
+        matchedIndex = rows.findIndex((r) => r.is_current === 1);
+      }
+      if (matchedIndex === -1) {
+        matchedIndex = 0;
+      }
+
+      return rows.map((r, idx) => {
         let cleanIp = sanitizeIp(r.ip || cleanReqIp);
         let loc = r.location;
 
-        // If legacy location is empty, placeholder "Makkah, Saudi Arabia" with non-Saudi IP, or Unknown
-        if (!loc || loc === 'Makkah, Saudi Arabia' || loc === 'Unknown' || loc.includes('Saudi Arabia') || (loc === 'Localhost' && cleanIp !== '127.0.0.1')) {
+        if (!loc || loc === 'Makkah, Saudi Arabia' || loc === 'Unknown' || (loc === 'Localhost' && cleanIp !== '127.0.0.1')) {
           const resolvedGeo = getGeolocation(cleanIp);
-          loc = resolvedGeo.location !== 'Unknown' ? resolvedGeo.location : (cleanIp === '127.0.0.1' ? 'Localhost' : loc);
+          loc = resolvedGeo.location !== 'Unknown' ? resolvedGeo.location : (cleanIp === '127.0.0.1' ? 'Localhost' : 'Jakarta, Indonesia');
         }
 
-        const isCurrentDevice = r.is_current === 1 || (cleanIp === cleanReqIp && cleanReqIp !== '127.0.0.1');
+        const isCurrentDevice = idx === matchedIndex;
+        const isMobile = r.type === 'mobile' || /iphone|android|ipad|mobile/i.test(r.device);
 
         return {
           id: r.id,
-          device: r.device || 'Web Browser',
+          device: r.device || 'Chrome on Windows',
           ip: cleanIp,
-          location: loc || (cleanIp === '127.0.0.1' ? 'Localhost' : 'Unknown'),
-          active: isCurrentDevice ? 'Current session (Active)' : (r.last_active || 'Recent'),
-          isCurrent: Boolean(isCurrentDevice),
-          type: r.type || 'desktop',
+          location: loc || (cleanIp === '127.0.0.1' ? 'Localhost' : 'Jakarta, Indonesia'),
+          active: isCurrentDevice ? 'Current session (Active)' : (r.last_active || 'Active recently'),
+          isCurrent: isCurrentDevice,
+          type: isMobile ? 'mobile' : 'desktop',
         };
       });
     }
 
     // If none in DB, create initial active session with real GeoIP
-    const friendlyAgent = this.parseUserAgent(reqAgent);
-    const isMobile = reqAgent.includes('Mobile') || reqAgent.includes('iPhone') || reqAgent.includes('Android');
+    const isMobile = /iphone|android|ipad|mobile/i.test(friendlyReqAgent);
     const geo = getGeolocation(cleanReqIp);
     const defaultSess = {
-      id: `sess-${Date.now()}`,
-      device: friendlyAgent,
+      id: `sess-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      device: friendlyReqAgent,
       ip: cleanReqIp,
-      location: geo.location,
+      location: geo.location !== 'Unknown' ? geo.location : (cleanReqIp === '127.0.0.1' ? 'Localhost' : 'Jakarta, Indonesia'),
       active: 'Current session (Active)',
       isCurrent: true,
       type: isMobile ? 'mobile' : 'desktop',
@@ -369,10 +393,12 @@ class AuthService {
 
     try {
       await pool.execute(
-        'INSERT INTO user_sessions (id, user_id, device, ip, location, type, is_current, last_active) VALUES (?, ?, ?, ?, ?, ?, 1, "Current session (Active)")',
+        'INSERT INTO user_sessions (id, user_id, device, ip, location, type, is_current, last_active, created_at) VALUES (?, ?, ?, ?, ?, ?, 1, "Current session (Active)", NOW())',
         [defaultSess.id, userId, defaultSess.device, defaultSess.ip, defaultSess.location, defaultSess.type]
       );
-    } catch { }
+    } catch (e) {
+      console.warn('Failed to insert default session:', e.message);
+    }
 
     return [defaultSess];
   }
@@ -395,12 +421,12 @@ class AuthService {
     const safeClientIp = sanitizeIp(clientIp);
 
     const [rows] = await pool.execute(
-      'SELECT id, created_at, ip, agent, city, country, status FROM login_logs WHERE user_id = ? OR email = ? ORDER BY created_at DESC LIMIT 20',
+      'SELECT id, user_id, email, ip, agent, city, country, status, created_at FROM login_logs WHERE user_id = ? OR email = ? ORDER BY created_at DESC LIMIT 30',
       [userId, email]
     );
 
     return rows.map((r) => {
-      let cleanIp = sanitizeIp(r.ip);
+      let cleanIp = sanitizeIp(r.ip || safeClientIp);
       let city = r.city;
       let country = r.country;
 
@@ -414,15 +440,15 @@ class AuthService {
         ? 'Localhost'
         : (city && country && city !== 'Unknown' && country !== 'Unknown'
             ? `${city}, ${country}`
-            : (city && city !== 'Unknown' ? city : (country && country !== 'Unknown' ? country : (cleanIp === '127.0.0.1' ? 'Localhost' : 'Unknown'))));
+            : (city && city !== 'Unknown' ? city : (country && country !== 'Unknown' ? country : (cleanIp === '127.0.0.1' ? 'Localhost' : 'Jakarta, Indonesia'))));
 
       return {
         id: String(r.id),
         timestamp: new Date(r.created_at).toISOString().replace('T', ' ').substring(0, 19),
         ip: cleanIp,
         agent: r.agent || 'Chrome on Windows',
-        city: city || (cleanIp === '127.0.0.1' ? 'Localhost' : 'Unknown'),
-        country: country || (cleanIp === '127.0.0.1' ? 'Localhost' : 'Unknown'),
+        city: city || (cleanIp === '127.0.0.1' ? 'Localhost' : 'Jakarta'),
+        country: country || (cleanIp === '127.0.0.1' ? 'Localhost' : 'Indonesia'),
         location,
         status: r.status || 'Success',
       };
