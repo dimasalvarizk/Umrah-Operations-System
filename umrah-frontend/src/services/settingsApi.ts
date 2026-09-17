@@ -1,4 +1,5 @@
 import { API_BASE_URL, createApiUrl } from './apiConfig';
+import { recordActivity } from '../utils/activityLogger';
 
 export type ListCategory =
   | 'agents'
@@ -98,7 +99,7 @@ export async function createSystemListItemApi(category: ListCategory, payload: O
   }
 
   const item = data.data?.item;
-  return {
+  const created: BaseListItem = {
     id: String(item.id),
     nameEn: item.name_en || item.nameEn,
     nameAr: item.name_ar || item.nameAr,
@@ -107,6 +108,18 @@ export async function createSystemListItemApi(category: ListCategory, payload: O
     status: item.status || 'Active',
     notes: item.notes || '',
   };
+
+  recordActivity({
+    action: 'CREATE',
+    module: 'settings',
+    entityId: created.id || created.code,
+    entityName: created.nameEn || created.nameAr,
+    descriptionEn: `Added new ${category} master item: ${created.nameEn || created.nameAr} (${created.code || ''}).`,
+    descriptionAr: `إضافة عنصر جديد في القوائم الرئيسية (${category}): ${created.nameAr || created.nameEn} (${created.code || ''}).`,
+    metadata: { category, code: created.code },
+  });
+
+  return created;
 }
 
 /**
@@ -127,7 +140,7 @@ export async function updateSystemListItemApi(category: ListCategory, id: string
   }
 
   const item = data.data?.item;
-  return {
+  const updated: BaseListItem = {
     id: String(item.id),
     nameEn: item.name_en || item.nameEn,
     nameAr: item.name_ar || item.nameAr,
@@ -136,6 +149,18 @@ export async function updateSystemListItemApi(category: ListCategory, id: string
     status: item.status || 'Active',
     notes: item.notes || '',
   };
+
+  recordActivity({
+    action: 'UPDATE',
+    module: 'settings',
+    entityId: id,
+    entityName: updated.nameEn || updated.nameAr || id,
+    descriptionEn: `Updated ${category} item: ${updated.nameEn || updated.nameAr || id}.`,
+    descriptionAr: `تحديث عنصر (${category}): ${updated.nameAr || updated.nameEn || id}.`,
+    metadata: { category, code: updated.code },
+  });
+
+  return updated;
 }
 
 /**
@@ -152,7 +177,7 @@ export async function toggleSystemListStatusApi(category: ListCategory, id: stri
   }
 
   const item = data.data?.item;
-  return {
+  const toggled: BaseListItem = {
     id: String(item.id),
     nameEn: item.name_en || item.nameEn,
     nameAr: item.name_ar || item.nameAr,
@@ -161,6 +186,18 @@ export async function toggleSystemListStatusApi(category: ListCategory, id: stri
     status: item.status || 'Active',
     notes: item.notes || '',
   };
+
+  recordActivity({
+    action: 'STATUS_CHANGE',
+    module: 'settings',
+    entityId: id,
+    entityName: toggled.nameEn || toggled.nameAr,
+    descriptionEn: `Changed status of ${category} item "${toggled.nameEn || toggled.nameAr}" to ${toggled.status}.`,
+    descriptionAr: `تغيير حالة عنصر (${category}) "${toggled.nameAr || toggled.nameEn}" إلى ${toggled.status}.`,
+    metadata: { category, newStatus: toggled.status },
+  });
+
+  return toggled;
 }
 
 /**
@@ -175,6 +212,15 @@ export async function deleteSystemListItemApi(category: ListCategory, id: string
   if (!res.ok) {
     throw new Error(data.message || 'Failed to delete item');
   }
+
+  recordActivity({
+    action: 'DELETE',
+    module: 'settings',
+    entityId: id,
+    descriptionEn: `Deleted ${category} list entry (ID: ${id}).`,
+    descriptionAr: `حذف عنصر من قوائم النظام (${category}) (رقم: ${id}).`,
+    metadata: { category },
+  });
 }
 
 /**
@@ -189,6 +235,15 @@ export async function resetSystemListCategoryApi(category: ListCategory): Promis
   if (!res.ok) {
     throw new Error(data.message || 'Failed to reset category');
   }
+
+  recordActivity({
+    action: 'UPDATE',
+    module: 'settings',
+    entityId: category,
+    entityName: category,
+    descriptionEn: `Restored default system definitions for ${category} list.`,
+    descriptionAr: `استعادة التعريفات الافتراضية لقائمة (${category}).`,
+  });
 
   return (data.data?.items || []).map((item: any) => ({
     id: String(item.id),

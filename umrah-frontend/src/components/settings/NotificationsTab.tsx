@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Check, Mail, Send, Loader2, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Check, Loader2, AlertCircle } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import {
   getNotificationSettingsApi,
@@ -268,28 +268,21 @@ export default function NotificationsTab() {
       </div>
 
       {/* OFFICIAL EMAIL SMTP GATEWAY STATUS CARD */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-slate-700/60 rounded-2xl p-5 text-white shadow-lg relative overflow-hidden">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-              <Mail className="w-5 h-5" />
+      <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-3">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-bold text-slate-900">
+                {isRTL ? 'بوابة إشعارات البريد الإلكتروني (SMTP)' : 'Official Email Gateway (SMTP)'}
+              </h3>
+              <span className="inline-block px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/70">
+                SSL 465 • Connected
+              </span>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-white">
-                  {isRTL ? 'بوابة إشعارات البريد الإلكتروني (SMTP)' : 'Official Email Gateway (SMTP)'}
-                </h3>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  <ShieldCheck className="w-3 h-3" />
-                  SSL 465 • Connected
-                </span>
-              </div>
-              <p className="text-xs text-slate-300 mt-0.5 font-mono">
-                Sender: <span className="text-emerald-400 font-semibold">info@odst.id</span> (ODST Umrah Operations System)
-              </p>
-            </div>
+            <p className="text-xs text-slate-500 mt-1 font-mono">
+              Sender: <span className="font-semibold text-slate-800">info@odst.id</span> (ODST Umrah Operations System)
+            </p>
           </div>
-
 
           {/* Test Email Form */}
           <form onSubmit={handleSendTestEmail} className="flex items-center gap-2 w-full md:w-auto">
@@ -297,15 +290,15 @@ export default function NotificationsTab() {
               type="email"
               value={testEmail}
               onChange={(e) => setTestEmail(e.target.value)}
-              placeholder="e.g. alvarizkidimas@gmail.com"
+              placeholder="e.g. info@odst.id"
               dir="ltr"
-              className="bg-slate-950/60 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 w-full md:w-64 font-mono"
+              className="bg-slate-50/70 border border-slate-200/90 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:border-[#0f172a] focus:bg-white w-full md:w-64 font-mono transition"
               required
             />
             <button
               type="submit"
               disabled={isSendingTest}
-              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer disabled:opacity-70 shadow-md shadow-emerald-600/20"
+              className="px-4 py-2 bg-[#0f172a] hover:bg-slate-800 active:scale-[0.98] text-white rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 shrink-0 cursor-pointer disabled:opacity-70 shadow-2xs"
             >
               {isSendingTest ? (
                 <>
@@ -313,10 +306,7 @@ export default function NotificationsTab() {
                   <span>{isRTL ? 'إرسال...' : 'Sending...'}</span>
                 </>
               ) : (
-                <>
-                  <Send className="w-3.5 h-3.5" />
-                  <span>{isRTL ? 'إرسال اختبار' : 'Test Email'}</span>
-                </>
+                <span>{isRTL ? 'إرسال اختبار' : 'Test Email'}</span>
               )}
             </button>
           </form>
@@ -325,16 +315,16 @@ export default function NotificationsTab() {
         {/* Test Result Message */}
         {testResult && (
           <div
-            className={`mt-3 p-2.5 rounded-xl text-xs flex items-center gap-2 animate-fadeIn border ${
+            className={`p-2.5 rounded-xl text-xs flex items-center gap-2 animate-fadeIn border ${
               testResult.success
-                ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-200'
-                : 'bg-red-950/80 border-red-500/40 text-red-200'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                : 'bg-rose-50 border-rose-200 text-rose-800'
             }`}
           >
             {testResult.success ? (
-              <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+              <Check className="w-4 h-4 text-emerald-600 shrink-0" />
             ) : (
-              <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
             )}
             <span>{testResult.message}</span>
           </div>

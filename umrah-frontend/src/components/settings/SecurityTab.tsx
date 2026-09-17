@@ -5,9 +5,13 @@ import {
   EyeOff,
   AlertCircle,
   Loader2,
+  ArrowRight,
+  ArrowLeft,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
+import { usePermissions } from '../../hooks/usePermissions';
 import {
   changePasswordApi,
   getActiveSessionsApi,
@@ -30,12 +34,17 @@ export interface LoginLogItem {
   timestamp: string;
   ip: string;
   agent: string;
+  city?: string | null;
+  country?: string | null;
+  location?: string | null;
   status: 'Success' | 'Failed';
 }
 
 export default function SecurityTab() {
   const { isRTL } = useLanguage();
   const { token } = useAuth();
+  const { isSuperAdmin } = usePermissions();
+  const navigate = useNavigate();
 
   const [currPassword, setCurrPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -51,14 +60,29 @@ export default function SecurityTab() {
   // Helper to detect current browser/device in real-time
   const getClientDeviceName = () => {
     const ua = navigator.userAgent;
-    if (ua.includes('iPhone')) return 'Safari on iPhone';
-    if (ua.includes('iPad')) return 'Safari on iPad';
-    if (ua.includes('Android')) return 'Chrome on Android';
-    if (ua.includes('Edg/')) return 'Edge on Windows';
-    if (ua.includes('Chrome/')) return 'Chrome on Windows 11';
-    if (ua.includes('Firefox/')) return 'Firefox on Windows';
-    if (ua.includes('Macintosh')) return 'Safari on macOS';
-    return 'Desktop Browser';
+    let os = 'Unknown OS';
+    if (/iPhone/i.test(ua)) os = 'iPhone';
+    else if (/iPad/i.test(ua)) os = 'iPad';
+    else if (/Android/i.test(ua)) os = 'Android';
+    else if (/Windows NT 10\.0/i.test(ua)) os = 'Windows 10/11';
+    else if (/Windows/i.test(ua)) os = 'Windows';
+    else if (/Macintosh|Mac OS X/i.test(ua)) os = 'macOS';
+    else if (/Ubuntu/i.test(ua)) os = 'Ubuntu';
+    else if (/Linux/i.test(ua)) os = 'Linux';
+
+    let browser = 'Web Browser';
+    if (/EdgA?|EdgiOS|Edge/i.test(ua)) browser = 'Edge';
+    else if (/OPR|Opera/i.test(ua)) browser = 'Opera';
+    else if (/SamsungBrowser/i.test(ua)) browser = 'Samsung Internet';
+    else if (/Brave/i.test(ua)) browser = 'Brave';
+    else if (/Firefox|FxiOS/i.test(ua)) browser = 'Firefox';
+    else if (/Chrome|CriOS/i.test(ua)) browser = 'Chrome';
+    else if (/Safari/i.test(ua) && !/Android|Chrome|CriOS/i.test(ua)) browser = 'Safari';
+
+    if (os !== 'Unknown OS') {
+      return `${browser} on ${os}`;
+    }
+    return browser;
   };
 
   const [sessions, setSessions] = useState<SessionItem[]>([
@@ -177,6 +201,35 @@ export default function SecurityTab() {
         <div className="flex items-center gap-2 p-3.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs sm:text-sm font-semibold shadow-xs">
           <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
           <span>{errorFeedback}</span>
+        </div>
+      )}
+
+      {/* Super Admin Audit Trail Shortcut */}
+      {isSuperAdmin && (
+        <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-bold text-slate-900">
+                {isRTL ? 'سجل النشاطات وتتبع العمليات' : 'Activity Logs & Audit Trail'}
+              </h3>
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200/60">
+                Super Admin
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-1 max-w-xl leading-relaxed">
+              {isRTL
+                ? 'متابعة كافة التغييرات والعمليات المنفذة على المجموعات، الاتفاقيات، والرحلات مع أسماء المستخدمين في الوقت الفعلي.'
+                : 'Track and audit real-time changes to groups, hotel agreements, trips, transport, and team with operator usernames.'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/activity-logs')}
+            className="bg-[#0f172a] hover:bg-slate-800 text-white font-semibold px-4 py-2.5 rounded-xl text-xs sm:text-sm transition cursor-pointer shrink-0 shadow-2xs active:scale-[0.98] flex items-center gap-2"
+          >
+            <span>{isRTL ? 'فتح سجل النشاطات' : 'Open Activity Logs'}</span>
+            {isRTL ? <ArrowLeft className="w-3.5 h-3.5" /> : <ArrowRight className="w-3.5 h-3.5" />}
+          </button>
         </div>
       )}
 
@@ -334,25 +387,34 @@ export default function SecurityTab() {
               <tr className="border-b border-slate-100 text-slate-500 font-bold bg-slate-50/50">
                 <th className="py-2.5 px-4 text-start">{isRTL ? 'التاريخ والوقت' : 'Timestamp'}</th>
                 <th className="py-2.5 px-4 text-start">{isRTL ? 'عنوان IP' : 'IP Address'}</th>
+                <th className="py-2.5 px-4 text-start">{isRTL ? 'الموقع الجغرافي' : 'Location (City, Country)'}</th>
                 <th className="py-2.5 px-4 text-start">{isRTL ? 'المتصفح والنظام' : 'Browser / OS'}</th>
                 <th className="py-2.5 px-4 text-center">{isRTL ? 'الحالة' : 'Status'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
-              {loginLogs.map((log) => (
-                <tr key={log.id} className="hover:bg-slate-50/70 transition">
-                  <td className="py-3 px-4 font-mono">{log.timestamp}</td>
-                  <td className="py-3 px-4 font-mono font-semibold text-slate-800">{log.ip}</td>
-                  <td className="py-3 px-4">{log.agent}</td>
-                  <td className="py-3 px-4 text-center">
-                    <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                      log.status === 'Success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
-                    }`}>
-                      {log.status === 'Success' ? (isRTL ? 'ناجح' : 'Success') : (isRTL ? 'فشل الدخول' : 'Failed')}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {loginLogs.map((log) => {
+                const cleanIp = log.ip ? log.ip.split(',')[0].trim() : '127.0.0.1';
+                const displayLocation = log.location || (log.city && log.country ? (log.city === 'Local' ? 'Localhost' : `${log.city}, ${log.country}`) : (log.city || log.country || (cleanIp === '127.0.0.1' ? 'Localhost' : 'Unknown')));
+
+                return (
+                  <tr key={log.id} className="hover:bg-slate-50/70 transition">
+                    <td className="py-3 px-4 font-mono">{log.timestamp}</td>
+                    <td className="py-3 px-4 font-mono font-semibold text-slate-800">{cleanIp}</td>
+                    <td className="py-3 px-4 font-semibold text-slate-800">
+                      {displayLocation}
+                    </td>
+                    <td className="py-3 px-4">{log.agent}</td>
+                    <td className="py-3 px-4 text-center">
+                      <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                        log.status === 'Success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
+                      }`}>
+                        {log.status === 'Success' ? (isRTL ? 'ناجح' : 'Success') : (isRTL ? 'فشل الدخول' : 'Failed')}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

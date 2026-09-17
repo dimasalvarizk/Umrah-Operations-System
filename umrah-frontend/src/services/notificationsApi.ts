@@ -1,4 +1,5 @@
 import { API_BASE_URL, createApiUrl } from './apiConfig';
+import { recordActivity } from '../utils/activityLogger';
 
 export interface ChannelSettings {
   email: boolean;
@@ -179,6 +180,15 @@ export async function updateNotificationSettingsApi(settings: NotifSettingsState
     throw new Error(data.message || 'Failed to save notification settings');
   }
 
+  recordActivity({
+    action: 'UPDATE',
+    module: 'settings',
+    entityId: 'notifications',
+    entityName: 'Notification Channels & Rules',
+    descriptionEn: 'Updated operational notification alert rules & channel preferences.',
+    descriptionAr: 'تحديث قواعد وتفضيلات قنوات الإشعارات والتنبيهات التشغيلية.',
+  });
+
   return data.data?.settings;
 }
 
@@ -206,6 +216,15 @@ export async function sendNotificationEmailAlertApi(payload: {
   if (!res.ok) {
     throw new Error(data.message || 'Failed to dispatch email alert');
   }
+
+  recordActivity({
+    action: 'OTHER',
+    module: 'settings',
+    entityId: payload.to,
+    entityName: payload.titleEn,
+    descriptionEn: `Dispatched operational email notification to ${payload.to}: "${payload.titleEn}".`,
+    descriptionAr: `إرسال بريد تنبيه تشغيلي إلى ${payload.to}: "${payload.titleAr || payload.titleEn}".`,
+  });
 
   return data;
 }

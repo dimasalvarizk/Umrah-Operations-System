@@ -326,11 +326,13 @@ export default function Step3FlightsTransport({
     };
     window.addEventListener('umrah_system_lists_updated', handleUpdate);
     window.addEventListener('umrah_transport_updated', handleUpdate);
+    window.addEventListener('umrah_notification_refresh', handleUpdate);
 
     return () => {
       isMounted = false;
       window.removeEventListener('umrah_system_lists_updated', handleUpdate);
       window.removeEventListener('umrah_transport_updated', handleUpdate);
+      window.removeEventListener('umrah_notification_refresh', handleUpdate);
     };
   }, []);
 
@@ -365,17 +367,17 @@ export default function Step3FlightsTransport({
     if (!companyVal) return;
 
     const matched = transportCompanies.find(
-      (tc: any) => tc.name === companyVal || tc.nameEn === companyVal
+      (tc: any) => tc.name === companyVal || tc.nameEn === companyVal || tc.nameAr === companyVal
     );
     if (matched) {
       if (setDriverName && (!driverName || driverName.trim() === '')) {
-        setDriverName(isRTL ? (matched.driverNameAr || 'سائق معتمد') : (matched.driverNameEn || 'Certified Driver'));
+        setDriverName(isRTL ? (matched.driverNameAr || 'محمد العمري') : (matched.driverNameEn || 'Mohammed Al-Omari'));
       }
       if (setDriverPhone && (!driverPhone || driverPhone.trim() === '')) {
         setDriverPhone(matched.phone || '+966 50 123 4567');
       }
       if (setBusPlateNo && (!busPlateNo || busPlateNo.trim() === '')) {
-        setBusPlateNo(matched.plate || matched.code || '4821 BDA');
+        setBusPlateNo(matched.plate || matched.busNumber || (matched.pricingRows?.[0]?.plateNumber) || (matched.code ? `BUS-${matched.code.replace(/^(TRN-|BUS-)/i, '')}` : 'BUS-101'));
       }
     }
   };
@@ -654,12 +656,18 @@ export default function Step3FlightsTransport({
                   isRTL ? 'pr-3.5 pl-9 text-right' : 'pl-3.5 pr-9 text-left'
                 }`}
               >
-                <option value="">{isRTL ? 'اختر شركة النقل البري' : 'Select Transport Company'}</option>
-                {transportCompanies.map((tc: any) => (
-                  <option key={tc.id} value={isRTL ? tc.name : (tc.nameEn || tc.name)}>
-                    {isRTL ? tc.name : (tc.nameEn || tc.name)}
-                  </option>
-                ))}
+                <option value="">{isRTL ? 'اختر شركة النقل البري...' : 'Select Transport Company...'}</option>
+                {transportCompanies.map((tc: any) => {
+                  const label = isRTL ? (tc.name || tc.nameAr) : (tc.nameEn || tc.name || tc.nameAr);
+                  return (
+                    <option key={tc.id} value={label}>
+                      {label}
+                    </option>
+                  );
+                })}
+                {!transportCompanies.some((tc: any) => (tc.name === transportCompany || tc.nameEn === transportCompany || tc.nameAr === transportCompany)) && transportCompany && (
+                  <option value={transportCompany}>{transportCompany}</option>
+                )}
               </select>
               <ChevronDown className={`w-4 h-4 text-slate-400 absolute top-1/2 -translate-y-1/2 pointer-events-none ${
                 isRTL ? 'left-3' : 'right-3'

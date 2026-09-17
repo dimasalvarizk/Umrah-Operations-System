@@ -27,6 +27,7 @@ import {
   updateHotelApi,
   deleteHotelApi,
 } from '../services/hotelsApi';
+import { recordActivity } from '../utils/activityLogger';
 
 export type { HotelItem, RoomTypeRow };
 
@@ -601,6 +602,14 @@ export default function HotelsPage() {
                   h.id === editingHotel.id ? { ...h, ...(newHotel as any) } : h
                 )
               );
+              recordActivity({
+                action: 'UPDATE',
+                module: 'hotels',
+                entityId: editingHotel.id,
+                entityName: newHotel.name || editingHotel.name,
+                descriptionEn: `Updated hotel details: ${newHotel.name || editingHotel.name}.`,
+                descriptionAr: `تحديث بيانات الفندق: ${newHotel.name || editingHotel.name}.`,
+              });
               window.dispatchEvent(new CustomEvent('umrah_notification_refresh'));
               showToast(isRTL ? 'تم حفظ التعديلات محلياً' : 'Saved changes locally.');
             }
@@ -627,6 +636,14 @@ export default function HotelsPage() {
               setLocationFilter('الكل');
               setStatusFilter('الكل');
               setCurrentPage(1);
+              recordActivity({
+                action: 'CREATE',
+                module: 'hotels',
+                entityId: localHotel.code || localHotel.id,
+                entityName: localHotel.name,
+                descriptionEn: `Added new hotel partner: ${localHotel.name} (${localHotel.location || ''}).`,
+                descriptionAr: `إضافة فندق شريك جديد: ${localHotel.name} (${localHotel.location || ''}).`,
+              });
               window.dispatchEvent(new CustomEvent('umrah_notification_refresh'));
               showToast(isRTL ? 'تمت إضافة الفندق محلياً بنجاح!' : 'Hotel added locally successfully!');
             }
@@ -655,6 +672,14 @@ export default function HotelsPage() {
               prev.map((h) => (h.id === updatedHotel.id ? updatedHotel : h))
             );
             setSelectedHotel(updatedHotel);
+            recordActivity({
+              action: 'UPDATE',
+              module: 'hotels',
+              entityId: updatedHotel.id,
+              entityName: updatedHotel.name,
+              descriptionEn: `Updated hotel room details: ${updatedHotel.name}.`,
+              descriptionAr: `تحديث تفاصيل تسكين وغرف الفندق: ${updatedHotel.name}.`,
+            });
           }
         }}
         onEdit={(hotelToEdit: HotelItem) => {

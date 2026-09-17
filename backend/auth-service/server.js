@@ -9,6 +9,9 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5001;
 
+// Enable trust proxy for Coolify / Traefik / Docker reverse proxy environments
+app.set('trust proxy', true);
+
 // Middleware
 app.use(cors());
 app.use(express.json());

@@ -5,12 +5,17 @@ const { initDb } = require('./config/db');
 const systemListsRoutes = require('./routes/systemListsRoutes');
 const teamRoutes = require('./routes/teamRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const activityLogRoutes = require('./routes/activityLogRoutes');
 const NotificationFeedModel = require('./models/notificationFeedModel');
+const ActivityLogModel = require('./models/activityLogModel');
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5002;
+
+// Enable trust proxy for Coolify / Docker / Traefik reverse proxy environments
+app.set('trust proxy', true);
 
 // Middleware
 app.use(cors());
@@ -33,10 +38,11 @@ app.use('/lists', systemListsRoutes);
 app.use('/api/settings/team', teamRoutes);
 app.use('/team', teamRoutes);
 
+app.use('/api/settings/activity-logs', activityLogRoutes);
+app.use('/api/activity-logs', activityLogRoutes);
 app.use('/api/settings/notifications', notificationRoutes);
 app.use('/notifications', notificationRoutes);
 app.use('/api/notifications', notificationRoutes);
-app.use(notificationRoutes);
 
 // 404 Handler
 app.use((req, res) => {
@@ -59,6 +65,7 @@ app.use((err, req, res, next) => {
 async function startServer() {
   await initDb();
   await NotificationFeedModel.seedInitialIfEmpty();
+  await ActivityLogModel.seedInitialIfEmpty();
   app.listen(PORT, () => {
     console.log(`🚀 Settings Service is running on http://localhost:${PORT}`);
   });

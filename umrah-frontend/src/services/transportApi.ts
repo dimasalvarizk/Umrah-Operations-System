@@ -1,6 +1,6 @@
 import type { TransportCompany } from '../components/transport/TransportDetailsModal';
-
 import { API_BASE_URL, createApiUrl } from './apiConfig';
+import { recordActivity } from '../utils/activityLogger';
 
 export async function getTransportsApi(params: {
   search?: string;
@@ -48,7 +48,22 @@ export async function createTransportApi(payload: Partial<TransportCompany>): Pr
   if (!res.ok) {
     throw new Error(data.message || 'Failed to create transport company');
   }
-  return data.data;
+
+  const transport = data.data;
+  if (transport) {
+    const fleetInfo = transport.fleetLabel || (transport.fleetSize ? `${transport.fleetSize} vehicles` : 'fleet');
+    await recordActivity({
+      action: 'CREATE',
+      module: 'transport',
+      entityId: transport.id || payload.name,
+      entityName: transport.name || payload.name,
+      descriptionEn: `Added new transportation company: ${transport.name || payload.name} (${fleetInfo}).`,
+      descriptionAr: `إضافة شركة نقل جديدة: ${transport.name || payload.name} (${transport.fleetLabel || `${transport.fleetSize || 0} مركبة`}).`,
+      metadata: { fleetSize: transport.fleetSize, region: transport.region },
+    });
+  }
+
+  return transport;
 }
 
 export async function updateTransportApi(id: string, payload: Partial<TransportCompany>): Promise<TransportCompany> {
@@ -61,7 +76,20 @@ export async function updateTransportApi(id: string, payload: Partial<TransportC
   if (!res.ok) {
     throw new Error(data.message || 'Failed to update transport company');
   }
-  return data.data;
+
+  const transport = data.data;
+  if (transport) {
+    await recordActivity({
+      action: 'UPDATE',
+      module: 'transport',
+      entityId: id,
+      entityName: transport.name || payload.name || id,
+      descriptionEn: `Updated transport company info: ${transport.name || payload.name || id}.`,
+      descriptionAr: `تحديث بيانات شركة النقل: ${transport.name || payload.name || id}.`,
+    });
+  }
+
+  return transport;
 }
 
 export async function updateTransportStatusApi(id: string, status: string): Promise<TransportCompany> {
@@ -74,7 +102,20 @@ export async function updateTransportStatusApi(id: string, status: string): Prom
   if (!res.ok) {
     throw new Error(data.message || 'Failed to update transport status');
   }
-  return data.data;
+
+  const transport = data.data;
+  if (transport) {
+    await recordActivity({
+      action: 'STATUS_CHANGE',
+      module: 'transport',
+      entityId: id,
+      entityName: transport.name || id,
+      descriptionEn: `Changed transport company status to "${status}": ${transport.name || id}.`,
+      descriptionAr: `تحديث حالة شركة النقل إلى "${status}": ${transport.name || id}.`,
+    });
+  }
+
+  return transport;
 }
 
 export async function deleteTransportApi(id: string): Promise<void> {
@@ -85,4 +126,12 @@ export async function deleteTransportApi(id: string): Promise<void> {
   if (!res.ok) {
     throw new Error(data.message || 'Failed to delete transport company');
   }
+
+  await recordActivity({
+    action: 'DELETE',
+    module: 'transport',
+    entityId: id,
+    descriptionEn: `Deleted transportation company (ID: ${id}).`,
+    descriptionAr: `حذف شركة نقل (رقم: ${id}).`,
+  });
 }

@@ -1,4 +1,5 @@
 import { API_BASE_URL, createApiUrl } from './apiConfig';
+import { recordActivity } from '../utils/activityLogger';
 
 export interface GroupItemApi {
   id: string;
@@ -67,7 +68,21 @@ export async function createGroupApi(payload: Partial<GroupItemApi>): Promise<Gr
   if (!res.ok) {
     throw new Error(data.message || 'Failed to create group');
   }
-  return data.data?.group;
+
+  const group = data.data?.group;
+  if (group) {
+    recordActivity({
+      action: 'CREATE',
+      module: 'groups',
+      entityId: group.code || payload.code,
+      entityName: group.name || payload.name,
+      descriptionEn: `Registered new group: ${group.name || payload.name} (${group.code || payload.code}) with ${group.pilgrimsCount || payload.pilgrimsCount || 1} pilgrims.`,
+      descriptionAr: `تسجيل مجموعة عمرة جديدة: ${group.name || payload.name} (${group.code || payload.code}) بعدد ${group.pilgrimsCount || payload.pilgrimsCount || 1} معتمر.`,
+      metadata: { code: group.code, pilgrimsCount: group.pilgrimsCount },
+    });
+  }
+
+  return group;
 }
 
 export async function updateGroupApi(id: string, payload: Partial<GroupItemApi>): Promise<GroupItemApi> {
@@ -83,7 +98,20 @@ export async function updateGroupApi(id: string, payload: Partial<GroupItemApi>)
   if (!res.ok) {
     throw new Error(data.message || 'Failed to update group');
   }
-  return data.data?.group;
+
+  const group = data.data?.group;
+  if (group) {
+    recordActivity({
+      action: 'UPDATE',
+      module: 'groups',
+      entityId: group.code || id,
+      entityName: group.name || payload.name,
+      descriptionEn: `Updated group details: ${group.name || payload.name || id} (${group.code || id}).`,
+      descriptionAr: `تحديث بيانات المجموعة: ${group.name || payload.name || id} (${group.code || id}).`,
+    });
+  }
+
+  return group;
 }
 
 export async function updateGroupStatusApi(id: string, status: string): Promise<GroupItemApi> {
@@ -99,7 +127,20 @@ export async function updateGroupStatusApi(id: string, status: string): Promise<
   if (!res.ok) {
     throw new Error(data.message || 'Failed to update group status');
   }
-  return data.data?.group;
+
+  const group = data.data?.group;
+  if (group) {
+    recordActivity({
+      action: 'STATUS_CHANGE',
+      module: 'groups',
+      entityId: group.code || id,
+      entityName: group.name,
+      descriptionEn: `Changed group status to "${status}": ${group.name || id}.`,
+      descriptionAr: `تحديث حالة المجموعة إلى "${status}": ${group.name || id}.`,
+    });
+  }
+
+  return group;
 }
 
 export async function deleteGroupApi(id: string): Promise<void> {
@@ -110,4 +151,12 @@ export async function deleteGroupApi(id: string): Promise<void> {
   if (!res.ok) {
     throw new Error(data.message || 'Failed to delete group');
   }
+
+  recordActivity({
+    action: 'DELETE',
+    module: 'groups',
+    entityId: id,
+    descriptionEn: `Deleted group record (ID: ${id}).`,
+    descriptionAr: `حذف سجل المجموعة (رقم: ${id}).`,
+  });
 }

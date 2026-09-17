@@ -1,6 +1,6 @@
 import type { NoteItem } from '../pages/NotesPage';
-
 import { API_BASE_URL, createApiUrl } from './apiConfig';
+import { recordActivity } from '../utils/activityLogger';
 
 export async function getNotesApi(params: {
   search?: string;
@@ -52,7 +52,21 @@ export async function createNoteApi(payload: Partial<NoteItem>): Promise<NoteIte
   if (!res.ok) {
     throw new Error(data.message || 'Failed to create note');
   }
-  return data.data;
+
+  const note = data.data;
+  if (note) {
+    recordActivity({
+      action: 'CREATE',
+      module: 'notes',
+      entityId: note.id || payload.title,
+      entityName: note.title || payload.title,
+      descriptionEn: `Added operational note / task: ${note.title || payload.title}.`,
+      descriptionAr: `إضافة ملاحظة / مهمة تشغيلية: ${note.title || payload.title}.`,
+      metadata: { category: note.category, priority: note.priority },
+    });
+  }
+
+  return note;
 }
 
 export async function updateNoteApi(id: string, payload: Partial<NoteItem>): Promise<NoteItem> {
@@ -65,7 +79,20 @@ export async function updateNoteApi(id: string, payload: Partial<NoteItem>): Pro
   if (!res.ok) {
     throw new Error(data.message || 'Failed to update note');
   }
-  return data.data;
+
+  const note = data.data;
+  if (note) {
+    recordActivity({
+      action: 'UPDATE',
+      module: 'notes',
+      entityId: id,
+      entityName: note.title || payload.title || id,
+      descriptionEn: `Updated note details: ${note.title || payload.title || id}.`,
+      descriptionAr: `تحديث بيانات الملاحظة: ${note.title || payload.title || id}.`,
+    });
+  }
+
+  return note;
 }
 
 export async function togglePinNoteApi(id: string): Promise<NoteItem> {
@@ -76,7 +103,20 @@ export async function togglePinNoteApi(id: string): Promise<NoteItem> {
   if (!res.ok) {
     throw new Error(data.message || 'Failed to toggle pin');
   }
-  return data.data;
+
+  const note = data.data;
+  if (note) {
+    recordActivity({
+      action: 'STATUS_CHANGE',
+      module: 'notes',
+      entityId: id,
+      entityName: note.title || id,
+      descriptionEn: `Changed pinned status for note: ${note.title || id}.`,
+      descriptionAr: `تغيير حالة التثبيت للملاحظة: ${note.title || id}.`,
+    });
+  }
+
+  return note;
 }
 
 export async function deleteNoteApi(id: string): Promise<void> {
@@ -87,4 +127,12 @@ export async function deleteNoteApi(id: string): Promise<void> {
   if (!res.ok) {
     throw new Error(data.message || 'Failed to delete note');
   }
+
+  recordActivity({
+    action: 'DELETE',
+    module: 'notes',
+    entityId: id,
+    descriptionEn: `Deleted operational note (ID: ${id}).`,
+    descriptionAr: `حذف ملاحظة تشغيلية (رقم: ${id}).`,
+  });
 }

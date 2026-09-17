@@ -1,6 +1,6 @@
 import type { HotelItem } from '../utils/hotelsData';
-
 import { API_BASE_URL, createApiUrl } from './apiConfig';
+import { recordActivity } from '../utils/activityLogger';
 
 export async function getHotelsApi(params: {
   search?: string;
@@ -48,7 +48,21 @@ export async function createHotelApi(payload: Partial<HotelItem>): Promise<Hotel
   if (!res.ok) {
     throw new Error(data.message || 'Failed to create hotel');
   }
-  return data.data;
+
+  const hotel = data.data;
+  if (hotel) {
+    await recordActivity({
+      action: 'CREATE',
+      module: 'hotels',
+      entityId: hotel.id || payload.name,
+      entityName: hotel.name || payload.name,
+      descriptionEn: `Added new hotel partner: ${hotel.name || payload.name} (${hotel.location || payload.location || ''}).`,
+      descriptionAr: `إضافة فندق شريك جديد: ${hotel.name || payload.name} (${hotel.location || payload.location || ''}).`,
+      metadata: { location: hotel.location, rating: hotel.rating, totalRooms: hotel.availableRooms || hotel.totalRooms },
+    });
+  }
+
+  return hotel;
 }
 
 export async function updateHotelApi(id: string, payload: Partial<HotelItem>): Promise<HotelItem> {
@@ -61,7 +75,20 @@ export async function updateHotelApi(id: string, payload: Partial<HotelItem>): P
   if (!res.ok) {
     throw new Error(data.message || 'Failed to update hotel');
   }
-  return data.data;
+
+  const hotel = data.data;
+  if (hotel) {
+    await recordActivity({
+      action: 'UPDATE',
+      module: 'hotels',
+      entityId: id,
+      entityName: hotel.name || payload.name || id,
+      descriptionEn: `Updated hotel details: ${hotel.name || payload.name || id}.`,
+      descriptionAr: `تحديث بيانات الفندق: ${hotel.name || payload.name || id}.`,
+    });
+  }
+
+  return hotel;
 }
 
 export async function updateHotelStatusApi(id: string, status: string): Promise<HotelItem> {
@@ -74,7 +101,20 @@ export async function updateHotelStatusApi(id: string, status: string): Promise<
   if (!res.ok) {
     throw new Error(data.message || 'Failed to update hotel status');
   }
-  return data.data;
+
+  const hotel = data.data;
+  if (hotel) {
+    await recordActivity({
+      action: 'STATUS_CHANGE',
+      module: 'hotels',
+      entityId: id,
+      entityName: hotel.name || id,
+      descriptionEn: `Changed hotel status to "${status}": ${hotel.name || id}.`,
+      descriptionAr: `تحديث حالة الفندق إلى "${status}": ${hotel.name || id}.`,
+    });
+  }
+
+  return hotel;
 }
 
 export async function deleteHotelApi(id: string): Promise<void> {
@@ -85,4 +125,12 @@ export async function deleteHotelApi(id: string): Promise<void> {
   if (!res.ok) {
     throw new Error(data.message || 'Failed to delete hotel');
   }
+
+  await recordActivity({
+    action: 'DELETE',
+    module: 'hotels',
+    entityId: id,
+    descriptionEn: `Deleted hotel record (ID: ${id}).`,
+    descriptionAr: `حذف سجل الفندق (رقم: ${id}).`,
+  });
 }

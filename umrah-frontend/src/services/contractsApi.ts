@@ -1,6 +1,6 @@
 import type { AgreementItem } from '../components/contracts/AddAgreementModal';
-
 import { API_BASE_URL, createApiUrl } from './apiConfig';
+import { recordActivity } from '../utils/activityLogger';
 
 export async function getContractsApi(params: {
   search?: string;
@@ -48,7 +48,21 @@ export async function createContractApi(payload: Partial<AgreementItem>): Promis
   if (!res.ok) {
     throw new Error(data.message || 'Failed to create contract');
   }
-  return data.data;
+
+  const contract = data.data;
+  if (contract) {
+    recordActivity({
+      action: 'CREATE',
+      module: 'contracts',
+      entityId: contract.id || contract.agreementNo || payload.agreementNo,
+      entityName: contract.agreementName || contract.entityName || payload.agreementName || payload.entityName,
+      descriptionEn: `Added new hotel agreement: ${contract.agreementName || payload.agreementName || 'Agreement'} (${contract.agreementNo || payload.agreementNo || ''}).`,
+      descriptionAr: `إضافة اتفاقية فندقية جديدة: ${contract.agreementName || payload.agreementName || 'اتفاقية'} (${contract.agreementNo || payload.agreementNo || ''}).`,
+      metadata: { type: contract.type, totalPrice: contract.totalPrice },
+    });
+  }
+
+  return contract;
 }
 
 export async function updateContractApi(id: string, payload: Partial<AgreementItem>): Promise<AgreementItem> {
@@ -61,7 +75,20 @@ export async function updateContractApi(id: string, payload: Partial<AgreementIt
   if (!res.ok) {
     throw new Error(data.message || 'Failed to update contract');
   }
-  return data.data;
+
+  const contract = data.data;
+  if (contract) {
+    recordActivity({
+      action: 'UPDATE',
+      module: 'contracts',
+      entityId: id,
+      entityName: contract.agreementName || contract.entityName || payload.agreementName || payload.entityName || id,
+      descriptionEn: `Updated agreement details: ${contract.agreementName || payload.agreementName || id}.`,
+      descriptionAr: `تحديث بيانات الاتفاقية: ${contract.agreementName || payload.agreementName || id}.`,
+    });
+  }
+
+  return contract;
 }
 
 export async function updateContractStatusApi(id: string, status: string): Promise<AgreementItem> {
@@ -74,7 +101,20 @@ export async function updateContractStatusApi(id: string, status: string): Promi
   if (!res.ok) {
     throw new Error(data.message || 'Failed to update contract status');
   }
-  return data.data;
+
+  const contract = data.data;
+  if (contract) {
+    recordActivity({
+      action: 'STATUS_CHANGE',
+      module: 'contracts',
+      entityId: id,
+      entityName: contract.agreementName || contract.entityName,
+      descriptionEn: `Changed agreement status to "${status}": ${contract.agreementName || id}.`,
+      descriptionAr: `تحديث حالة الاتفاقية إلى "${status}": ${contract.agreementName || id}.`,
+    });
+  }
+
+  return contract;
 }
 
 export async function deleteContractApi(id: string): Promise<void> {
@@ -85,4 +125,12 @@ export async function deleteContractApi(id: string): Promise<void> {
   if (!res.ok) {
     throw new Error(data.message || 'Failed to delete contract');
   }
+
+  recordActivity({
+    action: 'DELETE',
+    module: 'contracts',
+    entityId: id,
+    descriptionEn: `Deleted hotel agreement (ID: ${id}).`,
+    descriptionAr: `حذف اتفاقية فندقية (رقم: ${id}).`,
+  });
 }

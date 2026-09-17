@@ -8,6 +8,7 @@ import {
   FileText,
   MessageSquare,
   Settings,
+  ShieldCheck,
   MoreVertical,
   LogOut,
   Globe,
@@ -39,8 +40,9 @@ export default function Sidebar({
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   const rawRole = (user?.role || '').toLowerCase().trim();
+  const isSuperAdmin = rawRole === 'super admin' || rawRole === 'admin';
   const displayRole =
-    rawRole === 'super admin' || rawRole === 'admin'
+    isSuperAdmin
       ? (isRTL ? 'مسؤول النظام (Super Admin)' : 'Super Admin')
       : rawRole === 'viewer'
         ? (isRTL ? 'مشاهد (Viewer)' : 'Viewer')
@@ -82,9 +84,11 @@ export default function Sidebar({
               ? 'contracts'
               : location.pathname.includes('/notes')
                 ? 'notes'
-                : location.pathname.includes('/settings')
-                  ? 'settings'
-                  : 'dashboard');
+                : location.pathname.includes('/activity-logs')
+                  ? 'activity-logs'
+                  : location.pathname.includes('/settings')
+                    ? 'settings'
+                    : 'dashboard');
 
   const menuItems = [
     { id: 'dashboard', label: t('nav.dashboard', 'لوحة التحكم'), icon: Home, path: '/dashboard' },
@@ -94,6 +98,9 @@ export default function Sidebar({
     { id: 'transport', label: t('nav.transport', 'النقل'), icon: Bus, path: '/transport' },
     { id: 'contracts', label: t('nav.contracts', 'الاتفاقيات'), icon: FileText, path: '/contracts' },
     { id: 'notes', label: t('nav.notes', 'الملاحظات'), icon: MessageSquare, path: '/notes' },
+    ...(isSuperAdmin
+      ? [{ id: 'activity-logs', label: t('nav.activity_logs', 'سجل النشاطات'), icon: ShieldCheck, path: '/activity-logs' }]
+      : []),
     { id: 'settings', label: t('nav.settings', 'الإعدادات'), icon: Settings, path: '/settings' },
   ];
 

@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './apiConfig';
+import { recordActivity } from '../utils/activityLogger';
 
 export interface UserProfile {
   id: number;
@@ -109,7 +110,19 @@ export async function updateProfileApi(
     throw new Error(data.message || 'Failed to update profile');
   }
 
-  return data.data?.user;
+  const updatedUser = data.data?.user;
+  if (updatedUser) {
+    recordActivity({
+      action: 'UPDATE',
+      module: 'settings',
+      entityId: String(updatedUser.id || 'profile'),
+      entityName: updatedUser.name || payload.name,
+      descriptionEn: `Updated user profile information: ${updatedUser.name || payload.name}.`,
+      descriptionAr: `تحديث بيانات الملف الشخصي للمستخدم: ${updatedUser.name || payload.name}.`,
+    });
+  }
+
+  return updatedUser;
 }
 
 export async function changePasswordApi(
@@ -129,6 +142,15 @@ export async function changePasswordApi(
   if (!res.ok) {
     throw new Error(data.message || 'Failed to change password');
   }
+
+  recordActivity({
+    action: 'UPDATE',
+    module: 'settings',
+    entityId: 'security',
+    entityName: 'Account Password',
+    descriptionEn: 'Updated account login password securely.',
+    descriptionAr: 'تحديث كلمة المرور لحساب الدخول بشكل آمن.',
+  });
 
   return data.message || 'Password changed successfully';
 }
@@ -160,6 +182,15 @@ export async function revokeSessionApi(token: string, sessionId: string): Promis
   if (!res.ok) {
     throw new Error(data.message || 'Failed to revoke session');
   }
+
+  recordActivity({
+    action: 'DELETE',
+    module: 'settings',
+    entityId: sessionId,
+    entityName: 'Active Session',
+    descriptionEn: `Revoked active device login session (${sessionId}).`,
+    descriptionAr: `إنهاء وإلغاء جلسة تسجيل دخول نشطة على جهاز (${sessionId}).`,
+  });
 
   return data.message || 'Session revoked successfully';
 }

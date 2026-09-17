@@ -5,6 +5,7 @@ import busBadge from '../../assets/bus-badge.png';
 import { useLanguage } from '../../context/LanguageContext';
 import { resolveAirlinePreset } from '../groups/add-group/Step3FlightsTransport';
 import { getSystemListsApi } from '../../services/settingsApi';
+import { getTransportsApi } from '../../services/transportApi';
 
 interface AddTripModalProps {
   isOpen: boolean;
@@ -231,8 +232,9 @@ export default function AddTripModal({
 
   const loadLiveSystemLists = useCallback(async () => {
     try {
-      const [airlinesRes, transportRes, countriesRes, packagesRes, guidesRes, routesRes] = await Promise.allSettled([
+      const [airlinesRes, directTransportRes, fallbackTransportRes, countriesRes, packagesRes, guidesRes, routesRes] = await Promise.allSettled([
         getSystemListsApi('airlines'),
+        getTransportsApi(),
         getSystemListsApi('transport'),
         getSystemListsApi('countries'),
         getSystemListsApi('packages'),
@@ -261,8 +263,27 @@ export default function AddTripModal({
         }
       }
 
-      if (transportRes.status === 'fulfilled' && transportRes.value.length > 0) {
-        const activeT = transportRes.value.filter((t) => t.status === 'Active');
+      if (
+        directTransportRes.status === 'fulfilled' &&
+        directTransportRes.value?.transports &&
+        directTransportRes.value.transports.length > 0
+      ) {
+        const activeT = directTransportRes.value.transports;
+        setDynamicTransport(
+          activeT.map((t: any, idx: number) => ({
+            id: String(t.id),
+            nameAr: t.name,
+            nameEn: t.nameEn || t.name,
+            vehicleTypeAr: t.vehicleCategory || (t.pricingRows?.[0]?.type) || 'حافلات نقل حجاج ومعتمرين 50 راكب VIP',
+            vehicleTypeEn: t.vehicleCategoryEn || t.vehicleCategory || (t.pricingRows?.[0]?.type) || '50-Seater Pilgrim Mass VIP Buses',
+            driverNameAr: t.driverNameAr || 'محمد العمري',
+            driverNameEn: t.driverNameEn || 'Mohammed Al-Omari',
+            phone: t.phone || '+966 50 123 4567',
+            busNumber: (t.pricingRows?.[0]?.plateNumber) || (t.code ? `BUS-${t.code.replace(/^(TRN-|BUS-)/i, '')}` : `BUS-${100 + idx}`),
+          }))
+        );
+      } else if (fallbackTransportRes.status === 'fulfilled' && fallbackTransportRes.value.length > 0) {
+        const activeT = fallbackTransportRes.value.filter((t) => t.status === 'Active');
         if (activeT.length > 0) {
           setDynamicTransport(
             activeT.map((t) => ({
@@ -326,17 +347,19 @@ export default function AddTripModal({
 
     window.addEventListener('umrah_system_lists_updated', handleUpdate);
     window.addEventListener('umrah_transport_updated', handleUpdate);
+    window.addEventListener('umrah_notification_refresh', handleUpdate);
 
     return () => {
       window.removeEventListener('umrah_system_lists_updated', handleUpdate);
       window.removeEventListener('umrah_transport_updated', handleUpdate);
+      window.removeEventListener('umrah_notification_refresh', handleUpdate);
     };
   }, [loadLiveSystemLists]);
 
   const handleCompanyChange = (companyName: string) => {
     setTransportCompany(companyName);
     const matched = dynamicTransport.find(
-      (c) => c.nameAr === companyName || c.nameEn === companyName
+      (c) => c.nameAr === companyName || c.nameEn === companyName || (c as any).name === companyName
     );
     if (matched) {
       setTransportType(isRTL ? matched.vehicleTypeAr : matched.vehicleTypeEn);
@@ -804,12 +827,15 @@ export default function AddTripModal({
                   }`}
                 >
                   <option value="">{t('trips.select_company', isRTL ? 'اختر شركة النقل...' : 'Select Transportation Company...')}</option>
-                  {dynamicTransport.map((comp) => (
-                    <option key={comp.id} value={isRTL ? comp.nameAr : comp.nameEn}>
-                      {isRTL ? comp.nameAr : comp.nameEn}
-                    </option>
-                  ))}
-                  {!dynamicTransport.some((c) => c.nameAr === transportCompany || c.nameEn === transportCompany) && transportCompany && (
+                  {dynamicTransport.map((comp) => {
+                    const label = isRTL ? (comp.nameAr || comp.nameEn) : (comp.nameEn || comp.nameAr);
+                    return (
+                      <option key={comp.id} value={label}>
+                        {label}
+                      </option>
+                    );
+                  })}
+                  {!dynamicTransport.some((c) => c.nameAr === transportCompany || c.nameEn === transportCompany || (c as any).name === transportCompany) && transportCompany && (
                     <option value={transportCompany}>{transportCompany}</option>
                   )}
                 </select>

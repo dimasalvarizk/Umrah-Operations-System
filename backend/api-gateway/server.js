@@ -63,7 +63,8 @@ function createServiceProxy(targetUrl, serviceName) {
 // Proxies for microservices
 app.use('/api/auth', createServiceProxy(AUTH_SERVICE_URL, 'Auth Service'));
 app.use('/api/settings', createServiceProxy(SETTINGS_SERVICE_URL, 'Settings Service'));
-app.use('/api/notifications', createServiceProxy(SETTINGS_SERVICE_URL, 'Settings Service'));
+app.use('/api/notifications', createServiceProxy(`${SETTINGS_SERVICE_URL}/api/notifications`, 'Notifications Service'));
+app.use('/api/activity-logs', createServiceProxy(`${SETTINGS_SERVICE_URL}/api/activity-logs`, 'Activity Logs Service'));
 app.use('/api/groups', createServiceProxy(GROUPS_SERVICE_URL, 'Groups Service'));
 app.use('/api/trips', createServiceProxy(TRIPS_SERVICE_URL, 'Trips Service'));
 app.use('/api/hotels', createServiceProxy(HOTELS_SERVICE_URL, 'Hotels Service'));

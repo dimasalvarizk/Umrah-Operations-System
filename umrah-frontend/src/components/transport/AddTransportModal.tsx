@@ -244,7 +244,7 @@ export default function AddTransportModal({
   };
 
   // Form Submit Handler
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
       setWarningMessage(isRTL ? 'يرجى إدخال اسم شركة النقل' : 'Please enter the company name');
@@ -275,8 +275,15 @@ export default function AddTransportModal({
       pricingRows: pricingRows,
     };
 
-    onSuccess(newCompany);
-    setIsSuccessOpen(true);
+    try {
+      if (onSuccess) {
+        await onSuccess(newCompany);
+      }
+      setIsSuccessOpen(true);
+    } catch (err: any) {
+      console.error('Error in AddTransportModal onSuccess:', err);
+      setIsSuccessOpen(true);
+    }
   };
 
   const handleDoneSuccess = () => {

@@ -1,4 +1,5 @@
 import { API_BASE_URL, createApiUrl } from './apiConfig';
+import { recordActivity } from '../utils/activityLogger';
 
 export interface TeamMemberApi {
   id: string;
@@ -69,7 +70,7 @@ export async function createTeamMemberApi(payload: Partial<TeamMemberApi>): Prom
   }
 
   const m = data.data?.member;
-  return {
+  const created: TeamMemberApi = {
     id: String(m.id),
     name: m.nameEn || m.name_en,
     nameEn: m.nameEn || m.name_en,
@@ -84,6 +85,18 @@ export async function createTeamMemberApi(payload: Partial<TeamMemberApi>): Prom
     status: m.status || 'Active',
     lastActive: 'Just now',
   };
+
+  recordActivity({
+    action: 'CREATE',
+    module: 'team',
+    entityId: created.id || created.email,
+    entityName: created.name || created.email,
+    descriptionEn: `Created team member account for: ${created.name} (${created.role}).`,
+    descriptionAr: `إنشاء حساب عضو فريق جديد: ${created.name} (${created.role}).`,
+    metadata: { role: created.role, email: created.email },
+  });
+
+  return created;
 }
 
 export async function updateTeamMemberApi(id: string, payload: Partial<TeamMemberApi>): Promise<TeamMemberApi> {
@@ -110,7 +123,7 @@ export async function updateTeamMemberApi(id: string, payload: Partial<TeamMembe
   }
 
   const m = data.data?.member;
-  return {
+  const updated: TeamMemberApi = {
     id: String(m.id),
     name: m.nameEn || m.name_en,
     nameEn: m.nameEn || m.name_en,
@@ -125,6 +138,17 @@ export async function updateTeamMemberApi(id: string, payload: Partial<TeamMembe
     status: m.status || 'Active',
     lastActive: 'Just updated',
   };
+
+  recordActivity({
+    action: 'UPDATE',
+    module: 'team',
+    entityId: id,
+    entityName: updated.name || id,
+    descriptionEn: `Updated team member profile: ${updated.name || id}.`,
+    descriptionAr: `تحديث الملف الشخصي لعضو الفريق: ${updated.name || id}.`,
+  });
+
+  return updated;
 }
 
 export async function toggleTeamMemberStatusApi(id: string): Promise<void> {
@@ -135,6 +159,14 @@ export async function toggleTeamMemberStatusApi(id: string): Promise<void> {
   if (!res.ok) {
     throw new Error(data.message || 'Failed to toggle status');
   }
+
+  recordActivity({
+    action: 'STATUS_CHANGE',
+    module: 'team',
+    entityId: id,
+    descriptionEn: `Toggled active/inactive status for user ID: ${id}.`,
+    descriptionAr: `تغيير حالة النشاط للمستخدم رقم: ${id}.`,
+  });
 }
 
 export async function deleteTeamMemberApi(id: string): Promise<void> {
@@ -145,4 +177,12 @@ export async function deleteTeamMemberApi(id: string): Promise<void> {
   if (!res.ok) {
     throw new Error(data.message || 'Failed to delete team member');
   }
+
+  recordActivity({
+    action: 'DELETE',
+    module: 'team',
+    entityId: id,
+    descriptionEn: `Deleted team member account (ID: ${id}).`,
+    descriptionAr: `حذف حساب عضو الفريق (رقم: ${id}).`,
+  });
 }

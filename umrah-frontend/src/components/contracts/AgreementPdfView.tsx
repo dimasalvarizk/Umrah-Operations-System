@@ -340,7 +340,7 @@ export default function AgreementPdfView({ data }: AgreementPdfViewProps) {
       {/* 8. Footer Meta Bar */}
       <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
         <div>{t('contracts.doc_number_label', 'وثيقة رقم:')} {documentNumber}</div>
-        <div>2026 - {t('contracts.all_rights_reserved', 'جميع الحقوق محفوظة © Contra Operations')}</div>
+        <div>2026 - {t('contracts.all_rights_reserved', 'جميع الحقوق محفوظة © ODST Group')}</div>
         <div>{t('contracts.page_number_label', 'الصفحة ١ من ١')}</div>
       </div>
     </div>

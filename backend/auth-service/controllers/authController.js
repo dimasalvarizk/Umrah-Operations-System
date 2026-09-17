@@ -1,5 +1,6 @@
 const AuthService = require('../services/authService');
 const { successResponse, errorResponse } = require('../utils/response');
+const { extractClientIp } = require('../utils/geoIpHelper');
 
 class AuthController {
   /**
@@ -34,7 +35,7 @@ class AuthController {
   static async login(req, res) {
     try {
       const { email, password } = req.body;
-      const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip || '127.0.0.1';
+      const ip = extractClientIp(req);
       const userAgent = req.headers['user-agent'] || '';
 
       // Validation
@@ -42,7 +43,7 @@ class AuthController {
         return errorResponse(res, 'Email and password are required', 400);
       }
 
-      const result = await AuthService.login({ email, password, ip, userAgent });
+      const result = await AuthService.login({ email, password, ip, userAgent, req });
       return successResponse(res, 'Login successful', result, 200);
     } catch (error) {
       const statusCode = error.statusCode || 500;
@@ -129,7 +130,7 @@ class AuthController {
         return errorResponse(res, 'Unauthorized access', 401);
       }
 
-      const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip || '127.0.0.1';
+      const ip = extractClientIp(req);
       const userAgent = req.headers['user-agent'] || '';
 
       const sessions = await AuthService.getActiveSessions(userId, ip, userAgent);

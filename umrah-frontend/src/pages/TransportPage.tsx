@@ -22,6 +22,7 @@ import {
   getTransportsApi,
   createTransportApi,
 } from '../services/transportApi';
+import { recordActivity } from '../utils/activityLogger';
 
 export default function TransportPage() {
   const { t, isRTL, direction } = useLanguage();
@@ -418,10 +419,21 @@ export default function TransportPage() {
           try {
             const created = await createTransportApi(newCompany as any);
             setCompaniesList((prev) => [created, ...prev.filter((c) => c.id !== created.id)]);
+            window.dispatchEvent(new CustomEvent('umrah_transport_updated', { detail: created }));
             window.dispatchEvent(new CustomEvent('umrah_notification_refresh'));
           } catch (err) {
             console.error('Failed to create transport company via API:', err);
             setCompaniesList((prev) => [newCompany, ...prev]);
+            await recordActivity({
+              action: 'CREATE',
+              module: 'transport',
+              entityId: newCompany.id || newCompany.name,
+              entityName: newCompany.name,
+              descriptionEn: `Added new transportation company: ${newCompany.name} (${newCompany.fleetLabel || `${newCompany.fleetSize || 0} vehicles`}).`,
+              descriptionAr: `إضافة شركة نقل جديدة: ${newCompany.name} (${newCompany.fleetLabel || `${newCompany.fleetSize || 0} مركبة`}).`,
+            });
+            window.dispatchEvent(new CustomEvent('umrah_transport_updated', { detail: newCompany }));
+            window.dispatchEvent(new CustomEvent('umrah_notification_refresh'));
           }
         }}
       />

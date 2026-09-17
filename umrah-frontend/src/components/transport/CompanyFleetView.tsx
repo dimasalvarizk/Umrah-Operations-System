@@ -7,6 +7,7 @@ import EditCompanyModal from './EditCompanyModal';
 import { useLanguage } from '../../context/LanguageContext';
 import { usePermissions } from '../../hooks/usePermissions';
 import { updateTransportApi } from '../../services/transportApi';
+import { recordActivity } from '../../utils/activityLogger';
 
 export interface VehicleItem {
   id: string;
@@ -143,6 +144,7 @@ export default function CompanyFleetView({ company }: CompanyFleetViewProps) {
 
   const handleConfirmDelete = async () => {
     if (vehicleToDelete) {
+      const deletedVehicleName = vehicleToDelete.name;
       const newVehicles = vehicles.filter((v) => v.id !== vehicleToDelete.id);
       setVehicles(newVehicles);
       setVehicleToDelete(null);
@@ -161,6 +163,14 @@ export default function CompanyFleetView({ company }: CompanyFleetViewProps) {
           pricingRows: updatedPricingRows,
           fleetSize: updatedPricingRows.length * 5,
           fleetLabel: isRTL ? `${updatedPricingRows.length * 5} مركبة` : `${updatedPricingRows.length * 5} Vehicles`,
+        });
+        await recordActivity({
+          action: 'UPDATE',
+          module: 'transport',
+          entityId: currentCompany.id,
+          entityName: currentCompany.name,
+          descriptionEn: `Removed vehicle "${deletedVehicleName}" from ${currentCompany.name} fleet.`,
+          descriptionAr: `حذف المركبة "${deletedVehicleName}" من أسطول ${currentCompany.name}.`,
         });
         window.dispatchEvent(new CustomEvent('umrah_notification_refresh'));
       } catch (err) {
@@ -193,6 +203,14 @@ export default function CompanyFleetView({ company }: CompanyFleetViewProps) {
         fleetSize: updatedPricingRows.length * 5,
         fleetLabel: isRTL ? `${updatedPricingRows.length * 5} مركبة` : `${updatedPricingRows.length * 5} Vehicles`,
       });
+      await recordActivity({
+        action: 'UPDATE',
+        module: 'transport',
+        entityId: currentCompany.id,
+        entityName: currentCompany.name,
+        descriptionEn: `${exists ? 'Updated' : 'Added'} vehicle "${savedVehicle.name}" (${savedVehicle.capacity}) for ${currentCompany.name}.`,
+        descriptionAr: `${exists ? 'تحديث' : 'إضافة'} مركبة "${savedVehicle.name}" (${savedVehicle.capacity}) لأسطول ${currentCompany.name}.`,
+      });
       window.dispatchEvent(new CustomEvent('umrah_notification_refresh'));
     } catch (err) {
       console.error('Failed to sync saved vehicle:', err);
@@ -212,9 +230,11 @@ export default function CompanyFleetView({ company }: CompanyFleetViewProps) {
         address: updated.address,
         rating: updated.rating,
       });
+      window.dispatchEvent(new CustomEvent('umrah_transport_updated', { detail: updated }));
       window.dispatchEvent(new CustomEvent('umrah_notification_refresh'));
     } catch (err) {
       console.error('Failed to sync company update:', err);
+      window.dispatchEvent(new CustomEvent('umrah_transport_updated', { detail: updated }));
     }
   };
 

@@ -3,22 +3,47 @@ const crypto = require('crypto');
 const UserModel = require('../models/userModel');
 const { pool } = require('../config/db');
 const { generateToken } = require('../utils/jwt');
+const { getGeolocation } = require('../utils/geoIpHelper');
 const EmailService = require('./emailService');
 
 class AuthService {
   /**
-   * Helper to parse user agent into human friendly name
+   * Helper to parse user agent into an accurate, human-friendly device & browser name
+   * Accurately distinguishes OS and Browser to prevent misidentifications
+   * (e.g. Chrome on macOS vs Chrome on Windows vs Edge on Windows).
    */
   static parseUserAgent(ua = '') {
-    if (!ua) return 'Web Browser';
-    if (ua.includes('iPhone')) return 'Safari on iPhone';
-    if (ua.includes('iPad')) return 'Safari on iPad';
-    if (ua.includes('Android')) return 'Chrome on Android';
-    if (ua.includes('Edg/')) return 'Edge on Windows';
-    if (ua.includes('Chrome/')) return 'Chrome on Windows';
-    if (ua.includes('Firefox/')) return 'Firefox on Windows';
-    if (ua.includes('Macintosh')) return 'Safari on macOS';
-    return 'Desktop Browser';
+    if (!ua || typeof ua !== 'string') return 'Desktop Browser';
+
+    // 1. Detect Operating System / Device
+    let os = 'Unknown OS';
+    if (/iPhone/i.test(ua)) os = 'iPhone';
+    else if (/iPad/i.test(ua)) os = 'iPad';
+    else if (/Android/i.test(ua)) os = 'Android';
+    else if (/Windows NT 10\.0/i.test(ua)) os = 'Windows 10/11';
+    else if (/Windows NT 6\.3/i.test(ua)) os = 'Windows 8.1';
+    else if (/Windows NT 6\.1/i.test(ua)) os = 'Windows 7';
+    else if (/Windows/i.test(ua)) os = 'Windows';
+    else if (/Macintosh|Mac OS X/i.test(ua)) os = 'macOS';
+    else if (/Ubuntu/i.test(ua)) os = 'Ubuntu';
+    else if (/Linux/i.test(ua)) os = 'Linux';
+    else if (/CrOS/i.test(ua)) os = 'Chrome OS';
+
+    // 2. Detect Browser (ordered by specificity)
+    let browser = 'Web Browser';
+    if (/EdgA?|EdgiOS|Edge/i.test(ua)) browser = 'Edge';
+    else if (/OPR|Opera/i.test(ua)) browser = 'Opera';
+    else if (/SamsungBrowser/i.test(ua)) browser = 'Samsung Internet';
+    else if (/Brave/i.test(ua)) browser = 'Brave';
+    else if (/Firefox|FxiOS/i.test(ua)) browser = 'Firefox';
+    else if (/Chrome|CriOS/i.test(ua)) browser = 'Chrome';
+    else if (/Safari/i.test(ua) && !/Android|Chrome|CriOS/i.test(ua)) browser = 'Safari';
+
+    // 3. Format dynamic human-readable string
+    if (os !== 'Unknown OS') {
+      return `${browser} on ${os}`;
+    }
+    return browser !== 'Web Browser' ? browser : 'Desktop Browser';
   }
 
   /**
@@ -70,9 +95,12 @@ class AuthService {
   /**
    * Login user with email and password
    */
-  static async login({ email, password, ip = '127.0.0.1', userAgent = '' }) {
+  static async login({ email, password, ip = '127.0.0.1', userAgent = '', req = null }) {
     const cleanEmail = String(email || '').trim().toLowerCase();
     const friendlyAgent = this.parseUserAgent(userAgent);
+
+    // 0ms In-Memory GeoIP Lookup (geoip-lite + Cloudflare)
+    const geo = getGeolocation(ip, req);
 
     // 1. Find user by email
     const user = await UserModel.findByEmail(cleanEmail);
@@ -80,8 +108,8 @@ class AuthService {
       // Record failed attempt
       try {
         await pool.execute(
-          'INSERT INTO login_logs (email, ip, agent, status) VALUES (?, ?, ?, ?)',
-          [cleanEmail, ip, friendlyAgent, 'Failed']
+          'INSERT INTO login_logs (email, ip, agent, city, country, status) VALUES (?, ?, ?, ?, ?, ?)',
+          [cleanEmail, geo.ip, friendlyAgent, geo.city, geo.country, 'Failed']
         );
       } catch {}
 
@@ -94,8 +122,8 @@ class AuthService {
     if (user.status !== 'active') {
       try {
         await pool.execute(
-          'INSERT INTO login_logs (user_id, email, ip, agent, status) VALUES (?, ?, ?, ?, ?)',
-          [user.id, cleanEmail, ip, friendlyAgent, 'Failed']
+          'INSERT INTO login_logs (user_id, email, ip, agent, city, country, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [user.id, cleanEmail, geo.ip, friendlyAgent, geo.city, geo.country, 'Failed']
         );
       } catch {}
 
@@ -109,8 +137,8 @@ class AuthService {
     if (!isMatch) {
       try {
         await pool.execute(
-          'INSERT INTO login_logs (user_id, email, ip, agent, status) VALUES (?, ?, ?, ?, ?)',
-          [user.id, cleanEmail, ip, friendlyAgent, 'Failed']
+          'INSERT INTO login_logs (user_id, email, ip, agent, city, country, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [user.id, cleanEmail, geo.ip, friendlyAgent, geo.city, geo.country, 'Failed']
         );
       } catch {}
 
@@ -122,11 +150,11 @@ class AuthService {
     // 4. Update last login
     await UserModel.updateLastLogin(user.id);
 
-    // 5. Record successful login log
+    // 5. Record successful login log, session & activity log
     try {
       await pool.execute(
-        'INSERT INTO login_logs (user_id, email, ip, agent, status) VALUES (?, ?, ?, ?, ?)',
-        [user.id, cleanEmail, ip, friendlyAgent, 'Success']
+        'INSERT INTO login_logs (user_id, email, ip, agent, city, country, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [user.id, cleanEmail, geo.ip, friendlyAgent, geo.city, geo.country, 'Success']
       );
 
       // Create / update current session
@@ -138,11 +166,40 @@ class AuthService {
           sessionId,
           user.id,
           friendlyAgent,
-          ip,
-          'Makkah, Saudi Arabia',
+          geo.ip,
+          geo.location || `${geo.city}, ${geo.country}`,
           isMobile ? 'mobile' : 'desktop',
           1,
           'Current session (Active)',
+        ]
+      );
+
+      // Record Activity Log entry for Super Admin Audit Trail
+      const locDisplay = geo.city === 'Local' || geo.city === 'Localhost'
+        ? 'Localhost (127.0.0.1)'
+        : (geo.city !== 'Unknown' && geo.country !== 'Unknown' ? `${geo.city}, ${geo.country} (${geo.ip})` : geo.ip);
+      const descEn = `User ${user.name} logged in successfully from ${locDisplay}.`;
+      const descAr = `تسجيل دخول ناجح للمستخدم ${user.name} من موقع ${locDisplay}.`;
+
+      await pool.execute(
+        `INSERT INTO activity_logs (
+          user_id, user_name, user_email, user_role, action, module,
+          entity_id, entity_name, description_en, description_ar, metadata,
+          ip_address, login_city, login_country
+        ) VALUES (?, ?, ?, ?, 'LOGIN', 'auth', ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          user.id,
+          user.name,
+          user.email,
+          user.role || 'Staff',
+          String(user.id),
+          user.name,
+          descEn,
+          descAr,
+          JSON.stringify({ ip: geo.ip, city: geo.city, country: geo.country, device: friendlyAgent }),
+          geo.ip,
+          geo.city,
+          geo.country,
         ]
       );
     } catch (logErr) {
@@ -284,7 +341,7 @@ class AuthService {
         'INSERT INTO user_sessions (id, user_id, device, ip, location, type, is_current, last_active) VALUES (?, ?, ?, ?, ?, ?, 1, ?)',
         [defaultSess.id, userId, defaultSess.device, defaultSess.ip, defaultSess.location, defaultSess.type, defaultSess.active]
       );
-    } catch {}
+    } catch { }
 
     return [defaultSess];
   }
@@ -305,17 +362,30 @@ class AuthService {
    */
   static async getLoginLogs(userId, email = '') {
     const [rows] = await pool.execute(
-      'SELECT id, created_at, ip, agent, status FROM login_logs WHERE user_id = ? OR email = ? ORDER BY created_at DESC LIMIT 20',
+      'SELECT id, created_at, ip, agent, city, country, status FROM login_logs WHERE user_id = ? OR email = ? ORDER BY created_at DESC LIMIT 20',
       [userId, email]
     );
 
-    return rows.map((r) => ({
-      id: String(r.id),
-      timestamp: new Date(r.created_at).toISOString().replace('T', ' ').substring(0, 19),
-      ip: r.ip || '127.0.0.1',
-      agent: r.agent || 'Chrome / Windows',
-      status: r.status || 'Success',
-    }));
+    return rows.map((r) => {
+      const city = r.city || (r.ip === '127.0.0.1' ? 'Local' : 'Unknown');
+      const country = r.country || (r.ip === '127.0.0.1' ? 'Unknown' : 'Unknown');
+      const location = (city === 'Local' || city === 'Localhost')
+        ? 'Localhost'
+        : (city !== 'Unknown' && country !== 'Unknown'
+            ? `${city}, ${country}`
+            : (city !== 'Unknown' ? city : (country !== 'Unknown' ? country : 'Unknown')));
+
+      return {
+        id: String(r.id),
+        timestamp: new Date(r.created_at).toISOString().replace('T', ' ').substring(0, 19),
+        ip: r.ip || '127.0.0.1',
+        agent: r.agent || 'Chrome / Windows',
+        city,
+        country,
+        location,
+        status: r.status || 'Success',
+      };
+    });
   }
 
   /**

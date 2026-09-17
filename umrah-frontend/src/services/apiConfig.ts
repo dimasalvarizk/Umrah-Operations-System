@@ -1,9 +1,13 @@
 /**
  * Global API Configuration for Umrah Operations System Frontend
- * Automatically defaults to relative path '/api' in production (proxied by Nginx to API Gateway)
- * or can be overridden by VITE_API_URL environment variable.
+ * Automatically defaults to 'http://localhost:5000/api' on localhost during dev
+ * and relative path '/api' in production (proxied by Nginx to API Gateway).
  */
-export const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+export const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://localhost:5000/api'
+    : '/api');
 
 /**
  * Helper to construct a URL object with query parameters safely,
