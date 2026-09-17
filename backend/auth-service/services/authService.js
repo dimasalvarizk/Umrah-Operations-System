@@ -64,12 +64,23 @@ class AuthService {
       phone,
     });
 
-    // 4. Generate JWT Token
+    // 4. Create initial active session & generate JWT Token
+    const sessionId = `sess-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    try {
+      await pool.execute(
+        'INSERT INTO user_sessions (id, user_id, device, ip, location, type, is_current, last_active, created_at) VALUES (?, ?, ?, "127.0.0.1", "Localhost", "desktop", 1, "Current session (Active)", NOW())',
+        [sessionId, newUser.id, 'Chrome on Windows']
+      );
+    } catch (e) {
+      console.warn('Register session insert note:', e.message);
+    }
+
     const token = generateToken({
       id: newUser.id,
       email: newUser.email,
       role: newUser.role,
       name: newUser.name,
+      sessionId,
     });
 
     return {
@@ -160,6 +171,7 @@ class AuthService {
     }
 
     // 5b. Create / Update multi-device active session
+    let assignedSessionId = null;
     try {
       const isMobile = /iphone|android|ipad|mobile/i.test(friendlyAgent) || /iphone|android|ipad|mobile/i.test(userAgent);
       const sessionLocation = geo.location !== 'Unknown'
@@ -178,16 +190,17 @@ class AuthService {
       );
 
       if (existingSess.length > 0) {
+        assignedSessionId = existingSess[0].id;
         await pool.execute(
           'UPDATE user_sessions SET ip = ?, location = ?, is_current = 1, last_active = "Current session (Active)", created_at = NOW() WHERE id = ?',
-          [geo.ip, sessionLocation, existingSess[0].id]
+          [geo.ip, sessionLocation, assignedSessionId]
         );
       } else {
-        const sessionId = `sess-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+        assignedSessionId = `sess-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
         await pool.execute(
           'INSERT INTO user_sessions (id, user_id, device, ip, location, type, is_current, last_active, created_at) VALUES (?, ?, ?, ?, ?, ?, 1, "Current session (Active)", NOW())',
           [
-            sessionId,
+            assignedSessionId,
             user.id,
             friendlyAgent,
             geo.ip,
@@ -233,12 +246,13 @@ class AuthService {
       console.warn('Activity log record note:', actErr.message);
     }
 
-    // 6. Generate token
+    // 6. Generate token with sessionId
     const token = generateToken({
       id: user.id,
       email: user.email,
       role: user.role,
       name: user.name,
+      sessionId: assignedSessionId,
     });
 
     return {

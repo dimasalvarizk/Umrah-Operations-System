@@ -1,10 +1,12 @@
 const { verifyToken } = require('../utils/jwt');
 const { errorResponse } = require('../utils/response');
+const { pool } = require('../config/db');
 
 /**
  * Middleware to authenticate requests using JWT Bearer Token
+ * Validates token signature AND verifies that the device session has not been revoked
  */
-function authenticate(req, res, next) {
+async function authenticate(req, res, next) {
   try {
     const authHeader = req.headers.authorization;
 
@@ -18,6 +20,22 @@ function authenticate(req, res, next) {
     }
 
     const decoded = verifyToken(token);
+
+    // If token has a sessionId, verify that the session is still active in database
+    if (decoded && decoded.sessionId) {
+      try {
+        const [sess] = await pool.execute(
+          'SELECT id FROM user_sessions WHERE id = ? AND user_id = ? LIMIT 1',
+          [decoded.sessionId, decoded.id]
+        );
+        if (!sess || sess.length === 0) {
+          return errorResponse(res, 'Session has been revoked. Please log in again.', 401);
+        }
+      } catch (dbErr) {
+        console.warn('Session verification notice in authMiddleware:', dbErr.message);
+      }
+    }
+
     req.user = decoded;
     next();
   } catch (error) {

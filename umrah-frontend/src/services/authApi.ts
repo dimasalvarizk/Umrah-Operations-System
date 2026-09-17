@@ -83,6 +83,11 @@ export async function getMeApi(token: string): Promise<{ success: boolean; data:
 
   const data = await res.json();
   if (!res.ok) {
+    if (res.status === 401 || res.status === 403) {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('auth_unauthorized'));
+      }
+    }
     const err: any = new Error(data.message || 'Failed to authenticate user');
     err.status = res.status;
     throw err;

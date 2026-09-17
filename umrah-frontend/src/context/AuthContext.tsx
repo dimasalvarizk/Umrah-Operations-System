@@ -29,13 +29,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Validate token on mount
+  // Validate token on mount and periodic heartbeat
   useEffect(() => {
+    let isMounted = true;
+
     async function verifyUser() {
-      if (token) {
+      const activeToken = token || localStorage.getItem('umrah_auth_token') || sessionStorage.getItem('umrah_auth_token');
+      if (activeToken) {
         try {
-          const res = await getMeApi(token);
-          if (res.data?.user) {
+          const res = await getMeApi(activeToken);
+          if (res.data?.user && isMounted) {
             setUser(res.data.user);
             if (localStorage.getItem('umrah_auth_token')) {
               localStorage.setItem('umrah_auth_user', JSON.stringify(res.data.user));
@@ -44,18 +47,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           }
         } catch (err: any) {
-          // If unauthorized or token invalid, purge and logout
-          if (err?.status === 401 || err?.status === 403 || err?.message?.includes('jwt') || err?.message?.includes('token')) {
-            logout();
-          } else {
-            console.warn('Backend verification unavailable, using persisted session:', err?.message || err);
+          // If session was revoked or token is expired/invalid, immediately purge and log out
+          if (
+            err?.status === 401 ||
+            err?.status === 403 ||
+            err?.message?.includes('revoked') ||
+            err?.message?.includes('jwt') ||
+            err?.message?.includes('token') ||
+            err?.message?.includes('Access denied')
+          ) {
+            if (isMounted) {
+              logout();
+            }
           }
         }
       }
-      setIsLoading(false);
+      if (isMounted) {
+        setIsLoading(false);
+      }
     }
 
     verifyUser();
+
+    // Heartbeat check every 8 seconds for instantaneous revocation detection
+    const interval = setInterval(() => {
+      const currentToken = token || localStorage.getItem('umrah_auth_token') || sessionStorage.getItem('umrah_auth_token');
+      if (currentToken && document.visibilityState === 'visible') {
+        verifyUser();
+      }
+    }, 8000);
+
+    // Validate immediately when tab / mobile screen comes back into focus
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        verifyUser();
+      }
+    };
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleVisibilityChange);
+
+    // Listen for global unauthorized events dispatched by API callers
+    const handleUnauthorizedEvent = () => {
+      if (isMounted) {
+        logout();
+      }
+    };
+    window.addEventListener('auth_unauthorized', handleUnauthorizedEvent);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleVisibilityChange);
+      window.removeEventListener('auth_unauthorized', handleUnauthorizedEvent);
+    };
   }, [token]);
 
   // Sync logout across browser tabs in real time
