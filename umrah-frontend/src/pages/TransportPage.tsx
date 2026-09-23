@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import Sidebar from '../components/layout/Sidebar';
 import Navbar from '../components/layout/Navbar';
 import {
@@ -32,6 +32,7 @@ export default function TransportPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [regionFilter, setRegionFilter] = useState('الكل');
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
+  const filterDropdownRef = useRef<HTMLDivElement>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
   const [selectedCompany, setSelectedCompany] = useState<TransportCompany | null>(null);
@@ -70,6 +71,17 @@ export default function TransportPage() {
       setIsLoaded(true);
     }, 60);
     return () => clearTimeout(timer);
+  }, []);
+
+  // Click outside to close filter dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (filterDropdownRef.current && !filterDropdownRef.current.contains(event.target as Node)) {
+        setIsFilterDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   useEffect(() => {
@@ -193,7 +205,7 @@ export default function TransportPage() {
             <>
               {/* Action Row & Breadcrumb */}
               <div
-                className={`flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 transition-all duration-400 transform ${
+                className={`relative z-20 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 transition-all duration-400 transform ${
                   isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
                 }`}
               >
@@ -226,18 +238,22 @@ export default function TransportPage() {
                   </div>
 
                   {/* Region Filter Dropdown */}
-                  <div className="relative">
+                  <div className="relative z-30" ref={filterDropdownRef}>
                     <button
                       type="button"
                       onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
-                      className="bg-white border border-slate-200/90 hover:bg-slate-50 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm text-slate-700 font-medium flex items-center gap-2 shadow-2xs cursor-pointer transition active:scale-[0.98]"
+                      className={`border px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium flex items-center gap-2 shadow-2xs cursor-pointer transition active:scale-[0.98] ${
+                        regionFilter !== 'الكل'
+                          ? 'bg-emerald-50/70 border-emerald-300 text-emerald-800'
+                          : 'bg-white border-slate-200/90 hover:bg-slate-50 text-slate-700'
+                      }`}
                     >
                       <span>{regionFilter === 'الكل' ? (isRTL ? 'جميع المناطق' : 'All Regions') : regionFilter}</span>
-                      <ChevronDown className="w-4 h-4 text-slate-400" />
+                      <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isFilterDropdownOpen ? 'rotate-180 text-emerald-600' : 'text-slate-400'}`} />
                     </button>
 
                     {isFilterDropdownOpen && (
-                      <div className={`absolute mt-2 w-44 bg-white border border-slate-100 rounded-xl shadow-xl py-1.5 z-20 text-xs text-slate-700 animate-fadeIn ${
+                      <div className={`absolute mt-2 w-48 bg-white border border-slate-100 rounded-xl shadow-xl py-1.5 z-50 text-xs text-slate-700 animate-fadeIn ${
                         isRTL ? 'right-0' : 'left-0'
                       }`}>
                         {[
@@ -252,7 +268,7 @@ export default function TransportPage() {
                               setRegionFilter(item.id);
                               setIsFilterDropdownOpen(false);
                             }}
-                            className={`w-full px-4 py-2 hover:bg-slate-50 transition cursor-pointer ${
+                            className={`w-full px-4 py-2.5 hover:bg-slate-50 transition cursor-pointer ${
                               isRTL ? 'text-right' : 'text-left'
                             } ${
                               regionFilter === item.id
@@ -286,7 +302,7 @@ export default function TransportPage() {
                   {isRTL ? 'لا توجد شركات نقل مطابقة لبحثك.' : 'No transport companies match your search.'}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   {paginatedCompanies.map((company, idx) => (
                     <div
                       key={company.id}

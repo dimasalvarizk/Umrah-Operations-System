@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Sidebar from '../components/layout/Sidebar';
 import Navbar from '../components/layout/Navbar';
@@ -6,6 +6,8 @@ import {
   Search,
   Plus,
   Check,
+  Filter,
+  ChevronDown,
 } from 'lucide-react';
 import TripDetailsModal, { type TripItem } from '../components/trips/TripDetailsModal';
 import AddTripModal from '../components/trips/AddTripModal';
@@ -30,6 +32,9 @@ export default function TripsPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('الكل');
+  const [isStatusFilterOpen, setIsStatusFilterOpen] = useState(false);
+  const statusFilterRef = useRef<HTMLDivElement>(null);
   const [selectedTrip, setSelectedTrip] = useState<TripItem | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isAddTripOpen, setIsAddTripOpen] = useState(false);
@@ -146,18 +151,46 @@ export default function TripsPage() {
   const animatedTotal = useCountUp(stats.total, 1200, isLoaded);
   const animatedCompletionRate = useCountUp(stats.completionRate, 1000, isLoaded);
 
+  // Click outside to close filter dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (statusFilterRef.current && !statusFilterRef.current.contains(event.target as Node)) {
+        setIsStatusFilterOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const statusOptions = useMemo(() => [
+    { val: 'الكل', label: isRTL ? 'جميع الحالات' : 'All Statuses' },
+    { val: 'قيد التنفيذ', label: t('trips.in_progress_title', 'Trips In Progress') },
+    { val: 'مكتمل', label: t('trips.completed_title', 'Completed Trips') },
+    { val: 'معلق', label: isRTL ? 'معلق' : 'Pending' },
+  ], [isRTL, t]);
+
+  const selectedStatusLabel = useMemo(() => {
+    if (statusFilter === 'الكل') return isRTL ? 'جميع الحالات' : 'All Statuses';
+    const found = statusOptions.find((opt) => opt.val === statusFilter);
+    return found ? found.label : statusFilter;
+  }, [statusFilter, statusOptions, isRTL]);
+
   const filteredTrips = useMemo(() => {
     return tripsList.filter((trip) => {
       const q = searchQuery.trim().toLowerCase();
-      if (!q) return true;
-      return (
+      const matchSearch =
+        !q ||
         trip.code.toLowerCase().includes(q) ||
         trip.routeName.toLowerCase().includes(q) ||
         trip.guideName.toLowerCase().includes(q) ||
-        trip.status.toLowerCase().includes(q)
-      );
+        trip.status.toLowerCase().includes(q);
+
+      const matchStatus =
+        statusFilter === 'الكل' || trip.status === statusFilter;
+
+      return matchSearch && matchStatus;
     });
-  }, [tripsList, searchQuery]);
+  }, [tripsList, searchQuery, statusFilter]);
 
   const [tripToDelete, setTripToDelete] = useState<string | null>(null);
   const [isDeleteSuccessOpen, setIsDeleteSuccessOpen] = useState(false);
@@ -344,7 +377,7 @@ export default function TripsPage() {
 
           {/* Table Card Section */}
           <div
-            className={`bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-6 shadow-2xs space-y-4 sm:space-y-5 transition-all duration-500 transform overflow-hidden ${
+            className={`bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-6 shadow-2xs space-y-4 sm:space-y-5 transition-all duration-500 transform overflow-visible ${
               isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
             }`}
             style={{ transitionDelay: '350ms' }}
@@ -355,26 +388,14 @@ export default function TripsPage() {
               </h2>
 
               <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
-                {!isReadOnly && (
-                  <button
-                    onClick={() => {
-                      setEditingTrip(null);
-                      setIsAddTripOpen(true);
-                    }}
-                    className="bg-[#0f172a] hover:bg-slate-800 text-white px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition shadow-xs cursor-pointer active:scale-[0.99] whitespace-nowrap order-2 sm:order-1"
-                  >
-                    <Plus className="w-4 h-4 shrink-0 stroke-[2.5]" />
-                    <span>{t('trips.add_trip', 'Add Trip')}</span>
-                  </button>
-                )}
-
-                <div className="relative flex-1 sm:flex-initial order-1 sm:order-2 min-w-[200px]">
+                {/* Search Bar */}
+                <div className="relative flex-1 sm:flex-initial min-w-[180px]">
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder={t('trips.search_placeholder', 'Search for a trip...')}
-                    className={`bg-[#f8fafc] border border-slate-200/80 rounded-xl py-2 text-xs sm:text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-300 w-full sm:w-64 shadow-2xs ${
+                    className={`bg-[#f8fafc] border border-slate-200/80 rounded-xl py-2 text-xs sm:text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-300 w-full sm:w-60 shadow-2xs ${
                       isRTL ? 'pr-4 pl-9 text-right' : 'pl-4 pr-9 text-left'
                     }`}
                   />
@@ -382,6 +403,57 @@ export default function TripsPage() {
                     isRTL ? 'left-3' : 'right-3'
                   }`} />
                 </div>
+
+                {/* Status Filter Dropdown */}
+                <div className="relative z-30" ref={statusFilterRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsStatusFilterOpen(!isStatusFilterOpen)}
+                    className={`border px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-2xs cursor-pointer transition active:scale-[0.98] ${
+                      statusFilter !== 'الكل'
+                        ? 'bg-emerald-50/70 border-emerald-300 text-emerald-800'
+                        : 'bg-white border-slate-200/90 hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    <Filter className={`w-3.5 h-3.5 ${statusFilter !== 'الكل' ? 'text-emerald-600' : 'text-slate-500'}`} />
+                    <span>{selectedStatusLabel}</span>
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isStatusFilterOpen ? 'rotate-180 text-emerald-600' : 'text-slate-400'}`} />
+                  </button>
+
+                  {isStatusFilterOpen && (
+                    <div className={`absolute ${isRTL ? 'left-0' : 'right-0'} mt-2 w-48 bg-white border border-slate-100 rounded-xl shadow-xl py-1.5 z-50 text-xs text-slate-700 animate-fadeIn`}>
+                      {statusOptions.map((opt) => (
+                        <button
+                          key={opt.val}
+                          onClick={() => {
+                            setStatusFilter(opt.val);
+                            setIsStatusFilterOpen(false);
+                          }}
+                          className={`w-full px-4 py-2 text-start hover:bg-slate-50 transition cursor-pointer font-semibold ${
+                            statusFilter === opt.val
+                              ? 'text-emerald-600 font-bold bg-emerald-50/50'
+                              : 'text-slate-700'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {!isReadOnly && (
+                  <button
+                    onClick={() => {
+                      setEditingTrip(null);
+                      setIsAddTripOpen(true);
+                    }}
+                    className="bg-[#0f172a] hover:bg-slate-800 text-white px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition shadow-xs cursor-pointer active:scale-[0.99] whitespace-nowrap"
+                  >
+                    <Plus className="w-4 h-4 shrink-0 stroke-[2.5]" />
+                    <span>{t('trips.add_trip', 'Add Trip')}</span>
+                  </button>
+                )}
               </div>
             </div>
 

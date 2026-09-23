@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Sidebar from '../components/layout/Sidebar';
 import Navbar from '../components/layout/Navbar';
@@ -15,6 +15,7 @@ import {
   Check,
   Trash2,
   Loader2,
+  Filter,
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { usePermissions } from '../hooks/usePermissions';
@@ -177,6 +178,10 @@ export default function GroupsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [agentFilter, setAgentFilter] = useState('الكل');
   const [statusFilter, setStatusFilter] = useState('الكل');
+  const [isAgentFilterOpen, setIsAgentFilterOpen] = useState(false);
+  const [isStatusFilterOpen, setIsStatusFilterOpen] = useState(false);
+  const agentFilterRef = useRef<HTMLDivElement>(null);
+  const statusFilterRef = useRef<HTMLDivElement>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
   const [searchParams] = useSearchParams();
@@ -307,6 +312,64 @@ export default function GroupsPage() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Click outside to close filter dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (agentFilterRef.current && !agentFilterRef.current.contains(event.target as Node)) {
+        setIsAgentFilterOpen(false);
+      }
+      if (statusFilterRef.current && !statusFilterRef.current.contains(event.target as Node)) {
+        setIsStatusFilterOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const availableAgents = useMemo(() => {
+    const dynamicAgents = Array.from(
+      new Set(
+        groupsList
+          .flatMap((g) => [g.mainAgent, g.subAgent])
+          .filter((agent): agent is string => Boolean(agent && agent.trim()))
+      )
+    );
+    const defaultAgents = [
+      'Makkah Aviation Agency',
+      'Noor Al-Iman International',
+      'Indonesia Travel',
+      'Al-Safa Travel India',
+      'Ankara Tourism Agency',
+      'Islamic Association Indonesia',
+      'Modern Amman Agency',
+      'Al-Rahman Pakistan',
+    ];
+    return Array.from(new Set([...dynamicAgents, ...defaultAgents]));
+  }, [groupsList]);
+
+  const agentOptions = useMemo(() => [
+    { val: 'الكل', label: isRTL ? 'جميع الوكلاء' : 'All Agents' },
+    ...availableAgents.map((agent) => ({ val: agent, label: agent })),
+  ], [availableAgents, isRTL]);
+
+  const selectedAgentLabel = useMemo(() => {
+    if (agentFilter === 'الكل') return isRTL ? 'جميع الوكلاء' : 'All Agents';
+    return agentFilter;
+  }, [agentFilter, isRTL]);
+
+  const statusOptions = useMemo(() => [
+    { val: 'الكل', label: isRTL ? 'جميع الحالات' : 'All Statuses' },
+    { val: 'مكتمل', label: t('common.completed', 'مكتمل') },
+    { val: 'قيد التجهيز', label: t('common.in_progress', 'قيد التجهيز') },
+    { val: 'ناقص', label: t('common.incomplete', 'ناقص') },
+  ], [isRTL, t]);
+
+  const selectedStatusLabel = useMemo(() => {
+    if (statusFilter === 'الكل') return isRTL ? 'جميع الحالات' : 'All Statuses';
+    const found = statusOptions.find((opt) => opt.val === statusFilter);
+    return found ? found.label : statusFilter;
+  }, [statusFilter, statusOptions, isRTL]);
+
   // Persist backup to localStorage safely
   useEffect(() => {
     try {
@@ -401,7 +464,7 @@ export default function GroupsPage() {
         <main className="flex-1 p-3.5 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 max-w-[1600px] w-full mx-auto">
           {/* Action / Filter Bar Card Container */}
           <div
-            className={`bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-5 shadow-xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 transition-all duration-400 transform ${
+            className={`relative z-20 bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-5 shadow-xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 transition-all duration-400 transform ${
               isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
             }`}
             style={{ transitionDelay: '100ms' }}
@@ -425,73 +488,82 @@ export default function GroupsPage() {
             {/* Filters and Action Buttons */}
             <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
               {/* Agent Filter Dropdown */}
-              <div className="relative flex-1 sm:flex-none min-w-[130px]">
-                <select
-                  value={agentFilter}
-                  onChange={(e) => setAgentFilter(e.target.value)}
-                  className={`w-full appearance-none bg-[#f8fafc] hover:bg-slate-100/80 border border-slate-200/80 rounded-xl py-2.5 text-xs sm:text-sm text-slate-700 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-300 focus:bg-white transition shadow-xs ${
-                    isRTL ? 'pr-3.5 pl-8 text-right' : 'pl-3.5 pr-8 text-left'
+              <div className="relative z-30 flex-1 sm:flex-none" ref={agentFilterRef}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAgentFilterOpen(!isAgentFilterOpen);
+                    setIsStatusFilterOpen(false);
+                  }}
+                  className={`w-full sm:w-auto border px-3.5 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition cursor-pointer shadow-2xs active:scale-[0.98] ${
+                    agentFilter !== 'الكل'
+                      ? 'bg-emerald-50/70 border-emerald-300 text-emerald-800'
+                      : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'
                   }`}
                 >
-                  <option value="الكل">{isRTL ? 'الوكيل: جميع الوكلاء' : 'Agent: All Agents'}</option>
-                  {(() => {
-                    const dynamicAgents = Array.from(
-                      new Set(
-                        groupsList
-                          .flatMap((g) => [g.mainAgent, g.subAgent])
-                          .filter((agent): agent is string => Boolean(agent && agent.trim()))
-                      )
-                    );
-                    const defaultAgents = [
-                      'Makkah Aviation Agency',
-                      'Noor Al-Iman International',
-                      'Indonesia Travel',
-                      'Al-Safa Travel India',
-                      'Ankara Tourism Agency',
-                      'Islamic Association Indonesia',
-                      'Modern Amman Agency',
-                      'Al-Rahman Pakistan',
-                    ];
-                    const agents = Array.from(new Set([...dynamicAgents, ...defaultAgents]));
-                    return agents.map((agent) => (
-                      <option key={agent} value={agent}>
-                        {agent}
-                      </option>
-                    ));
-                  })()}
-                </select>
-                <ChevronDown className={`w-4 h-4 text-slate-500 absolute top-1/2 -translate-y-1/2 pointer-events-none ${
-                  isRTL ? 'left-2.5' : 'right-2.5'
-                }`} />
+                  <Filter className={`w-3.5 h-3.5 ${agentFilter !== 'الكل' ? 'text-emerald-600' : 'text-slate-500'}`} />
+                  <span className="max-w-[140px] truncate">{selectedAgentLabel}</span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isAgentFilterOpen ? 'rotate-180 text-emerald-600' : 'text-slate-400'}`} />
+                </button>
+
+                {isAgentFilterOpen && (
+                  <div className={`absolute ${isRTL ? 'left-0' : 'right-0'} mt-2 w-56 max-h-60 overflow-y-auto bg-white border border-slate-100 rounded-xl shadow-xl py-1.5 z-50 animate-fadeIn`}>
+                    {agentOptions.map((opt) => (
+                      <button
+                        key={opt.val}
+                        onClick={() => {
+                          setAgentFilter(opt.val);
+                          setIsAgentFilterOpen(false);
+                        }}
+                        className={`w-full text-start px-4 py-2 text-xs font-semibold hover:bg-slate-50 transition cursor-pointer truncate ${
+                          agentFilter === opt.val ? 'text-emerald-600 font-bold bg-emerald-50/50' : 'text-slate-700'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Status Filter Dropdown */}
-              <div className="relative flex-1 sm:flex-none min-w-[110px]">
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className={`w-full appearance-none bg-[#f8fafc] hover:bg-slate-100/80 border border-slate-200/80 rounded-xl py-2.5 text-xs sm:text-sm text-slate-700 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-300 focus:bg-white transition shadow-xs ${
-                    isRTL ? 'pr-3.5 pl-8 text-right' : 'pl-3.5 pr-8 text-left'
+              <div className="relative z-30 flex-1 sm:flex-none" ref={statusFilterRef}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsStatusFilterOpen(!isStatusFilterOpen);
+                    setIsAgentFilterOpen(false);
+                  }}
+                  className={`w-full sm:w-auto border px-3.5 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition cursor-pointer shadow-2xs active:scale-[0.98] ${
+                    statusFilter !== 'الكل'
+                      ? 'bg-emerald-50/70 border-emerald-300 text-emerald-800'
+                      : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'
                   }`}
                 >
-                  <option value="الكل">{isRTL ? 'الحالة: الكل' : 'Status: All'}</option>
-                  <option value="مكتمل">{t('common.completed', 'مكتمل')}</option>
-                  <option value="قيد التجهيز">{t('common.in_progress', 'قيد التجهيز')}</option>
-                  <option value="ناقص">{t('common.incomplete', 'ناقص')}</option>
-                </select>
-                <ChevronDown className={`w-4 h-4 text-slate-500 absolute top-1/2 -translate-y-1/2 pointer-events-none ${
-                  isRTL ? 'left-2.5' : 'right-2.5'
-                }`} />
-              </div>
+                  <Filter className={`w-3.5 h-3.5 ${statusFilter !== 'الكل' ? 'text-emerald-600' : 'text-slate-500'}`} />
+                  <span>{selectedStatusLabel}</span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isStatusFilterOpen ? 'rotate-180 text-emerald-600' : 'text-slate-400'}`} />
+                </button>
 
-              {/* Apply Sort Button */}
-              <button
-                type="button"
-                onClick={() => {}}
-                className="bg-[#1c2844] hover:bg-[#152037] text-white px-3.5 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shadow-xs flex items-center justify-center cursor-pointer active:scale-[0.98] whitespace-nowrap"
-              >
-                <span>{t('groups.apply_sort', 'تطبيق الترتيب')}</span>
-              </button>
+                {isStatusFilterOpen && (
+                  <div className={`absolute ${isRTL ? 'left-0' : 'right-0'} mt-2 w-48 bg-white border border-slate-100 rounded-xl shadow-xl py-1.5 z-50 animate-fadeIn`}>
+                    {statusOptions.map((opt) => (
+                      <button
+                        key={opt.val}
+                        onClick={() => {
+                          setStatusFilter(opt.val);
+                          setIsStatusFilterOpen(false);
+                        }}
+                        className={`w-full text-start px-4 py-2 text-xs font-semibold hover:bg-slate-50 transition cursor-pointer ${
+                          statusFilter === opt.val ? 'text-emerald-600 font-bold bg-emerald-50/50' : 'text-slate-700'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {/* Add New Group Button */}
               {canCreateOperations && (
@@ -511,7 +583,7 @@ export default function GroupsPage() {
 
           {/* Groups Table Card Container */}
           <div
-            className={`bg-white border border-slate-200/90 rounded-2xl shadow-xs transition-all duration-500 transform overflow-hidden ${
+            className={`relative z-10 bg-white border border-slate-200/90 rounded-2xl shadow-xs transition-all duration-500 transform overflow-hidden ${
               isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
             }`}
             style={{ transitionDelay: '250ms' }}

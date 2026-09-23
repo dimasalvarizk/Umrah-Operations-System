@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/layout/Sidebar';
 import Navbar from '../components/layout/Navbar';
@@ -34,6 +34,7 @@ export default function ContractsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('الكل');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const filterDropdownRef = useRef<HTMLDivElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Modals state
@@ -92,6 +93,33 @@ export default function ContractsPage() {
       clearInterval(interval);
     };
   }, [searchQuery, typeFilter]);
+
+  // Click outside to close filter dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (filterDropdownRef.current && !filterDropdownRef.current.contains(event.target as Node)) {
+        setIsFilterOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Filter options list with localized labels
+  const filterOptions = useMemo(() => [
+    { label: t('contracts.all_agreements', 'جميع الاتفاقيات'), val: 'الكل' },
+    { label: t('contracts.hotels_agreements', 'فنادق'), val: 'فنادق' },
+    { label: t('contracts.transport_agreements', 'شركات نقل'), val: 'نقل' },
+    { label: t('contracts.active_stat', 'الاتفاقيات النشطة'), val: 'نشطة' },
+    { label: t('contracts.pending_stat', 'اتفاقيات معلقة'), val: 'معلقة' },
+    { label: t('contracts.expired_stat', 'اتفاقيات منتهية'), val: 'منتهية' },
+  ], [t]);
+
+  const selectedFilterLabel = useMemo(() => {
+    if (typeFilter === 'الكل') return t('contracts.filter_by_type', 'تصفية حسب النوع');
+    const matched = filterOptions.find((opt) => opt.val === typeFilter);
+    return matched ? matched.label : typeFilter;
+  }, [typeFilter, filterOptions, t]);
 
   // Dynamic Filtering
   const filteredAgreements = useMemo(() => {
@@ -156,10 +184,10 @@ export default function ContractsPage() {
   }, [agreementsList]);
 
   // Animated stat values
-  const animatedExpired = useCountUp(stats.expired, 800, isLoaded);
-  const animatedPending = useCountUp(stats.pending, 900, isLoaded);
-  const animatedActive = useCountUp(stats.active, 1000, isLoaded);
-  const animatedTotal = useCountUp(stats.total, 1100, isLoaded);
+  const animatedTotal = useCountUp(stats.total, 800, isLoaded);
+  const animatedActive = useCountUp(stats.active, 900, isLoaded);
+  const animatedPending = useCountUp(stats.pending, 1000, isLoaded);
+  const animatedExpired = useCountUp(stats.expired, 1100, isLoaded);
 
   const handleAddSuccess = async (newAgreement: AgreementItem) => {
     try {
@@ -223,9 +251,100 @@ export default function ContractsPage() {
 
         {/* Page Body */}
         <main className="p-3.5 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 flex-1 max-w-7xl mx-auto w-full">
-          {/* Controls Bar: Search & Action Buttons */}
+          {/* Top 4 Stat Cards: 2x2 on Mobile, 4 Columns on Large Screens */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {/* Card 1: Total Agreements */}
+            <div
+              className={`bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200/80 shadow-2xs hover:shadow-md transition-all duration-300 transform flex justify-between items-stretch min-h-[90px] sm:min-h-[105px] ${
+                isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+              }`}
+              style={{ transitionDelay: '50ms' }}
+            >
+              <div className="flex flex-col justify-end">
+                <span className="text-2xl sm:text-4xl font-bold text-[#0f172a] leading-none tracking-tight">
+                  {animatedTotal}
+                </span>
+              </div>
+              <div className="flex flex-col justify-between items-end text-end">
+                <span className="text-[11px] sm:text-xs text-slate-500 font-medium">
+                  {t('contracts.total_stat', 'إجمالي الاتفاقيات')}
+                </span>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#d0ebff]/80 flex items-center justify-center shrink-0 self-end transition-transform hover:scale-110">
+                  <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-[#1c7ed6] stroke-[2]" />
+                </div>
+              </div>
+            </div>
+
+            {/* Card 2: Active Agreements */}
+            <div
+              className={`bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200/80 shadow-2xs hover:shadow-md transition-all duration-300 transform flex justify-between items-stretch min-h-[90px] sm:min-h-[105px] ${
+                isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+              }`}
+              style={{ transitionDelay: '150ms' }}
+            >
+              <div className="flex flex-col justify-end">
+                <span className="text-2xl sm:text-4xl font-bold text-[#0f172a] leading-none tracking-tight">
+                  {animatedActive}
+                </span>
+              </div>
+              <div className="flex flex-col justify-between items-end text-end">
+                <span className="text-[11px] sm:text-xs text-slate-500 font-medium">
+                  {t('contracts.active_stat', 'الاتفاقيات النشطة')}
+                </span>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#d3f9d8]/80 flex items-center justify-center shrink-0 self-end transition-transform hover:scale-110">
+                  <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-[#2b8a3e] stroke-[2]" />
+                </div>
+              </div>
+            </div>
+
+            {/* Card 3: Pending Agreements */}
+            <div
+              className={`bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200/80 shadow-2xs hover:shadow-md transition-all duration-300 transform flex justify-between items-stretch min-h-[90px] sm:min-h-[105px] ${
+                isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+              }`}
+              style={{ transitionDelay: '250ms' }}
+            >
+              <div className="flex flex-col justify-end">
+                <span className="text-2xl sm:text-4xl font-bold text-[#0f172a] leading-none tracking-tight">
+                  {animatedPending}
+                </span>
+              </div>
+              <div className="flex flex-col justify-between items-end text-end">
+                <span className="text-[11px] sm:text-xs text-slate-500 font-medium">
+                  {t('contracts.pending_stat', 'اتفاقيات معلقة')}
+                </span>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#fff9db]/80 flex items-center justify-center shrink-0 self-end transition-transform hover:scale-110">
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-[#f59f00] stroke-[2]" />
+                </div>
+              </div>
+            </div>
+
+            {/* Card 4: Expired Agreements */}
+            <div
+              className={`bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200/80 shadow-2xs hover:shadow-md transition-all duration-300 transform flex justify-between items-stretch min-h-[90px] sm:min-h-[105px] ${
+                isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+              }`}
+              style={{ transitionDelay: '350ms' }}
+            >
+              <div className="flex flex-col justify-end">
+                <span className="text-2xl sm:text-4xl font-bold text-[#0f172a] leading-none tracking-tight">
+                  {animatedExpired}
+                </span>
+              </div>
+              <div className="flex flex-col justify-between items-end text-end">
+                <span className="text-[11px] sm:text-xs text-slate-500 font-medium">
+                  {t('contracts.expired_stat', 'اتفاقيات منتهية')}
+                </span>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#ffe3e3]/80 flex items-center justify-center shrink-0 self-end transition-transform hover:scale-110">
+                  <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-[#f03e3e] stroke-[2]" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Controls Bar: Search & Action Buttons (Directly above Table) */}
           <div
-            className={`flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 transition-all duration-400 transform ${
+            className={`relative z-20 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 transition-all duration-400 transform ${
               isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
             }`}
           >
@@ -244,31 +363,24 @@ export default function ContractsPage() {
             {/* Action Buttons */}
             <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
               {/* Filter Dropdown */}
-              <div className="relative flex-1 sm:flex-none">
+              <div className="relative flex-1 sm:flex-none z-30" ref={filterDropdownRef}>
                 <button
                   type="button"
                   onClick={() => setIsFilterOpen(!isFilterOpen)}
-                  className="w-full sm:w-auto bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold px-3.5 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer shadow-2xs active:scale-[0.98]"
+                  className={`w-full sm:w-auto border text-slate-700 font-semibold px-3.5 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer shadow-2xs active:scale-[0.98] ${
+                    typeFilter !== 'الكل'
+                      ? 'bg-emerald-50/70 border-emerald-300 text-emerald-800'
+                      : 'bg-white border-slate-200 hover:bg-slate-50'
+                  }`}
                 >
-                  <Filter className="w-3.5 h-3.5 text-slate-500" />
-                  <span>
-                    {typeFilter === 'الكل'
-                      ? t('contracts.filter_by_type', 'تصفية حسب النوع')
-                      : `${t('common.filter', 'تصفية')}: ${typeFilter}`}
-                  </span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                  <Filter className={`w-3.5 h-3.5 ${typeFilter !== 'الكل' ? 'text-emerald-600' : 'text-slate-500'}`} />
+                  <span>{selectedFilterLabel}</span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isFilterOpen ? 'rotate-180 text-emerald-600' : 'text-slate-400'}`} />
                 </button>
 
                 {isFilterOpen && (
-                  <div className={`absolute ${isRTL ? 'left-0' : 'right-0'} mt-2 w-48 bg-white border border-slate-100 rounded-xl shadow-xl py-1.5 z-30 animate-fadeIn`}>
-                    {[
-                      { label: t('contracts.all_agreements', 'جميع الاتفاقيات'), val: 'الكل' },
-                      { label: t('contracts.hotels_agreements', 'فنادق'), val: 'فنادق' },
-                      { label: t('contracts.transport_agreements', 'شركات نقل'), val: 'نقل' },
-                      { label: t('contracts.active_stat', 'الاتفاقيات النشطة'), val: 'نشطة' },
-                      { label: t('contracts.pending_stat', 'اتفاقيات معلقة'), val: 'معلقة' },
-                      { label: t('contracts.expired_stat', 'اتفاقيات منتهية'), val: 'منتهية' },
-                    ].map((opt) => (
+                  <div className={`absolute ${isRTL ? 'left-0' : 'right-0'} mt-2 w-52 bg-white border border-slate-100 rounded-xl shadow-xl py-1.5 z-50 animate-fadeIn`}>
+                    {filterOptions.map((opt) => (
                       <button
                         key={opt.val}
                         onClick={() => {
@@ -276,7 +388,7 @@ export default function ContractsPage() {
                           setIsFilterOpen(false);
                         }}
                         className={`w-full text-start px-4 py-2 text-xs font-semibold hover:bg-slate-50 transition cursor-pointer ${
-                          typeFilter === opt.val ? 'text-[#16a34a] font-bold bg-slate-50' : 'text-slate-700'
+                          typeFilter === opt.val ? 'text-emerald-600 font-bold bg-emerald-50/50' : 'text-slate-700'
                         }`}
                       >
                         {opt.label}
@@ -299,100 +411,9 @@ export default function ContractsPage() {
             </div>
           </div>
 
-          {/* 4 Stat Cards: 2x2 on Mobile, 4 Columns on Large Screens */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            {/* Card 1: Expired Agreements */}
-            <div
-              className={`bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200/80 shadow-2xs hover:shadow-md transition-all duration-300 transform flex justify-between items-stretch min-h-[90px] sm:min-h-[105px] ${
-                isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-              }`}
-              style={{ transitionDelay: '50ms' }}
-            >
-              <div className="flex flex-col justify-end">
-                <span className="text-2xl sm:text-4xl font-bold text-[#0f172a] leading-none tracking-tight">
-                  {animatedExpired}
-                </span>
-              </div>
-              <div className="flex flex-col justify-between items-end text-end">
-                <span className="text-[11px] sm:text-xs text-slate-500 font-medium">
-                  {t('contracts.expired_stat', 'اتفاقيات منتهية')}
-                </span>
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#ffe3e3]/80 flex items-center justify-center shrink-0 self-end transition-transform hover:scale-110">
-                  <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-[#f03e3e] stroke-[2]" />
-                </div>
-              </div>
-            </div>
-
-            {/* Card 2: Pending Agreements */}
-            <div
-              className={`bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200/80 shadow-2xs hover:shadow-md transition-all duration-300 transform flex justify-between items-stretch min-h-[90px] sm:min-h-[105px] ${
-                isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-              }`}
-              style={{ transitionDelay: '150ms' }}
-            >
-              <div className="flex flex-col justify-end">
-                <span className="text-2xl sm:text-4xl font-bold text-[#0f172a] leading-none tracking-tight">
-                  {animatedPending}
-                </span>
-              </div>
-              <div className="flex flex-col justify-between items-end text-end">
-                <span className="text-[11px] sm:text-xs text-slate-500 font-medium">
-                  {t('contracts.pending_stat', 'اتفاقيات معلقة')}
-                </span>
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#fff9db]/80 flex items-center justify-center shrink-0 self-end transition-transform hover:scale-110">
-                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-[#f59f00] stroke-[2]" />
-                </div>
-              </div>
-            </div>
-
-            {/* Card 3: Active Agreements */}
-            <div
-              className={`bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200/80 shadow-2xs hover:shadow-md transition-all duration-300 transform flex justify-between items-stretch min-h-[90px] sm:min-h-[105px] ${
-                isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-              }`}
-              style={{ transitionDelay: '250ms' }}
-            >
-              <div className="flex flex-col justify-end">
-                <span className="text-2xl sm:text-4xl font-bold text-[#0f172a] leading-none tracking-tight">
-                  {animatedActive}
-                </span>
-              </div>
-              <div className="flex flex-col justify-between items-end text-end">
-                <span className="text-[11px] sm:text-xs text-slate-500 font-medium">
-                  {t('contracts.active_stat', 'الاتفاقيات النشطة')}
-                </span>
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#d3f9d8]/80 flex items-center justify-center shrink-0 self-end transition-transform hover:scale-110">
-                  <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-[#2b8a3e] stroke-[2]" />
-                </div>
-              </div>
-            </div>
-
-            {/* Card 4: Total Agreements */}
-            <div
-              className={`bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200/80 shadow-2xs hover:shadow-md transition-all duration-300 transform flex justify-between items-stretch min-h-[90px] sm:min-h-[105px] ${
-                isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-              }`}
-              style={{ transitionDelay: '350ms' }}
-            >
-              <div className="flex flex-col justify-end">
-                <span className="text-2xl sm:text-4xl font-bold text-[#0f172a] leading-none tracking-tight">
-                  {animatedTotal}
-                </span>
-              </div>
-              <div className="flex flex-col justify-between items-end text-end">
-                <span className="text-[11px] sm:text-xs text-slate-500 font-medium">
-                  {t('contracts.total_stat', 'إجمالي الاتفاقيات')}
-                </span>
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#d0ebff]/80 flex items-center justify-center shrink-0 self-end transition-transform hover:scale-110">
-                  <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-[#1c7ed6] stroke-[2]" />
-                </div>
-              </div>
-            </div>
-          </div>
-
           {/* Table Container */}
           <div
-            className={`bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden transition-all duration-500 transform ${
+            className={`relative z-10 bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden transition-all duration-500 transform ${
               isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
             }`}
             style={{ transitionDelay: '400ms' }}

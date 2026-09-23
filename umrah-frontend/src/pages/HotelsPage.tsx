@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Sidebar from '../components/layout/Sidebar';
 import Navbar from '../components/layout/Navbar';
@@ -12,6 +12,7 @@ import {
   Pencil,
   Trash2,
   CheckCircle2,
+  Filter,
 } from 'lucide-react';
 import AddHotelModal, { type NewHotelData } from '../components/hotels/AddHotelModal';
 import HotelDetailsModal from '../components/hotels/HotelDetailsModal';
@@ -41,6 +42,10 @@ export default function HotelsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [locationFilter, setLocationFilter] = useState('الكل');
   const [statusFilter, setStatusFilter] = useState('الكل');
+  const [isLocationFilterOpen, setIsLocationFilterOpen] = useState(false);
+  const [isStatusFilterOpen, setIsStatusFilterOpen] = useState(false);
+  const locationDropdownRef = useRef<HTMLDivElement>(null);
+  const statusDropdownRef = useRef<HTMLDivElement>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [isAddHotelOpen, setIsAddHotelOpen] = useState(false);
   const [selectedHotel, setSelectedHotel] = useState<HotelItem | null>(null);
@@ -141,6 +146,44 @@ export default function HotelsPage() {
       window.removeEventListener('umrah_notification_refresh', handleRefresh);
     };
   }, [hotelsList, fetchHotels]);
+
+  // Click outside to close filter dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (locationDropdownRef.current && !locationDropdownRef.current.contains(event.target as Node)) {
+        setIsLocationFilterOpen(false);
+      }
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) {
+        setIsStatusFilterOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const locationOptions = useMemo(() => [
+    { val: 'الكل', label: isRTL ? 'جميع المناطق' : 'All Regions' },
+    { val: 'مكة المكرمة', label: t('hotels.makkah', 'مكة المكرمة') },
+    { val: 'المدينة المنورة', label: t('hotels.madinah', 'المدينة المنورة') },
+  ], [isRTL, t]);
+
+  const selectedLocationLabel = useMemo(() => {
+    if (locationFilter === 'الكل') return isRTL ? 'جميع المناطق' : 'All Regions';
+    const found = locationOptions.find((opt) => opt.val === locationFilter);
+    return found ? found.label : locationFilter;
+  }, [locationFilter, locationOptions, isRTL]);
+
+  const statusOptions = useMemo(() => [
+    { val: 'الكل', label: isRTL ? 'جميع الحالات' : 'All Statuses' },
+    { val: isRTL ? 'متاح للتسكين' : 'Available for Accommodation', label: isRTL ? 'متاح للتسكين' : 'Available for Accommodation' },
+    { val: isRTL ? 'محجوز بالكامل' : 'Fully Booked', label: isRTL ? 'محجوز بالكامل' : 'Fully Booked' },
+  ], [isRTL]);
+
+  const selectedStatusLabel = useMemo(() => {
+    if (statusFilter === 'الكل') return isRTL ? 'جميع الحالات' : 'All Statuses';
+    const found = statusOptions.find((opt) => opt.val === statusFilter);
+    return found ? found.label : statusFilter;
+  }, [statusFilter, statusOptions, isRTL]);
 
   // Filtering
   const filteredHotels = useMemo(() => {
@@ -245,7 +288,7 @@ export default function HotelsPage() {
 
           {/* Action / Filter Bar Card */}
           <div
-            className={`bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-5 shadow-2xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 transition-all duration-400 transform ${
+            className={`relative z-20 bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-5 shadow-2xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 transition-all duration-400 transform ${
               isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
             }`}
           >
@@ -272,72 +315,83 @@ export default function HotelsPage() {
 
             {/* Filters and Actions */}
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              {/* Region Filter */}
-              <div className="relative flex-1 sm:flex-none min-w-[130px]">
-                <select
-                  value={locationFilter}
-                  onChange={(e) => setLocationFilter(e.target.value)}
-                  className={`w-full appearance-none bg-[#f8fafc] hover:bg-slate-100/80 border border-slate-200/80 rounded-xl py-2.5 text-xs sm:text-sm text-slate-700 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-emerald-500 transition shadow-2xs ${
-                    isRTL ? 'pr-3.5 pl-8 text-right' : 'pl-3.5 pr-8 text-left'
+              {/* Region Filter Dropdown */}
+              <div className="relative z-30 flex-1 sm:flex-none" ref={locationDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsLocationFilterOpen(!isLocationFilterOpen);
+                    setIsStatusFilterOpen(false);
+                  }}
+                  className={`w-full sm:w-auto border px-3.5 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition cursor-pointer shadow-2xs active:scale-[0.98] ${
+                    locationFilter !== 'الكل'
+                      ? 'bg-emerald-50/70 border-emerald-300 text-emerald-800'
+                      : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'
                   }`}
                 >
-                  <option value="الكل">
-                    {isRTL ? 'المنطقة: جميع المناطق' : 'Region: All Regions'}
-                  </option>
-                  <option value={isRTL ? 'مكة المكرمة' : 'Makkah'}>
-                    {t('hotels.makkah', 'مكة المكرمة')}
-                  </option>
-                  <option value={isRTL ? 'المدينة المنورة' : 'Madinah'}>
-                    {t('hotels.madinah', 'المدينة المنورة')}
-                  </option>
-                </select>
-                <ChevronDown
-                  className={`w-4 h-4 text-slate-500 absolute top-1/2 -translate-y-1/2 pointer-events-none ${
-                    isRTL ? 'left-2.5' : 'right-2.5'
-                  }`}
-                />
+                  <Filter className={`w-3.5 h-3.5 ${locationFilter !== 'الكل' ? 'text-emerald-600' : 'text-slate-500'}`} />
+                  <span>{selectedLocationLabel}</span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isLocationFilterOpen ? 'rotate-180 text-emerald-600' : 'text-slate-400'}`} />
+                </button>
+
+                {isLocationFilterOpen && (
+                  <div className={`absolute ${isRTL ? 'left-0' : 'right-0'} mt-2 w-48 bg-white border border-slate-100 rounded-xl shadow-xl py-1.5 z-50 animate-fadeIn`}>
+                    {locationOptions.map((opt) => (
+                      <button
+                        key={opt.val}
+                        onClick={() => {
+                          setLocationFilter(opt.val);
+                          setIsLocationFilterOpen(false);
+                        }}
+                        className={`w-full text-start px-4 py-2 text-xs font-semibold hover:bg-slate-50 transition cursor-pointer ${
+                          locationFilter === opt.val ? 'text-emerald-600 font-bold bg-emerald-50/50' : 'text-slate-700'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* Status Filter */}
-              <div className="relative flex-1 sm:flex-none min-w-[120px]">
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className={`w-full appearance-none bg-[#f8fafc] hover:bg-slate-100/80 border border-slate-200/80 rounded-xl py-2.5 text-xs sm:text-sm text-slate-700 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-emerald-500 transition shadow-2xs ${
-                    isRTL ? 'pr-3.5 pl-8 text-right' : 'pl-3.5 pr-8 text-left'
+              {/* Status Filter Dropdown */}
+              <div className="relative z-30 flex-1 sm:flex-none" ref={statusDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsStatusFilterOpen(!isStatusFilterOpen);
+                    setIsLocationFilterOpen(false);
+                  }}
+                  className={`w-full sm:w-auto border px-3.5 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition cursor-pointer shadow-2xs active:scale-[0.98] ${
+                    statusFilter !== 'الكل'
+                      ? 'bg-emerald-50/70 border-emerald-300 text-emerald-800'
+                      : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'
                   }`}
                 >
-                  <option value="الكل">
-                    {isRTL ? 'الحالة: الكل' : 'Status: All'}
-                  </option>
-                  <option
-                    value={
-                      isRTL ? 'متاح للتسكين' : 'Available for Accommodation'
-                    }
-                  >
-                    {isRTL ? 'متاح للتسكين' : 'Available for Accommodation'}
-                  </option>
-                  <option
-                    value={isRTL ? 'محجوز بالكامل' : 'Fully Booked'}
-                  >
-                    {isRTL ? 'محجوز بالكامل' : 'Fully Booked'}
-                  </option>
-                </select>
-                <ChevronDown
-                  className={`w-4 h-4 text-slate-500 absolute top-1/2 -translate-y-1/2 pointer-events-none ${
-                    isRTL ? 'left-2.5' : 'right-2.5'
-                  }`}
-                />
-              </div>
+                  <Filter className={`w-3.5 h-3.5 ${statusFilter !== 'الكل' ? 'text-emerald-600' : 'text-slate-500'}`} />
+                  <span>{selectedStatusLabel}</span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isStatusFilterOpen ? 'rotate-180 text-emerald-600' : 'text-slate-400'}`} />
+                </button>
 
-              {/* Apply Filter Button */}
-              <button
-                type="button"
-                onClick={fetchHotels}
-                className="bg-[#1c2844] hover:bg-[#152037] text-white px-3.5 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shadow-xs flex items-center justify-center cursor-pointer active:scale-[0.98] whitespace-nowrap"
-              >
-                <span>{t('hotels.apply_filter', 'تطبيق التصفية')}</span>
-              </button>
+                {isStatusFilterOpen && (
+                  <div className={`absolute ${isRTL ? 'left-0' : 'right-0'} mt-2 w-56 bg-white border border-slate-100 rounded-xl shadow-xl py-1.5 z-50 animate-fadeIn`}>
+                    {statusOptions.map((opt) => (
+                      <button
+                        key={opt.val}
+                        onClick={() => {
+                          setStatusFilter(opt.val);
+                          setIsStatusFilterOpen(false);
+                        }}
+                        className={`w-full text-start px-4 py-2 text-xs font-semibold hover:bg-slate-50 transition cursor-pointer ${
+                          statusFilter === opt.val ? 'text-emerald-600 font-bold bg-emerald-50/50' : 'text-slate-700'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {/* Add New Hotel Button */}
               {!isReadOnly && (
@@ -356,7 +410,7 @@ export default function HotelsPage() {
           </div>
 
           {/* Hotels Grid: Responsive 1 / 2 / 3 columns */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {filteredHotels.map((hotel, idx) => (
               <div
                 key={hotel.id}
